@@ -1,0 +1,29 @@
+url: https://sdapps.surveydown.org/
+navbar:
+  structure:
+    left: [docs, reference, articles, tutorials, news]
+    right: [github]
+  components:
+    docs:
+      text: Documentation
+      href: https://www.surveydown.org/
+
+home:
+  title: Supportive Shiny Apps for surveydown
+template:
+  bootstrap: 5
+  light-switch: true
+  bslib:
+    primary: "#0054AD"
+    border-radius: 0.5rem
+    btn-border-radius: 0.25rem
+    danger: "#A6081A"
+  opengraph:
+    image:
+      src: https://sdapps.surveydown.org/reference/figures/logo.png
+      alt: "Logo for the sdApps package"
+reference:
+- title: Shiny Apps
+  contents:
+  - sd_dashboard
+  - sd_studio

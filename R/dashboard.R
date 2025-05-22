@@ -21,6 +21,8 @@
 #' @param gssencmode Character string. The GSS encryption mode for the database
 #'   connection. Defaults to `"prefer"`. Set to `"disable"` if you're having
 #'   connection issues on a secure connection like a VPN.
+#' 
+#' @importFrom surveydown sd_db_connect
 #'
 #' @return
 #' Launches a Shiny application with the survey dashboard.
@@ -198,7 +200,7 @@ sd_dashboard <- function(gssencmode = "prefer") {
             tryCatch({
                 if (is.null(config)) {
                     # Use default connection from .env with the specified gssencmode
-                    db <- sd_db_connect(gssencmode = gssencmode)
+                    db <- surveydown::sd_db_connect(gssencmode = gssencmode)
                 } else {
                     # Use provided config with the specified gssencmode
                     pool <- pool::dbPool(

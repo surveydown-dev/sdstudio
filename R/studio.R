@@ -8,13 +8,14 @@
 #'   template should be created. Defaults to the current working directory.
 #' @param template A character string specifying the template to use.
 #'   Default is "default" which uses the built-in package template.
-#'   See `sd_create_survey()` for other available templates.
+#'   See `surveydown::sd_create_survey()` for other available templates.
 #'
 #' @return No return value, called for its side effects of creating a survey
 #'   project and launching a Shiny app.
 #' @importFrom stats runif
 #' @importFrom utils head
 #' @importFrom shiny req
+#' @importFrom surveydown sd_create_survey
 #' @export
 #'
 #' @examples
@@ -31,7 +32,7 @@ sd_studio <- function(path = getwd(), template = "default") {
   app_exists <- file.exists(file.path(path, "app.R"))
 
   if (template_explicitly_provided || !survey_exists || !app_exists) {
-    sd_create_survey(path = path, template = template)
+    surveydown::sd_create_survey(path = path, template = template)
   }
   
   original_dir <- getwd()
@@ -60,9 +61,9 @@ ui_construction_tab <- function() {
     "Construction",
 
     shiny::tags$head(
-      shiny::tags$style(HTML(get_studio_css())),
+      shiny::tags$style(shiny::HTML(get_studio_css())),
       shiny::tags$script(src = "https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"),
-      shiny::tags$script(HTML(get_studio_js()))
+      shiny::tags$script(shiny::HTML(get_studio_js()))
     ),
 
     shiny::fluidRow(
