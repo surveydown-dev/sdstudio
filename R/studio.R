@@ -533,7 +533,8 @@ studio_server <- function() {
     
     # Handle modify page button
     shiny::observeEvent(input$modify_page_btn, {
-      page_id <- input$modify_page_btn
+      page_data <- input$modify_page_btn
+      page_id <- page_data$pageId
       
       if (!is.null(page_id) && page_id != "") {
         # Update the input field with current page ID
@@ -582,14 +583,15 @@ studio_server <- function() {
 
     # Handle modify content button
     shiny::observeEvent(input$modify_content_btn, {
-      content_info <- input$modify_content_btn
-      page_id <- content_info$pageId
-      content_id <- content_info$contentId
-      content_type <- content_info$contentType
+      content_data <- input$modify_content_btn
+      # Extract from the data structure
+      page_id <- content_data$pageId
+      content_id <- content_data$contentId
+      content_type <- content_data$contentType
       
       if (!is.null(page_id) && !is.null(content_id) && !is.null(content_type)) {
         # Store the content info for reference
-        modify_content_info(content_info)
+        modify_content_info(content_data)
         
         # Get current content details
         survey_structure <- parse_survey_structure()
@@ -2602,7 +2604,11 @@ get_studio_js <- function() {
         e.stopPropagation();
         
         var pageId = $(this).attr('data-page-id');
-        Shiny.setInputValue('modify_page_btn', pageId);
+        // Add timestamp to make each click unique
+        Shiny.setInputValue('modify_page_btn', {
+          pageId: pageId,
+          timestamp: new Date().getTime()
+        });
         return false;
       });
 
@@ -2614,10 +2620,12 @@ get_studio_js <- function() {
         var contentId = $(this).attr('data-content-id');
         var contentType = $(this).attr('data-content-type');
         
+        // Add timestamp to make each click unique
         Shiny.setInputValue('modify_content_btn', { 
           pageId: pageId, 
           contentId: contentId, 
-          contentType: contentType 
+          contentType: contentType,
+          timestamp: new Date().getTime()
         });
         return false;
       });
