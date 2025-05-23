@@ -1727,7 +1727,7 @@ render_content_item <- function(item) {
           inputId = "modify_content_btn_ui",
           label = NULL,
           icon = shiny::icon("edit"),
-          class = "btn-sm btn-outline-primary modify-content-btn",
+          class = "btn-sm btn-outline-success modify-content-btn",
           title = "Modify question",
           `data-content-id` = item$id,
           `data-page-id` = item$page_id,
@@ -1779,7 +1779,7 @@ render_content_item <- function(item) {
           inputId = "modify_content_btn_ui",
           label = NULL,
           icon = shiny::icon("edit"),
-          class = "btn-sm btn-outline-primary modify-content-btn",
+          class = "btn-sm btn-outline-success modify-content-btn",
           title = "Modify text",
           `data-content-id` = item$id,
           `data-page-id` = item$page_id,
@@ -2452,14 +2452,32 @@ launch_preview_server <- function(port) {
 # Function to get the custom CSS for the studio
 get_studio_css <- function() {
   return("
+    /* ===== GENERAL LAYOUT & NAVIGATION ===== */
     .navbar:not(.fixed-bottom):not(.navbar-fixed-bottom):not(.navbar-fixed-bottom)+div>.tab-content>.tab-pane {
       margin-top: 10px !important;
     }
+
+    /* ===== TAB ENLARGEMENT ===== */
+    .navbar-nav .nav-link {
+      font-size: 1.1rem;
+    }
+    
+    /* ===== CODE EDITOR STYLING ===== */
     .shiny-ace.ace_editor {
       margin-bottom: 0.1rem !important;
     }
     
-    /* Structure styling */
+    /* ===== MODAL & FORM STYLING ===== */
+    .modal-body textarea {
+      height: 200px;
+      font-family: Monaco, 'Lucida Console', monospace;
+    }
+
+    .modal-body input[type='text'] {
+      font-family: Monaco, 'Lucida Console', monospace;
+    }
+    
+    /* ===== PAGE STRUCTURE ===== */
     .page-header {
       background-color: #cce5ff; 
       padding: 10px; 
@@ -2469,6 +2487,7 @@ get_studio_css <- function() {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      font-family: Monaco, 'Lucida Console', monospace;
     }
     
     .page-header:hover {
@@ -2479,81 +2498,72 @@ get_studio_css <- function() {
       margin-left: 10px;
     }
     
-    .page-header .drag-handle {
-      cursor: move;
-      margin-right: 10px;
-      color: #777;
-    }
-    
-    .page-header .drag-handle:hover {
-      color: #333;
-    }
-    
     .page-actions {
       margin-left: auto;
     }
-
-    .question-item {
-      margin-left: 5px; 
-      margin-bottom: 10px; 
-      padding: 5px 5px 5px 25px; 
-      border-left: 3px solid #5bc0de; 
-      background-color: #f0f0f0;
-      position: relative;
-    }
     
-    .question-item .drag-handle {
-      position: absolute;
-      left: 5px;
-      cursor: move;
-      color: #777;
-    }
-    
-    .question-item .drag-handle:hover {
-      color: #333;
-    }
-    
-    /* Text section styling */
+    /* ===== CONTENT ITEMS ===== */
+    /* Base styling for content items */
+    .question-item, 
     .text-item {
       margin-left: 5px; 
       margin-bottom: 10px; 
       padding: 5px 5px 5px 25px; 
-      border-left: 3px solid #28a745; 
-      background-color: #e3e3e3;
       position: relative;
+      display: flex;
+      align-items: center;
+      font-family: Monaco, 'Lucida Console', monospace;
+      font-size: 0.9rem;
     }
     
+    /* Question-specific styling */
+    .question-item {
+      border-left: 3px solid #5bc0de; 
+      background-color: #f0f0f0;
+    }
+    
+    /* Text-specific styling */
+    .text-item {
+      border-left: 3px solid #28a745; 
+      background-color: #e3e3e3;
+    }
+    
+    /* ===== INTERACTIVE ELEMENTS ===== */
+    /* Drag handles - unified styling */
+    .page-header .drag-handle,
+    .question-item .drag-handle,
     .text-item .drag-handle {
-      position: absolute;
-      left: 5px;
       cursor: move;
       color: #777;
     }
     
+    .page-header .drag-handle {
+      margin-right: 10px;
+    }
+    
+    .question-item .drag-handle,
+    .text-item .drag-handle {
+      position: absolute;
+      left: 5px;
+    }
+    
+    /* Drag handle hover effects */
+    .page-header .drag-handle:hover,
+    .question-item .drag-handle:hover,
     .text-item .drag-handle:hover {
       color: #333;
     }
-
-    .question-item, .text-item {
-      display: flex;
-      align-items: center;
-    }
-
+    
+    /* Action buttons */
     .content-actions {
       margin-right: 5px;
     }
-
-    .delete-content-btn, .delete-page-btn {
-      padding: 2px 6px;
-      font-size: 0.8rem;
-    }
-
-    /* Ghost class for sortable.js */
+    
+    /* ===== DRAG & DROP EFFECTS ===== */
     .sortable-ghost {
       opacity: 0.4;
     }
     
-    /* Drop placeholder */
     .sortable-placeholder {
       background-color: #f9f9f9;
       border: 1px dashed #ccc;
@@ -2566,7 +2576,9 @@ get_studio_css <- function() {
 get_studio_js <- function() {
   return("
     $(document).ready(function() {
-      // Handle undo/redo commands from Shiny
+      
+      /* ===== SHINY MESSAGE HANDLERS ===== */
+      // Ace editor undo/redo commands
       Shiny.addCustomMessageHandler('aceUndo', function(editorId) {
         var editor = ace.edit(editorId);
         editor.undo();
@@ -2585,7 +2597,7 @@ get_studio_js <- function() {
         editor.focus();
       });
       
-      // Handle modal show/hide commands from Shiny
+      // Modal control handlers
       Shiny.addCustomMessageHandler('showModal', function(modalId) {
         $('#' + modalId).modal('show');
       });
@@ -2598,13 +2610,32 @@ get_studio_js <- function() {
         $('#' + data.modalId).text(data.title);
       });
 
-      // Handle modify button clicks
+      /* ===== MODAL MANAGEMENT ===== */
+      // Function to reset modal content
+      function resetModifyModal() {
+        // Clear any cached form values
+        $('#modify-content-modal .modal-body input, #modify-content-modal .modal-body textarea, #modify-content-modal .modal-body select').val('');
+        
+        // Reset modal title
+        $('#modify-content-modal-title').text('Modify Content');
+      }
+
+      // Modal event handlers
+      $('#modify-content-modal').on('hidden.bs.modal', function() {
+        resetModifyModal();
+      });
+
+      $('#modify-content-modal').on('show.bs.modal', function() {
+        resetModifyModal();
+      });
+
+      /* ===== BUTTON EVENT HANDLERS ===== */
+      // Modify button handlers
       $(document).off('click', '.modify-page-btn').on('click', '.modify-page-btn', function(e) {
         e.preventDefault();
         e.stopPropagation();
         
         var pageId = $(this).attr('data-page-id');
-        // Add timestamp to make each click unique
         Shiny.setInputValue('modify_page_btn', {
           pageId: pageId,
           timestamp: new Date().getTime()
@@ -2620,7 +2651,6 @@ get_studio_js <- function() {
         var contentId = $(this).attr('data-content-id');
         var contentType = $(this).attr('data-content-type');
         
-        // Add timestamp to make each click unique
         Shiny.setInputValue('modify_content_btn', { 
           pageId: pageId, 
           contentId: contentId, 
@@ -2630,29 +2660,41 @@ get_studio_js <- function() {
         return false;
       });
 
-      // Function to reset modal content
-      function resetModifyModal() {
-        // Clear any cached form values
-        $('#modify-content-modal .modal-body input, #modify-content-modal .modal-body textarea, #modify-content-modal .modal-body select').val('');
+      // Delete confirmation handlers
+      $(document).off('click', '.delete-page-btn').on('click', '.delete-page-btn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
         
-        // Reset modal title
-        $('#modify-content-modal-title').text('Modify Content');
-      }
-
-      // Reset modal when it's hidden
-      $('#modify-content-modal').on('hidden.bs.modal', function() {
-        resetModifyModal();
+        var pageId = $(this).attr('data-page-id');
+        if (confirm('Are you sure you want to delete page \"' + pageId + '\"? This action cannot be undone.')) {
+          Shiny.setInputValue('delete_page_btn', pageId);
+        }
+        return false;
+      });
+      
+      $(document).off('click', '.delete-content-btn').on('click', '.delete-content-btn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        var pageId = $(this).attr('data-page-id');
+        var contentId = $(this).attr('data-content-id');
+        var contentType = $(this).closest('[data-content-type]').attr('data-content-type');
+        
+        if (confirm('Are you sure you want to delete this ' + contentType + '? This action cannot be undone.')) {
+          Shiny.setInputValue('delete_content_btn', { 
+            pageId: pageId, 
+            contentId: contentId, 
+            contentType: contentType 
+          });
+        }
+        return false;
       });
 
-      // Also reset when showing to ensure clean state
-      $('#modify-content-modal').on('show.bs.modal', function() {
-        resetModifyModal();
-      });
-
-      // Initialize toggle functionality after DOM is ready
+      /* ===== UI INTERACTION HANDLERS ===== */
+      // Page toggle functionality
       function initToggle() {
         $('.page-header').off('click').on('click', function(e) {
-          // Don't toggle if clicking on drag handle or delete button
+          // Don't toggle if clicking on drag handle or action buttons
           if (!$(e.target).hasClass('drag-handle') && 
               !$(e.target).closest('.drag-handle').length &&
               !$(e.target).hasClass('delete-page-btn') &&
@@ -2671,52 +2713,17 @@ get_studio_js <- function() {
           }
         });
       }
-      
-      // Add delete confirmation handlers
-      function initDeleteConfirmations() {
-        // Page delete confirmation
-        $(document).off('click', '.delete-page-btn').on('click', '.delete-page-btn', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          
-          var pageId = $(this).attr('data-page-id');
-          if (confirm('Are you sure you want to delete page \"' + pageId + '\"? This action cannot be undone.')) {
-            Shiny.setInputValue('delete_page_btn', pageId);
-          }
-          return false;
-        });
-        
-        // Content delete confirmation
-        $(document).off('click', '.delete-content-btn').on('click', '.delete-content-btn', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          
-          var pageId = $(this).attr('data-page-id');
-          var contentId = $(this).attr('data-content-id');
-          var contentType = $(this).closest('[data-content-type]').attr('data-content-type');
-          
-          if (confirm('Are you sure you want to delete this ' + contentType + '? This action cannot be undone.')) {
-            Shiny.setInputValue('delete_content_btn', { 
-              pageId: pageId, 
-              contentId: contentId, 
-              contentType: contentType 
-            });
-          }
-          return false;
-        });
-      }
-      
+
+      /* ===== DRAG & DROP FUNCTIONALITY ===== */
       // Initialize drag and drop functionality
       function initSortable() {
-        // Clean up and reattach all sortable instances
-        
         // Pages sortable
         if (document.getElementById('pages-container')) {
           new Sortable(document.getElementById('pages-container'), {
             animation: 150,
             handle: '.page-drag-handle',
             ghostClass: 'sortable-ghost',
-            filter: '.delete-page-btn, .page-actions, .modify-page-btn', // Updated this line
+            filter: '.delete-page-btn, .page-actions, .modify-page-btn',
             preventOnFilter: true,
             onEnd: function(evt) {
               // Gather the new page order
@@ -2725,7 +2732,7 @@ get_studio_js <- function() {
                 pageOrder.push($(this).attr('data-page-id'));
               });
               
-              // Send both the separation trigger and page order to Shiny
+              // Send page order to Shiny
               Shiny.setInputValue('page_drag_completed', {
                 order: pageOrder,
                 timestamp: new Date().getTime()
@@ -2741,10 +2748,10 @@ get_studio_js <- function() {
             animation: 150,
             handle: '.drag-handle',
             ghostClass: 'sortable-ghost',
-            filter: '.delete-content-btn, .content-actions, .modify-content-btn', // Updated this line
+            filter: '.delete-content-btn, .content-actions, .modify-content-btn',
             preventOnFilter: true,
             onEnd: function(evt) {
-              // Create an array of objects
+              // Create an array of content order
               var contentOrder = [];
               
               // Select all direct children of the container
@@ -2777,7 +2784,7 @@ get_studio_js <- function() {
                   serializedOrder.push(contentOrder[i].id);
                 }
                 
-                // Send event to Shiny with strict string format
+                // Send event to Shiny
                 Shiny.setInputValue('content_drag_completed', {
                   pageId: pageId,
                   order: serializedOrder,
@@ -2789,23 +2796,24 @@ get_studio_js <- function() {
         });
       }
 
-      // Ensure sortable is reinitialized whenever the DOM changes
+      /* ===== DOM MANAGEMENT & INITIALIZATION ===== */
+      // Initialize all functionality together
+      function initializeAll() {
+        initToggle();
+        initSortable();
+      }
+
+      // Ensure functionality is reinitialized whenever the DOM changes
       $(document).on('shiny:value', function(event) {
         if (event.name === 'survey_structure') {
           // Short delay to ensure DOM is updated
-          setTimeout(function() {
-            initToggle();
-            initDeleteConfirmations(); // Initialize delete confirmations
-            initSortable();
-          }, 100);
+          setTimeout(initializeAll, 100);
         }
       });
       
       // Watch for changes to the structure output
       var observer = new MutationObserver(function(mutations) {
-        initToggle();
-        initDeleteConfirmations(); // Initialize delete confirmations
-        initSortable();
+        initializeAll();
       });
       
       // Start observing changes to the survey structure
@@ -2814,10 +2822,8 @@ get_studio_js <- function() {
         observer.observe(target, { childList: true, subtree: true });
       }
       
-      // Initialize right away on document ready
-      initToggle();
-      initDeleteConfirmations();
-      initSortable();
+      // Initialize everything on document ready
+      initializeAll();
     });
   ")
 }
