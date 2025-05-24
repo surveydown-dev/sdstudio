@@ -1167,6 +1167,12 @@ reorder_pages <- function(new_order, editor_content) {
     return(NULL)
   }
   
+  # Ensure new_order is a character vector
+  if (is.list(new_order)) {
+    new_order <- unlist(new_order)
+  }
+  new_order <- as.character(new_order)
+  
   if (is.character(editor_content) && length(editor_content) == 1) {
     editor_content <- strsplit(editor_content, "\n")[[1]]
   }
@@ -1207,9 +1213,21 @@ reorder_pages <- function(new_order, editor_content) {
   first_page_start <- min(sapply(page_blocks, function(block) block$start))
   last_page_end <- max(sapply(page_blocks, function(block) block$end))
   
+  # Build page content with blank lines between pages
+  page_content_list <- list()
+  for (i in seq_along(new_order)) {
+    page_id <- new_order[i]
+    page_content_list[[length(page_content_list) + 1]] <- page_blocks[[page_id]]$content
+    
+    # Add blank line after each page except the last one
+    if (i < length(new_order)) {
+      page_content_list[[length(page_content_list) + 1]] <- ""
+    }
+  }
+  
   result <- c(
     editor_content[1:(first_page_start-1)],
-    unlist(lapply(new_order, function(page_id) page_blocks[[page_id]]$content)),
+    unlist(page_content_list),
     if(last_page_end < length(editor_content)) editor_content[(last_page_end+1):length(editor_content)] else NULL
   )
   
@@ -1406,7 +1424,7 @@ r_chunk_separation <- function(editor_content) {
     result <- result[-length(result)]
   }
   
-  return(paste(result, collapse = "\n"))
+  return(clean_consecutive_empty_lines(paste(result, collapse = "\n")))
 }
 
 # Find the end of a function call by tracking parentheses
@@ -1551,6 +1569,29 @@ parse_survey_structure <- function() {
   }
   
   return(list(pages = pages, page_ids = page_ids))
+}
+
+# Clean consecutive empty lines in a text string or vector
+clean_consecutive_empty_lines <- function(content) {
+  if (is.character(content) && length(content) == 1) {
+    content <- strsplit(content, "\n")[[1]]
+  }
+  
+  result <- character(0)
+  prev_empty <- FALSE
+  
+  for (line in content) {
+    current_empty <- trimws(line) == ""
+    
+    # Only add empty line if previous wasn't empty
+    if (!(prev_empty && current_empty)) {
+      result <- c(result, line)
+    }
+    
+    prev_empty <- current_empty
+  }
+  
+  return(paste(result, collapse = "\n"))
 }
 
 # Function to render the survey structure UI
