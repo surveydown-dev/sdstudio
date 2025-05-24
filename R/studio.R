@@ -784,9 +784,9 @@ studio_server <- function() {
         
         if (!is.null(updated_content)) {
           shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
-          survey_structure$refresh()
         } else {
           shiny::showNotification("Failed to reorder pages", type = "error")
+          survey_structure$refresh()
         }
       }
     }, ignoreInit = TRUE)
@@ -820,12 +820,13 @@ studio_server <- function() {
         if (!is.null(updated_content)) {
           updated_content <- r_chunk_separation(updated_content)
           shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
-          survey_structure$refresh()
         } else {
           shiny::showNotification(paste("Failed to reorder content in page", page_id), type = "error")
+          survey_structure$refresh()
         }
       }, error = function(e) {
         shiny::showNotification(paste("Error:", e$message), type = "error")
+        survey_structure$refresh()
       })
     }, ignoreInit = TRUE)
     
