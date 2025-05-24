@@ -792,8 +792,11 @@ studio_server <- function() {
 
     # Handle content drag and drop reordering
     shiny::observeEvent(input$content_drag_completed, {
-      page_id <- input$content_drag_completed$pageId
+      from_page_id <- input$content_drag_completed$fromPageId
+      to_page_id <- input$content_drag_completed$toPageId
       flat_order <- input$content_drag_completed$order
+      is_cross_page <- input$content_drag_completed$isCrossPage
+      
       current_content <- input$survey_editor
       separated_content <- r_chunk_separation(current_content)
       
@@ -812,15 +815,36 @@ studio_server <- function() {
       }
       
       tryCatch({
-        check_and_separate_content(page_id, content_list, current_content, session)
-        updated_content <- reorder_page_content(page_id, content_list, current_content)
-        
-        if (!is.null(updated_content)) {
-          updated_content <- r_chunk_separation(updated_content)
-          shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
+        if (is_cross_page) {
+          # Handle cross-page move
+          updated_content <- handle_cross_page_content_move(
+            from_page_id, to_page_id, content_list, current_content
+          )
+          
+          if (!is.null(updated_content)) {
+            updated_content <- r_chunk_separation(updated_content)
+            shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
+            shiny::showNotification(
+              paste("Content moved from page", from_page_id, "to page", to_page_id), 
+              type = "message"
+            )
+            survey_structure$refresh()
+          } else {
+            shiny::showNotification("Failed to move content between pages", type = "error")
+            survey_structure$refresh()
+          }
         } else {
-          shiny::showNotification(paste("Failed to reorder content in page", page_id), type = "error")
-          survey_structure$refresh()
+          # Handle within-page reordering (existing logic)
+          check_and_separate_content(to_page_id, content_list, current_content, session)
+          updated_content <- reorder_page_content(to_page_id, content_list, current_content)
+          
+          if (!is.null(updated_content)) {
+            updated_content <- r_chunk_separation(updated_content)
+            shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
+          } else {
+            shiny::showNotification(paste("Failed to reorder content in page", to_page_id), type = "error")
+            survey_structure$refresh()
+          }
         }
       }, error = function(e) {
         shiny::showNotification(paste("Error:", e$message), type = "error")
@@ -1592,6 +1616,108 @@ clean_consecutive_empty_lines <- function(content) {
   }
   
   return(paste(result, collapse = "\n"))
+}
+
+# Handle moving content between pages
+handle_cross_page_content_move <- function(from_page_id, to_page_id, target_content_list, editor_content) {
+  if (is.null(editor_content) || is.null(from_page_id) || is.null(to_page_id)) {
+    return(NULL)
+  }
+  
+  if (is.character(editor_content) && length(editor_content) == 1) {
+    editor_content <- strsplit(editor_content, "\n")[[1]]
+  }
+  
+  survey_structure <- parse_survey_structure()
+  if (is.null(survey_structure) || !("pages" %in% names(survey_structure))) {
+    return(NULL)
+  }
+  
+  # Get content items that need to be moved
+  content_to_move <- list()
+  for (item in target_content_list) {
+    if (item$id %in% names(survey_structure$pages[[from_page_id]])) {
+      content_to_move[[item$id]] <- survey_structure$pages[[from_page_id]][[item$id]]
+    }
+  }
+  
+  if (length(content_to_move) == 0) {
+    return(NULL)
+  }
+  
+  # Remove content from source page
+  temp_content <- editor_content
+  for (content_id in names(content_to_move)) {
+    content_item <- content_to_move[[content_id]]
+    content_type <- if (content_item$is_question) "question" else "text"
+    temp_content <- delete_content_from_survey_lines(from_page_id, content_id, content_type, temp_content)
+    if (is.null(temp_content)) {
+      return(NULL)
+    }
+  }
+  
+  # Add content to target page in the specified order
+  result_content <- add_content_to_target_page(to_page_id, content_to_move, target_content_list, temp_content)
+  
+  return(paste(result_content, collapse = "\n"))
+}
+
+# Delete content from survey (working with lines array)
+delete_content_from_survey_lines <- function(page_id, content_id, content_type, editor_lines) {
+  # Similar to delete_content_from_survey but works with lines array
+  # Implementation needed based on your existing delete_content_from_survey function
+  editor_content_str <- paste(editor_lines, collapse = "\n")
+  result_str <- delete_content_from_survey(page_id, content_id, content_type, editor_content_str)
+  if (is.null(result_str)) return(NULL)
+  return(strsplit(result_str, "\n")[[1]])
+}
+
+# Add content to target page
+add_content_to_target_page <- function(page_id, content_items, target_order, editor_lines) {
+  # Find target page boundaries
+  page_start_pattern <- paste0("::: \\{.sd[_-]page id=", page_id, "\\}")
+  page_start_lines <- grep(page_start_pattern, editor_lines, perl = TRUE)
+  
+  if (length(page_start_lines) == 0) return(NULL)
+  
+  page_start_line <- page_start_lines[1]
+  page_end_line <- NULL
+  
+  for (i in page_start_line:length(editor_lines)) {
+    if (grepl("^:::$", editor_lines[i])) {
+      page_end_line <- i
+      break
+    }
+  }
+  
+  if (is.null(page_end_line)) return(NULL)
+  
+  # Find insertion point (before navigation chunks)
+  insertion_point <- find_insertion_point(editor_lines, page_start_line, page_end_line)
+  
+  # Build content to insert
+  content_to_insert <- c()
+  for (item in target_order) {
+    if (item$id %in% names(content_items)) {
+      content_item <- content_items[[item$id]]
+      if (content_item$is_question && "raw" %in% names(content_item)) {
+        content_lines <- strsplit(content_item$raw, "\n")[[1]]
+        content_to_insert <- c(content_to_insert, content_lines, "")
+      } else if (!content_item$is_question && "content" %in% names(content_item)) {
+        text_lines <- strsplit(content_item$content, "\n")[[1]]
+        content_to_insert <- c(content_to_insert, text_lines, "")
+      }
+    }
+  }
+  
+  # Insert content
+  result <- c(
+    editor_lines[1:(insertion_point-1)],
+    content_to_insert,
+    editor_lines[insertion_point:length(editor_lines)]
+  )
+  
+  return(result)
 }
 
 # Function to render the survey structure UI
@@ -2871,27 +2997,46 @@ get_studio_js <- function() {
           });
         }
         
-        // Content (questions and text) sortable - one for each page
+        // Content (questions and text) sortable
         $('.questions-container').each(function() {
           var pageId = $(this).attr('data-page-id');
           new Sortable(this, {
+            group: 'content-items', // This enables cross-container dragging
             animation: 150,
             handle: '.drag-handle',
             ghostClass: 'sortable-ghost',
-            draggable: '.question-item, .text-item', // Only allow these specific items to be dragged
-            filter: '.delete-content-btn, .content-actions, .modify-content-btn',
+            draggable: '.question-item, .text-item',
+            filter: '.delete-content-btn, .content-actions, .modify-content-btn, .add-content-btn',
             preventOnFilter: true,
+            
+            // Auto-expand collapsed pages when dragging over them
+            onMove: function(evt) {
+              var $targetContainer = $(evt.to);
+              var $targetPageHeader = $targetContainer.prev('.page-header');
+              var $targetQuestions = $targetPageHeader.next('.questions-container');
+              
+              // If the target page is collapsed, expand it
+              if ($targetQuestions.is(':hidden')) {
+                $targetQuestions.slideDown(200);
+                var $icon = $targetPageHeader.find('.toggle-icon i');
+                $icon.removeClass('fa-chevron-right').addClass('fa-chevron-down');
+              }
+              
+              return true; // Allow the move
+            },
+            
             onEnd: function(evt) {
-              // Create an array of content order
+              var fromPageId = $(evt.from).attr('data-page-id');
+              var toPageId = $(evt.to).attr('data-page-id');
+              
+              // Create an array of content order for the target page
               var contentOrder = [];
               
-              // Select only question and text items (not the add button)
-              $(this.el).children('.question-item, .text-item').each(function() {
+              $(evt.to).children('.question-item, .text-item').each(function() {
                 var $element = $(this);
                 var type = $element.attr('data-content-type');
-                
-                // Get the ID based on the content type
                 var id;
+                
                 if (type === 'question') {
                   id = $element.attr('data-question-id');
                 } else if (type === 'text') {
@@ -2906,22 +3051,21 @@ get_studio_js <- function() {
                 }
               });
               
-              // Only send if we have content
-              if (contentOrder.length > 0) {
-                // Convert to a simple array of strings
-                var serializedOrder = [];
-                for (var i = 0; i < contentOrder.length; i++) {
-                  serializedOrder.push(contentOrder[i].type);
-                  serializedOrder.push(contentOrder[i].id);
-                }
-                
-                // Send event to Shiny
-                Shiny.setInputValue('content_drag_completed', {
-                  pageId: pageId,
-                  order: serializedOrder,
-                  timestamp: new Date().getTime()
-                }, {priority: 'event'});
+              // Convert to serialized format
+              var serializedOrder = [];
+              for (var i = 0; i < contentOrder.length; i++) {
+                serializedOrder.push(contentOrder[i].type);
+                serializedOrder.push(contentOrder[i].id);
               }
+              
+              // Send event to Shiny with both source and target page info
+              Shiny.setInputValue('content_drag_completed', {
+                fromPageId: fromPageId,
+                toPageId: toPageId,
+                order: serializedOrder,
+                isCrossPage: fromPageId !== toPageId,
+                timestamp: new Date().getTime()
+              }, {priority: 'event'});
             }
           });
         });
