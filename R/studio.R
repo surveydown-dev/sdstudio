@@ -773,7 +773,6 @@ studio_server <- function() {
       
       if (!identical(current_content, separated_content)) {
         shinyAce::updateAceEditor(session, "survey_editor", value = separated_content)
-        Sys.sleep(0.1)
         current_content <- separated_content
       } else {
         current_content <- input$survey_editor
@@ -800,7 +799,6 @@ studio_server <- function() {
       
       if (!identical(current_content, separated_content)) {
         shinyAce::updateAceEditor(session, "survey_editor", value = separated_content)
-        Sys.sleep(0.1)
         current_content <- separated_content
       } else {
         current_content <- input$survey_editor
@@ -2378,8 +2376,6 @@ check_and_separate_content <- function(page_id, content_list, current_content, s
       shinyAce::updateAceEditor(session, "survey_editor", value = current_content)
       shiny::showNotification("Separated multiple functions in dragged content", 
                             type = "message", duration = 2)
-      # Brief pause to let the editor update
-      Sys.sleep(0.1)
     }
   }
 }
@@ -2898,11 +2894,8 @@ get_studio_js <- function() {
       }
 
       // Ensure functionality is reinitialized whenever the DOM changes
-      $(document).on('shiny:value', function(event) {
-        if (event.name === 'survey_structure') {
-          // Short delay to ensure DOM is updated
-          setTimeout(initializeAll, 100);
-        }
+      $(document).on('shiny:idle', function(event) {
+        initializeAll();
       });
       
       // Watch for changes to the structure output
