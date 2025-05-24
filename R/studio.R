@@ -2737,6 +2737,21 @@ get_studio_css <- function() {
       font-size: 0.9rem;
     }
     
+    /* Rounded corners for first and last content items */
+    /* First content item */
+    .questions-container > .question-item:nth-child(2),
+    .questions-container > .text-item:nth-child(2) {
+      border-top-left-radius: 5px;
+      border-top-right-radius: 5px;
+    }
+
+    /* Last content item */
+    .questions-container > .question-item:last-child,
+    .questions-container > .text-item:last-child {
+      border-bottom-left-radius: 5px;
+      border-bottom-right-radius: 5px;
+    }
+
     /* Question-specific styling */
     .question-item {
       border-left: 3px solid #5bc0de; 
