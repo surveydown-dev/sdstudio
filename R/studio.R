@@ -116,78 +116,68 @@ ui_construction_tab <- function() {
             )
           )
         )
-      )
-    ),
+      ),
 
-    shiny::fluidRow(
-      # Left - Add Content Panel
-      shiny::column(
-        width = 3,
-        style = "border-right: 1px solid #ddd;",
-        
-        # Add Page UI
-        shiny::h5("Add Page", 
-            style = "text-align: center; background-color: #ffe0b2; padding: 6px; margin-bottom: 10px; border-radius: 4px;"),
-        shiny::wellPanel(
-          style = "background-color: #fff9f0; border-color: #ffe0b2; padding: 0.5rem;",
-          shiny::textInput("new_page_id", "Page ID:", placeholder = "Enter page ID (e.g., welcome, questions, end)"),
-          shiny::actionButton("add_page_btn", "Add Page", class = "btn-success", style = "width: 100%;")
-        ),
-        
-        shiny::tags$hr(style = "margin: 1rem 0;"),
-
-        # Add Content UI
-        shiny::h5("Add Content", 
-            style = "text-align: center; background-color: #ffe0b2; padding: 6px; margin-bottom: 10px; border-radius: 4px;"),
-        shiny::wellPanel(
-          style = "background-color: #fff3e0; border-color: #ffe0b2; padding: 0.5rem;",
+      shiny::div(
+        id = "add-content-modal",
+        class = "modal fade",
+        tabindex = "-1",
+        shiny::div(
+          class = "modal-dialog",
           shiny::div(
-            style = "overflow-y: auto; height: calc(100vh - 368px);",
-            
-            # Inputs of content
-            shiny::selectInput("page_for_content", "To Page:", choices = NULL),
-            shiny::selectInput("content_type", "Content Type:", 
-                      choices = c("Text" = "text", "Question" = "question")),
-            
-            # Conditional UI based on content type
-            shiny::conditionalPanel(
-              condition = "input.content_type == 'text'",
-              shiny::textAreaInput("text_content", "Text:", rows = 3, 
-                                placeholder = "Enter markdown text to add to the page")
+            class = "modal-content",
+            shiny::div(
+              class = "modal-header",
+              shiny::h5(id = "add-content-modal-title", "Add Content to Page", class = "modal-title"),
+              shiny::tags$button(type = "button", class = "btn-close", `data-bs-dismiss` = "modal")
             ),
-            
-            shiny::conditionalPanel(
-              condition = "input.content_type == 'question'",
-              shiny::selectInput("question_type", "Question Type:", 
-                        choices = c(
-                          "Multiple Choice" = "mc",
-                          "Text Input" = "text",
-                          "Textarea" = "textarea",
-                          "Numeric Input" = "numeric",
-                          "Multiple Choice Buttons" = "mc_buttons",
-                          "Multiple Choice Multiple" = "mc_multiple",
-                          "Multiple Choice Multiple Buttons" = "mc_multiple_buttons",
-                          "Select Dropdown" = "select",
-                          "Slider" = "slider",
-                          "Slider Numeric" = "slider_numeric",
-                          "Date" = "date",
-                          "Date Range" = "daterange"
-                        )),
-              shiny::textInput("question_id", "Question ID:", placeholder = "Enter unique question ID"),
-              shiny::textInput("question_label", "Question Label:", placeholder = "Enter question text")
+            shiny::div(
+              class = "modal-body",
+              shiny::uiOutput("add_content_form")
             ),
-            
-            # Add button
-            shiny::actionButton("add_content_btn", "Add Content", class = "btn-primary", style = "width: 100%; margin-top: 10px;")
+            shiny::div(
+              class = "modal-footer",
+              shiny::actionButton("add_content_confirm", "Add Content", class = "btn btn-primary"),
+              shiny::tags$button("Cancel", type = "button", class = "btn btn-secondary", `data-bs-dismiss` = "modal")
+            )
           )
         )
       ),
-      
-      # Middle - Structure Panel
-      shiny::column(
-        width = 4,
-        style = "border-right: 1px solid #ddd;",
+
+      shiny::div(
+        id = "add-page-modal",
+        class = "modal fade",
+        tabindex = "-1",
         shiny::div(
+          class = "modal-dialog",
+          shiny::div(
+            class = "modal-content",
+            shiny::div(
+              class = "modal-header",
+              shiny::h5("Add A New Page", class = "modal-title"),
+              shiny::tags$button(type = "button", class = "btn-close", `data-bs-dismiss` = "modal")
+            ),
+            shiny::div(
+              class = "modal-body",
+              shiny::textInput("add_page_id_input", "Page ID:", 
+                              placeholder = "Enter page ID")
+            ),
+            shiny::div(
+              class = "modal-footer",
+              shiny::actionButton("add_page_confirm", "Add Page", class = "btn btn-success"),
+              shiny::tags$button("Cancel", type = "button", class = "btn btn-secondary", `data-bs-dismiss` = "modal")
+            )
+          )
+        )
+      )
+    ),
+
+    shiny::fluidRow(      
+      # Left - Structure Panel
+      shiny::column(
+        width = 5,
+        style = "border-right: 1px solid #ddd;",
+        shiny::div(          
           # Structure header with undo/redo buttons
           shiny::div(
             style = "display: flex; justify-content: space-between; align-items: center; background-color: #cce5ff; padding: 6px; margin-bottom: 10px; border-radius: 4px;",
@@ -217,8 +207,20 @@ ui_construction_tab <- function() {
           # Structure content panel
           shiny::wellPanel(
             style = "background-color: #f0f8ff; border-color: #cce5ff; padding: 0.5rem;",
+            
+            # Add A New Page button
             shiny::div(
-              style = "overflow-y: auto; height: calc(100vh - 140px);",
+              style = "margin-bottom: 10px;",
+              shiny::actionButton(
+                "add_page_btn",
+                "Add A New Page",
+                class = "btn-success",
+                style = "width: 100%; padding: 8px; font-weight: bold;"
+              )
+            ),
+            
+            shiny::div(
+              style = "overflow-y: auto; height: calc(100vh - 180px);", # Adjust height to account for the button
               shiny::uiOutput("survey_structure")
             )
           )
@@ -227,7 +229,7 @@ ui_construction_tab <- function() {
       
       # Right - Code Panel
       shiny::column(
-        width = 5,
+        width = 7,
         style = "border-right: 1px solid #ddd;",
         shiny::div(
           # Code header with undo/redo buttons
@@ -315,6 +317,8 @@ studio_server <- function() {
     # Reactive values for modify content state
     modify_form_trigger <- shiny::reactiveVal(NULL)
     modify_content_info <- shiny::reactiveVal(NULL)
+    add_content_page_id <- shiny::reactiveVal(NULL)
+    add_form_trigger <- shiny::reactiveVal(NULL)
 
     # Setup survey.qmd editor
     output$survey_editor_ui <- shiny::renderUI({
@@ -409,6 +413,56 @@ studio_server <- function() {
       return(shiny::div("Unknown content type"))
     })
 
+    # Add content form modal
+    output$add_content_form <- shiny::renderUI({
+      # React to form trigger changes
+      form_info <- add_form_trigger()
+      
+      # If no form info, show empty state
+      if (is.null(form_info)) {
+        return(shiny::div("Select content type..."))
+      }
+      
+      # Generate form based on content type selection
+      shiny::div(
+        shiny::selectInput("add_content_type", "Content Type:", 
+                          choices = c("Text" = "text", "Question" = "question")),
+        
+        # Conditional UI based on content type
+        shiny::conditionalPanel(
+          condition = "input.add_content_type == 'text'",
+          shiny::textAreaInput("add_text_content", "Text:", rows = 3, 
+                              placeholder = "Enter markdown text to add to the page")
+        ),
+        
+        shiny::conditionalPanel(
+          condition = "input.add_content_type == 'question'",
+          shiny::selectInput("add_question_type", "Question Type:", 
+                            choices = c(
+                              "Multiple Choice" = "mc",
+                              "Text Input" = "text",
+                              "Textarea" = "textarea",
+                              "Numeric Input" = "numeric",
+                              "Multiple Choice Buttons" = "mc_buttons",
+                              "Multiple Choice Multiple" = "mc_multiple",
+                              "Multiple Choice Multiple Buttons" = "mc_multiple_buttons",
+                              "Select Dropdown" = "select",
+                              "Slider" = "slider",
+                              "Slider Numeric" = "slider_numeric",
+                              "Date" = "date",
+                              "Date Range" = "daterange"
+                            )),
+          shiny::textInput("add_question_id", "Question ID:", placeholder = "Enter unique question ID"),
+          shiny::textInput("add_question_label", "Question Label:", placeholder = "Enter question text")
+        ),
+        
+        # Debug info
+        shiny::div(style = "font-size: 0.8em; color: #666; margin-top: 10px;",
+          paste0("Adding content to page \"", form_info$page_id, "\".")
+        )
+      )
+    })
+
     # Initialize structure and preview handlers
     survey_structure <- server_structure_handlers(input, output, session)
     preview_handlers <- server_preview_handlers(input, output, session)
@@ -433,18 +487,20 @@ studio_server <- function() {
       }
     }, ignoreInit = TRUE, ignoreNULL = TRUE)
 
-    # Update page dropdown for content creation when pages change
-    shiny::observe({
-      page_ids <- survey_structure$get_page_ids()
-      if (!is.null(page_ids) && length(page_ids) > 0) {
-        shiny::updateSelectInput(session, "page_for_content", choices = page_ids)
-      }
-    })
-
-    # Handle Add Page button
+    # Handle add page button
     shiny::observeEvent(input$add_page_btn, {
-      page_id <- input$new_page_id
-      if (is.null(page_id) || page_id == "") {
+      # Clear the input field
+      shiny::updateTextInput(session, "add_page_id_input", value = "")
+      
+      # Show the modal
+      session$sendCustomMessage("showModal", "add-page-modal")
+    }, ignoreInit = TRUE, ignoreNULL = TRUE)
+
+    # Handle add page confirmation
+    shiny::observeEvent(input$add_page_confirm, {
+      page_id <- input$add_page_id_input
+      
+      if (is.null(page_id) || trimws(page_id) == "") {
         shiny::showNotification("Please enter a page ID", type = "error")
         return()
       }
@@ -456,81 +512,114 @@ studio_server <- function() {
       # Insert the new page
       updated_content <- insert_page_into_survey(page_id, current_content)
       
-      # Update editor and clear input field
-      shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
-      shiny::updateTextInput(session, "new_page_id", value = "")
-      shiny::showNotification(paste("Page", page_id, "added successfully!"), type = "message")
-      
-      # Refresh structure
-      survey_structure$refresh()
+      if (!is.null(updated_content)) {
+        # Update editor and clear input field
+        shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
+        shiny::showNotification(paste("Page", page_id, "added successfully!"), type = "message")
+        
+        # Refresh structure
+        survey_structure$refresh()
+        
+        # Hide the modal
+        session$sendCustomMessage("hideModal", "add-page-modal")
+      } else {
+        shiny::showNotification("Failed to add page. Please try again.", type = "error")
+      }
     })
-    
-    # Handle Add Content button
+
+    # Handle add content button
     shiny::observeEvent(input$add_content_btn, {
-      # Validate common inputs
-      if (is.null(input$page_for_content) || input$page_for_content == "") {
-        shiny::showNotification("Please select a page", type = "error")
-        return()
+      content_data <- input$add_content_btn
+      page_id <- content_data$pageId
+      
+      if (!is.null(page_id) && page_id != "") {
+        # Store the page ID for reference
+        add_content_page_id(page_id)
+        
+        # Update modal title
+        session$sendCustomMessage("updateModalTitle", list(
+          modalId = "add-content-modal-title",
+          title = paste("Add Content to Page:", page_id)
+        ))
+        
+        # Set the form trigger
+        add_form_trigger(list(
+          page_id = page_id,
+          timestamp = as.numeric(Sys.time()) * 1000 + sample(1:1000, 1)
+        ))
+        
+        # Show the modal
+        session$sendCustomMessage("showModal", "add-content-modal")
       }
+    }, ignoreInit = TRUE, ignoreNULL = TRUE)
+
+    # Handle add content confirmation
+    shiny::observeEvent(input$add_content_confirm, {
+      page_id <- add_content_page_id()
       
-      # Get and prepare current editor content
-      current_content <- input$survey_editor
-      current_content <- r_chunk_separation(current_content)
-      
-      # Process based on content type
-      if (input$content_type == "text") {
-        # Validate text inputs
-        if (is.null(input$text_content) || trimws(input$text_content) == "") {
-          shiny::showNotification("Please enter some text content", type = "error")
-          return()
-        }
+      if (!is.null(page_id)) {
+        # Get and prepare current editor content
+        current_content <- input$survey_editor
+        current_content <- r_chunk_separation(current_content)
         
-        # Insert the new text
-        updated_content <- insert_text_into_survey(
-          input$page_for_content,
-          input$text_content,
-          current_content
-        )
+        updated_content <- NULL
         
-        # Update editor if successful
-        if (!is.null(updated_content)) {
-          shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
-          shiny::updateTextAreaInput(session, "text_content", value = "")
-          shiny::showNotification(paste("Text added to page", input$page_for_content), type = "message")
-          survey_structure$refresh()
-        } else {
-          shiny::showNotification("Failed to add text. Check page ID and try again.", type = "error")
-        }
-        
-      } else if (input$content_type == "question") {
-        # Validate question inputs
-        if (is.null(input$question_id) || input$question_id == "") {
-          shiny::showNotification("Please enter a question ID", type = "error")
-          return()
-        }
-        
-        # Insert the new question
-        updated_content <- insert_question_into_survey(
-          input$page_for_content,
-          input$question_type,
-          input$question_id,
-          input$question_label,
-          current_content
-        )
-        
-        # Update editor if successful
-        if (!is.null(updated_content)) {
-          shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
-          shiny::updateTextInput(session, "question_id", value = "")
-          shiny::updateTextInput(session, "question_label", value = "")
-          shiny::showNotification(paste("Question", input$question_id, "added to page", input$page_for_content), type = "message")
-          survey_structure$refresh()
-        } else {
-          shiny::showNotification("Failed to add question. Check page ID and try again.", type = "error")
+        if (input$add_content_type == "text") {
+          # Validate text inputs
+          if (is.null(input$add_text_content) || trimws(input$add_text_content) == "") {
+            shiny::showNotification("Please enter some text content", type = "error")
+            return()
+          }
+          
+          # Insert the new text
+          updated_content <- insert_text_into_survey(
+            page_id,
+            input$add_text_content,
+            current_content
+          )
+          
+          if (!is.null(updated_content)) {
+            shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
+            shiny::showNotification(paste("Text added to page", page_id), type = "message")
+            survey_structure$refresh()
+            
+            # Hide the modal
+            session$sendCustomMessage("hideModal", "add-content-modal")
+          } else {
+            shiny::showNotification("Failed to add text. Check page ID and try again.", type = "error")
+          }
+          
+        } else if (input$add_content_type == "question") {
+          # Validate question inputs
+          if (is.null(input$add_question_id) || input$add_question_id == "" ||
+              is.null(input$add_question_label) || input$add_question_label == "") {
+            shiny::showNotification("Please fill in all question fields", type = "error")
+            return()
+          }
+          
+          # Insert the new question
+          updated_content <- insert_question_into_survey(
+            page_id,
+            input$add_question_type,
+            input$add_question_id,
+            input$add_question_label,
+            current_content
+          )
+          
+          if (!is.null(updated_content)) {
+            shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
+            shiny::showNotification(paste("Question", input$add_question_id, "added to page", page_id), type = "message")
+            survey_structure$refresh()
+            
+            # Hide the modal
+            session$sendCustomMessage("hideModal", "add-content-modal")
+          } else {
+            shiny::showNotification("Failed to add question. Check page ID and try again.", type = "error")
+          }
         }
       }
     })
-    
+
     # Handle modify page button
     shiny::observeEvent(input$modify_page_btn, {
       page_data <- input$modify_page_btn
@@ -1640,6 +1729,15 @@ render_survey_structure <- function(survey_structure) {
           shiny::div(
             class = "page-actions",
             style = "display: flex; gap: 5px;",
+            # Add Content button
+            shiny::actionButton(
+              inputId = "add_content_btn_ui",
+              label = NULL,
+              icon = shiny::icon("plus"),
+              class = "btn-sm btn-outline-success add-content-btn",
+              title = "Add content to this page",
+              `data-page-id` = page_id
+            ),
             # Modify page button
             shiny::actionButton(
               inputId = "modify_page_btn_ui",
@@ -2477,6 +2575,21 @@ get_studio_css <- function() {
       transition: all 0.2s ease;
     }
 
+    /* Add page button styling */
+    #add_page_btn {
+      background-color: #ffe0b2 !important;
+      border-color: #ffcc80 !important;
+      color: #f57c00 !important;
+    }
+
+    #add_page_btn:hover {
+      background-color: #ffcc80 !important;
+      border-color: #ffb74d !important;
+      color: #bf360c !important;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
     /* Code section undo/redo buttons */
     .btn-sm[style*=\"background-color: #d4edda\"]:hover {
       background-color: #b8e6c1 !important;
@@ -2653,6 +2766,42 @@ get_studio_js <- function() {
         resetModifyModal();
       });
 
+      // Function to reset add page modal
+      function resetAddPageModal() {
+        // Clear the page ID input
+        $('#add_page_id_input').val('');
+      }
+
+      // Add page modal event handlers
+      $('#add-page-modal').on('hidden.bs.modal', function() {
+        resetAddPageModal();
+      });
+
+      $('#add-page-modal').on('show.bs.modal', function() {
+        resetAddPageModal();
+      });
+
+      // Function to reset add content modal
+      function resetAddContentModal() {
+        // Clear any cached form values
+        $('#add-content-modal .modal-body input, #add-content-modal .modal-body textarea, #add-content-modal .modal-body select').val('');
+        
+        // Reset modal title
+        $('#add-content-modal-title').text('Add Content to Page');
+        
+        // Reset content type to default
+        $('#add_content_type').val('text').trigger('change');
+      }
+
+      // Add content modal event handlers
+      $('#add-content-modal').on('hidden.bs.modal', function() {
+        resetAddContentModal();
+      });
+
+      $('#add-content-modal').on('show.bs.modal', function() {
+        resetAddContentModal();
+      });
+
       /* ===== BUTTON EVENT HANDLERS ===== */
       // Modify button handlers
       $(document).off('click', '.modify-page-btn').on('click', '.modify-page-btn', function(e) {
@@ -2682,6 +2831,28 @@ get_studio_js <- function() {
           timestamp: new Date().getTime()
         });
         return false;
+      });
+
+      // Add content button handler
+      $(document).off('click', '.add-content-btn').on('click', '.add-content-btn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        var pageId = $(this).attr('data-page-id');
+        Shiny.setInputValue('add_content_btn', {
+          pageId: pageId,
+          timestamp: new Date().getTime()
+        });
+        return false;
+      });
+
+      // Add page button handler
+      $(document).off('click', '#add_page_btn').on('click', '#add_page_btn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // This will trigger the Shiny input
+        return true;
       });
 
       // Delete confirmation handlers
