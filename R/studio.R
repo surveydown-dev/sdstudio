@@ -2467,6 +2467,30 @@ get_studio_css <- function() {
       margin-bottom: 0.1rem !important;
     }
     
+    /* ===== UNDO/REDO BUTTON HOVER EFFECTS ===== */
+    /* Structure section undo/redo buttons */
+    .btn-sm[style*=\"background-color: #cce5ff\"]:hover {
+      background-color: #99d6ff !important;
+      border-color: #0056b3 !important;
+      color: #0056b3 !important;
+      transform: scale(1.05);
+      transition: all 0.2s ease;
+    }
+
+    /* Code section undo/redo buttons */
+    .btn-sm[style*=\"background-color: #d4edda\"]:hover {
+      background-color: #b8e6c1 !important;
+      border-color: #1e7e34 !important;
+      color: #1e7e34 !important;
+      transform: scale(1.05);
+      transition: all 0.2s ease;
+    }
+
+    /* Add smooth transition for all small buttons */
+    .btn-sm {
+      transition: all 0.2s ease;
+    }
+
     /* ===== MODAL & FORM STYLING ===== */
     .modal-body textarea {
       height: 200px;
