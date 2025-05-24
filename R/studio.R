@@ -65,7 +65,6 @@ ui_construction_tab <- function() {
       shiny::tags$script(src = "https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"),
       shiny::tags$script(shiny::HTML(get_studio_js())),
 
-      # Modal dialogs for modify functionality
       shiny::div(
         id = "modify-page-modal",
         class = "modal fade",
@@ -161,8 +160,6 @@ ui_construction_tab <- function() {
               class = "modal-body",
               shiny::textInput("add_page_id_input", "Page ID:", 
                               placeholder = "Enter page ID"),
-              
-              # Conditional UI for page positioning
               shiny::uiOutput("add_page_position_ui")
             ),
             shiny::div(
@@ -335,19 +332,14 @@ studio_server <- function() {
 
     # Setup modify content form modal
     output$modify_content_form <- shiny::renderUI({
-      # React to form trigger changes
       form_info <- modify_form_trigger()
       
-      # If no form info, show empty state
       if (is.null(form_info)) {
         return(shiny::div("Select content to modify..."))
       }
       
-      # Generate form based on content type
       if (form_info$type == "question") {
         current_item <- form_info$item
-        
-        # Extract current values with fallbacks
         current_type <- if("type" %in% names(current_item) && !is.null(current_item$type)) current_item$type else "mc"
         current_id <- if("id" %in% names(current_item) && !is.null(current_item$id)) current_item$id else ""
         current_label <- if("label" %in% names(current_item) && !is.null(current_item$label)) current_item$label else ""
@@ -371,8 +363,6 @@ studio_server <- function() {
                     selected = current_type),
           shiny::textInput("modify_question_id", "Question ID:", value = current_id),
           shiny::textInput("modify_question_label", "Question Label:", value = current_label),
-          
-          # Debug info
           shiny::div(style = "font-size: 0.8em; color: #666; margin-top: 10px;",
             paste0("Editing question \"", form_info$content_id, "\" on page \"", form_info$page_id, "\".")
           )
@@ -384,8 +374,6 @@ studio_server <- function() {
         
         return(shiny::div(
           shiny::textAreaInput("modify_text_content", "Text:", rows = 3, value = current_content),
-          
-          # Debug info
           shiny::div(style = "font-size: 0.8em; color: #666; margin-top: 10px;",
             paste0("Editing text on page \"", form_info$page_id, "\".")
           )
@@ -398,26 +386,20 @@ studio_server <- function() {
 
     # Add content form modal
     output$add_content_form <- shiny::renderUI({
-      # React to form trigger changes
       form_info <- add_form_trigger()
       
-      # If no form info, show empty state
       if (is.null(form_info)) {
         return(shiny::div("Select content type..."))
       }
       
-      # Generate form based on content type selection
       shiny::div(
         shiny::selectInput("add_content_type", "Content Type:", 
                           choices = c("Text" = "text", "Question" = "question")),
-        
-        # Conditional UI based on content type
         shiny::conditionalPanel(
           condition = "input.add_content_type == 'text'",
           shiny::textAreaInput("add_text_content", "Text:", rows = 3, 
                               placeholder = "Enter markdown text to add to the page")
         ),
-        
         shiny::conditionalPanel(
           condition = "input.add_content_type == 'question'",
           shiny::selectInput("add_question_type", "Question Type:", 
@@ -438,26 +420,19 @@ studio_server <- function() {
           shiny::textInput("add_question_id", "Question ID:", placeholder = "Enter unique question ID"),
           shiny::textInput("add_question_label", "Question Label:", placeholder = "Enter question text")
         ),
-        
-        # Debug info
         shiny::div(style = "font-size: 0.8em; color: #666; margin-top: 10px;",
           paste0("Adding content to page \"", form_info$page_id, "\".")
         )
       )
     })
 
-    # Add page position UI (conditional)
+    # Add page position UI
     output$add_page_position_ui <- shiny::renderUI({
-      # Get current page structure
       survey_structure <- parse_survey_structure()
-      
-      # If no pages exist or error in parsing, don't show the dropdown
       if (is.null(survey_structure) || !is.null(survey_structure$error) || 
           is.null(survey_structure$page_ids) || length(survey_structure$page_ids) == 0) {
         return(NULL)
       }
-      
-      # If pages exist, show the dropdown with the last page selected by default
       last_page <- survey_structure$page_ids[length(survey_structure$page_ids)]
       
       shiny::selectInput(
@@ -494,10 +469,7 @@ studio_server <- function() {
 
     # Handle add page button
     shiny::observeEvent(input$add_page_btn, {
-      # Clear the input field
       shiny::updateTextInput(session, "add_page_id_input", value = "")
-      
-      # Show the modal
       session$sendCustomMessage("showModal", "add-page-modal")
     }, ignoreInit = TRUE, ignoreNULL = TRUE)
 
@@ -510,31 +482,21 @@ studio_server <- function() {
         return()
       }
       
-      # Get and prepare current editor content
       current_content <- input$survey_editor
       current_content <- r_chunk_separation(current_content)
-      
-      # Determine insertion position
       below_page <- input$add_page_below
       
       # Insert the new page
       if (is.null(below_page)) {
-        # If no dropdown (no existing pages), insert at the end
         updated_content <- insert_page_into_survey(page_id, current_content)
       } else {
-        # Insert below the specified page
         updated_content <- insert_page_below_specific_page(page_id, below_page, current_content)
       }
       
       if (!is.null(updated_content)) {
-        # Update editor and clear input field
         shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
         shiny::showNotification(paste("Page", page_id, "added successfully!"), type = "message")
-        
-        # Refresh structure
         survey_structure$refresh()
-        
-        # Hide the modal
         session$sendCustomMessage("hideModal", "add-page-modal")
       } else {
         shiny::showNotification("Failed to add page. Please try again.", type = "error")
@@ -547,22 +509,16 @@ studio_server <- function() {
       page_id <- content_data$pageId
       
       if (!is.null(page_id) && page_id != "") {
-        # Store the page ID for reference
         add_content_page_id(page_id)
-        
-        # Update modal title
         session$sendCustomMessage("updateModalTitle", list(
           modalId = "add-content-modal-title",
           title = paste("Add Content to Page:", page_id)
         ))
         
-        # Set the form trigger
         add_form_trigger(list(
           page_id = page_id,
           timestamp = as.numeric(Sys.time()) * 1000 + sample(1:1000, 1)
         ))
-        
-        # Show the modal
         session$sendCustomMessage("showModal", "add-content-modal")
       }
     }, ignoreInit = TRUE, ignoreNULL = TRUE)
@@ -572,20 +528,15 @@ studio_server <- function() {
       page_id <- add_content_page_id()
       
       if (!is.null(page_id)) {
-        # Get and prepare current editor content
         current_content <- input$survey_editor
         current_content <- r_chunk_separation(current_content)
-        
         updated_content <- NULL
         
         if (input$add_content_type == "text") {
-          # Validate text inputs
           if (is.null(input$add_text_content) || trimws(input$add_text_content) == "") {
             shiny::showNotification("Please enter some text content", type = "error")
             return()
           }
-          
-          # Insert the new text
           updated_content <- insert_text_into_survey(
             page_id,
             input$add_text_content,
@@ -596,22 +547,17 @@ studio_server <- function() {
             shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
             shiny::showNotification(paste("Text added to page", page_id), type = "message")
             survey_structure$refresh()
-            
-            # Hide the modal
             session$sendCustomMessage("hideModal", "add-content-modal")
           } else {
             shiny::showNotification("Failed to add text. Check page ID and try again.", type = "error")
           }
           
         } else if (input$add_content_type == "question") {
-          # Validate question inputs
           if (is.null(input$add_question_id) || input$add_question_id == "" ||
               is.null(input$add_question_label) || input$add_question_label == "") {
             shiny::showNotification("Please fill in all question fields", type = "error")
             return()
           }
-          
-          # Insert the new question
           updated_content <- insert_question_into_survey(
             page_id,
             input$add_question_type,
@@ -624,8 +570,6 @@ studio_server <- function() {
             shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
             shiny::showNotification(paste("Question", input$add_question_id, "added to page", page_id), type = "message")
             survey_structure$refresh()
-            
-            # Hide the modal
             session$sendCustomMessage("hideModal", "add-content-modal")
           } else {
             shiny::showNotification("Failed to add question. Check page ID and try again.", type = "error")
@@ -640,13 +584,8 @@ studio_server <- function() {
       page_id <- page_data$pageId
       
       if (!is.null(page_id) && page_id != "") {
-        # Update the input field with current page ID
         shiny::updateTextInput(session, "modify_page_id_input", value = page_id)
-        
-        # Store the original page ID for reference
         session$userData$modify_page_original_id <- page_id
-        
-        # Show the modal
         session$sendCustomMessage("showModal", "modify-page-modal")
       }
     }, ignoreInit = TRUE, ignoreNULL = TRUE)
@@ -658,26 +597,19 @@ studio_server <- function() {
       
       if (!is.null(new_page_id) && !is.null(original_page_id) && 
           new_page_id != "" && new_page_id != original_page_id) {
-        
-        # Get and prepare current editor content
         current_content <- input$survey_editor
         current_content <- r_chunk_separation(current_content)
-        
-        # Modify the page ID
         updated_content <- modify_page_id(original_page_id, new_page_id, current_content)
         
         if (!is.null(updated_content)) {
           shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
           shiny::showNotification(paste0("Page ID changed from \"", original_page_id, "\" to \"", new_page_id, "\""), type = "message")
           survey_structure$refresh()
-          
-          # Hide the modal
           session$sendCustomMessage("hideModal", "modify-page-modal")
         } else {
           shiny::showNotification("Failed to modify page ID", type = "error")
         }
       } else if (new_page_id == original_page_id) {
-        # No change, just hide modal
         session$sendCustomMessage("hideModal", "modify-page-modal")
       } else {
         shiny::showNotification("Please enter a valid page ID", type = "error")
@@ -693,17 +625,12 @@ studio_server <- function() {
       content_type <- content_data$contentType
       
       if (!is.null(page_id) && !is.null(content_id) && !is.null(content_type)) {
-        # Store the content info for reference
         modify_content_info(content_data)
-        
-        # Get current content details
         survey_structure <- parse_survey_structure()
         if (!is.null(survey_structure) && page_id %in% names(survey_structure$pages) &&
             content_id %in% names(survey_structure$pages[[page_id]])) {
-          
           current_item <- survey_structure$pages[[page_id]][[content_id]]
           
-          # Update modal title
           if (content_type == "question") {
             session$sendCustomMessage("updateModalTitle", list(
               modalId = "modify-content-modal-title",
@@ -715,8 +642,6 @@ studio_server <- function() {
               title = paste("Modify Text:", content_id)
             ))
           }
-          
-          # Set the form trigger
           modify_form_trigger(list(
             type = content_type,
             item = current_item,
@@ -724,8 +649,6 @@ studio_server <- function() {
             content_id = content_id,
             timestamp = as.numeric(Sys.time()) * 1000 + sample(1:1000, 1)
           ))
-          
-          # Show the modal
           session$sendCustomMessage("showModal", "modify-content-modal")
         }
       }
@@ -739,22 +662,17 @@ studio_server <- function() {
         page_id <- content_info$pageId
         content_id <- content_info$contentId
         content_type <- content_info$contentType
-        
-        # Get and prepare current editor content
         current_content <- input$survey_editor
         current_content <- r_chunk_separation(current_content)
-        
         updated_content <- NULL
         
         if (content_type == "question") {
-          # Get modified question parameters
           new_type <- input$modify_question_type
           new_id <- input$modify_question_id
           new_label <- input$modify_question_label
           
           if (!is.null(new_type) && !is.null(new_id) && !is.null(new_label) && 
               new_id != "" && new_label != "") {
-            
             updated_content <- modify_question_content(
               page_id, content_id, new_type, new_id, new_label, current_content
             )
@@ -763,7 +681,6 @@ studio_server <- function() {
             return()
           }
         } else if (content_type == "text") {
-          # Get modified text content
           new_text <- input$modify_text_content
           
           if (!is.null(new_text) && trimws(new_text) != "") {
@@ -781,8 +698,6 @@ studio_server <- function() {
           shiny::showNotification(paste0(toupper(substr(content_type, 1, 1)), substr(content_type, 2, nchar(content_type)), 
                                     " modified successfully!"), type = "message")
           survey_structure$refresh()
-          
-          # Hide the modal
           session$sendCustomMessage("hideModal", "modify-content-modal")
         } else {
           shiny::showNotification(paste("Failed to modify", content_type), type = "error")
@@ -792,18 +707,13 @@ studio_server <- function() {
 
     # Handle delete page button
     shiny::observeEvent(input$delete_page_btn, {
-      # The input$delete_page_btn will contain the page ID when a button is clicked
       page_id <- input$delete_page_btn
       
       if (!is.null(page_id) && page_id != "") {
-        # Get and prepare current editor content
         current_content <- input$survey_editor
         current_content <- r_chunk_separation(current_content)
-        
-        # Delete the page
         updated_content <- delete_page_from_survey(page_id, current_content)
         
-        # Update editor if successful
         if (!is.null(updated_content)) {
           shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
           shiny::showNotification(paste0("Page \"", page_id, "\" deleted successfully!"), type = "message")
@@ -817,22 +727,16 @@ studio_server <- function() {
     # Handle delete content button
     shiny::observeEvent(input$delete_content_btn, {
       req(input$delete_content_btn, input$survey_editor)
-      
-      # Extract content info from the input
       content_info <- input$delete_content_btn
       page_id <- content_info$pageId
       content_id <- content_info$contentId
       content_type <- content_info$contentType
       
       if (!is.null(page_id) && !is.null(content_id)) {
-        # Get and prepare current editor content
         current_content <- input$survey_editor
         current_content <- r_chunk_separation(current_content)
-        
-        # Delete the content
         updated_content <- delete_content_from_survey(page_id, content_id, content_type, current_content)
         
-        # Update editor if successful
         if (!is.null(updated_content)) {
           shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
           shiny::showNotification(paste0(toupper(substr(content_type, 1, 1)), substr(content_type, 2, nchar(content_type)), 
@@ -846,7 +750,6 @@ studio_server <- function() {
 
     # Handle Undo button
     shiny::observeEvent(input$undo_btn, {
-      # Determine which editor is active
       if (input$code_tabs == "survey.qmd") {
         session$sendCustomMessage("aceUndo", "survey_editor")
       } else if (input$code_tabs == "app.R") {
@@ -856,7 +759,6 @@ studio_server <- function() {
 
     # Handle Redo button
     shiny::observeEvent(input$redo_btn, {
-      # Determine which editor is active
       if (input$code_tabs == "survey.qmd") {
         session$sendCustomMessage("aceRedo", "survey_editor")
       } else if (input$code_tabs == "app.R") {
@@ -866,7 +768,6 @@ studio_server <- function() {
 
     # Handle page drag and drop reordering
     shiny::observeEvent(input$page_drag_completed, {
-      # Prepare and separate content
       current_content <- input$survey_editor
       separated_content <- r_chunk_separation(current_content)
       
@@ -878,7 +779,6 @@ studio_server <- function() {
         current_content <- input$survey_editor
       }
       
-      # Reorder pages if order array exists
       if (length(input$page_drag_completed$order) > 0) {
         updated_content <- reorder_pages(input$page_drag_completed$order, current_content)
         
@@ -893,11 +793,8 @@ studio_server <- function() {
 
     # Handle content drag and drop reordering
     shiny::observeEvent(input$content_drag_completed, {
-      # Extract page ID and order
       page_id <- input$content_drag_completed$pageId
       flat_order <- input$content_drag_completed$order
-      
-      # Prepare and separate content
       current_content <- input$survey_editor
       separated_content <- r_chunk_separation(current_content)
       
@@ -909,33 +806,21 @@ studio_server <- function() {
         current_content <- input$survey_editor
       }
       
-      # Process the flat order array into content list
       content_list <- process_content_order(flat_order)
       
-      # Skip if no valid items
       if (length(content_list) == 0) {
         shiny::showNotification("No valid content items found", type = "error")
         return(NULL)
       }
       
-      # Try to reorder content with error handling
       tryCatch({
-        # Check for chunks that need separation
         check_and_separate_content(page_id, content_list, current_content, session)
-        
-        # Reorder the content
         updated_content <- reorder_page_content(page_id, content_list, current_content)
         
         if (!is.null(updated_content)) {
-          # Ensure proper separation
           updated_content <- r_chunk_separation(updated_content)
-          
-          # Update editor
           shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
           survey_structure$refresh()
-          
-          # Force a slight delay before allowing another drag
-          shiny::invalidateLater(300)
         } else {
           shiny::showNotification(paste("Failed to reorder content in page", page_id), type = "error")
         }
@@ -956,18 +841,11 @@ studio_server <- function() {
 
 # Handler for survey structure management
 server_structure_handlers <- function(input, output, session) {
-  # Track structure changes
   structure_trigger <- shiny::reactiveVal(0)
-  
-  # Render the survey structure UI
   output$survey_structure <- shiny::renderUI({
-    # Re-render on structure changes
     structure_trigger()
-    
-    # Parse survey structure
     survey_structure <- parse_survey_structure()
     
-    # Check for errors
     if (!is.null(survey_structure$error)) {
       return(shiny::div(
         style = "color: red;",
@@ -976,7 +854,6 @@ server_structure_handlers <- function(input, output, session) {
       ))
     }
     
-    # Create the structure visualization
     render_survey_structure(survey_structure)
   })
   
@@ -1017,11 +894,8 @@ server_structure_handlers <- function(input, output, session) {
 
 # Handler for survey preview functionality
 server_preview_handlers <- function(input, output, session) {
-  # Store preview process
   preview_process <- shiny::reactiveVal(NULL)
   preview_port <- stats::runif(1, 3000, 8000) |> floor()
-  
-  # Launch preview function
   refresh_preview <- function() {
     # Get current process
     current_process <- NULL
@@ -1029,19 +903,16 @@ server_preview_handlers <- function(input, output, session) {
       current_process <- preview_process()
     })
     
-    # Stop existing process if it exists
     if (!is.null(current_process)) {
       try(tools::pskill(current_process), silent = TRUE)
       preview_process(NULL)
     }
     
-    # Check if files exist
     if (!file.exists("survey.qmd") || !file.exists("app.R")) {
       shiny::showNotification("Error: survey.qmd or app.R file not found!", type = "error")
       return()
     }
     
-    # Save current editor content to files before previewing
     if (exists("input") && !is.null(input$survey_editor)) {
       writeLines(input$survey_editor, "survey.qmd")
     }
@@ -1053,15 +924,9 @@ server_preview_handlers <- function(input, output, session) {
     # Launch preview server
     new_process <- launch_preview_server(preview_port)
     
-    # Store the process ID
     preview_process(new_process)
-    
-    # Display in iframe
     preview_url <- paste0("http://127.0.0.1:", preview_port)
-    
-    # Give the app a moment to start
-    Sys.sleep(2)
-    
+
     output$preview_frame <- shiny::renderUI({
       shiny::tags$iframe(
         src = preview_url,
@@ -1086,31 +951,24 @@ insert_page_into_survey <- function(page_id, editor_content) {
   if (is.null(editor_content)) {
     return(NULL)
   }
-  
-  # Ensure editor_content is in lines
+
   if (is.character(editor_content) && length(editor_content) == 1) {
     editor_content <- strsplit(editor_content, "\n")[[1]]
   }
   
-  # Find the last page closing tag
   last_page_end <- max(which(grepl(":::", editor_content, fixed = TRUE)), 0)
   
-  # If no page found, insert at the end of the file
   if (last_page_end == 0) {
     last_page_end <- length(editor_content)
   }
   
-  # Generate the page template
   page_template <- generate_page_template(page_id)
-  
-  # Insert the page template after the last page or at the end
   result <- c(
     editor_content[1:last_page_end],
     page_template,
     if(last_page_end < length(editor_content)) editor_content[(last_page_end+1):length(editor_content)] else NULL
   )
   
-  # Return the updated content
   return(paste(result, collapse = "\n"))
 }
 
@@ -1120,25 +978,20 @@ insert_page_below_specific_page <- function(new_page_id, below_page_id, editor_c
     return(NULL)
   }
   
-  # Ensure editor_content is in lines
   if (is.character(editor_content) && length(editor_content) == 1) {
     editor_content <- strsplit(editor_content, "\n")[[1]]
   }
   
-  # Find the target page to insert below
   page_start_pattern <- paste0("::: \\{.sd[_-]page id=", below_page_id, "\\}")
   page_start_lines <- grep(page_start_pattern, editor_content, perl = TRUE)
   
   if (length(page_start_lines) == 0) {
-    # If target page not found, fall back to end insertion
     return(insert_page_into_survey(new_page_id, editor_content))
   }
   
-  # Use the first match
   page_start_line <- page_start_lines[1]
-  
-  # Find the end of the target page
   page_end_line <- NULL
+
   for (i in page_start_line:length(editor_content)) {
     if (grepl("^:::$", editor_content[i])) {
       page_end_line <- i
@@ -1147,21 +1000,17 @@ insert_page_below_specific_page <- function(new_page_id, below_page_id, editor_c
   }
   
   if (is.null(page_end_line)) {
-    # If can't find page end, fall back to end insertion
     return(insert_page_into_survey(new_page_id, editor_content))
   }
   
-  # Generate the page template
   page_template <- generate_page_template(new_page_id)
   
-  # Insert the page template after the target page
   result <- c(
     editor_content[1:page_end_line],
     page_template,
     if(page_end_line < length(editor_content)) editor_content[(page_end_line+1):length(editor_content)] else NULL
   )
   
-  # Return the updated content
   return(paste(result, collapse = "\n"))
 }
 
@@ -1201,12 +1050,10 @@ insert_question_into_survey <- function(page_id, question_type, question_id, que
     return(NULL)
   }
   
-  # Ensure editor_content is in lines
   if (is.character(editor_content) && length(editor_content) == 1) {
     editor_content <- strsplit(editor_content, "\n")[[1]]
   }
   
-  # Find the page
   page_start_pattern <- paste0("::: \\{.sd[_-]page id=", page_id, "\\}")
   page_start_lines <- grep(page_start_pattern, editor_content, perl = TRUE)
   
@@ -1214,11 +1061,9 @@ insert_question_into_survey <- function(page_id, question_type, question_id, que
     return(NULL)
   }
   
-  # Use the first match
   page_start_line <- page_start_lines[1]
-  
-  # Find the end of the page
   page_end_line <- NULL
+
   for (i in page_start_line:length(editor_content)) {
     if (grepl("^:::$", editor_content[i])) {
       page_end_line <- i
@@ -1230,27 +1075,20 @@ insert_question_into_survey <- function(page_id, question_type, question_id, que
     return(NULL)
   }
   
-  # Find the insertion point (before next button if exists)
   insertion_point <- find_insertion_point(editor_content, page_start_line, page_end_line)
-  
-  # Generate the question code
   question_code <- generate_question_code(question_type, question_id, question_label)
-  
-  # Create the question chunk
   question_chunk <- c(
     "```{r}",
     question_code,
     "```"
   )
   
-  # Insert the question chunk
   result <- c(
     editor_content[1:(insertion_point-1)],
     question_chunk,
     editor_content[insertion_point:length(editor_content)]
   )
   
-  # Return the updated content
   return(paste(result, collapse = "\n"))
 }
 
@@ -1260,12 +1098,10 @@ insert_text_into_survey <- function(page_id, text_content, editor_content) {
     return(NULL)
   }
   
-  # Ensure editor_content is in lines
   if (is.character(editor_content) && length(editor_content) == 1) {
     editor_content <- strsplit(editor_content, "\n")[[1]]
   }
   
-  # Find the page
   page_start_pattern <- paste0("::: \\{.sd[_-]page id=", page_id, "\\}")
   page_start_lines <- grep(page_start_pattern, editor_content, perl = TRUE)
   
@@ -1273,11 +1109,9 @@ insert_text_into_survey <- function(page_id, text_content, editor_content) {
     return(NULL)
   }
   
-  # Use the first match
   page_start_line <- page_start_lines[1]
-  
-  # Find the end of the page
   page_end_line <- NULL
+
   for (i in page_start_line:length(editor_content)) {
     if (grepl("^:::$", editor_content[i])) {
       page_end_line <- i
@@ -1289,27 +1123,21 @@ insert_text_into_survey <- function(page_id, text_content, editor_content) {
     return(NULL)
   }
   
-  # Find the insertion point (before next button if exists)
   insertion_point <- find_insertion_point(editor_content, page_start_line, page_end_line)
-  
-  # Format the text (ensure it has proper line breaks)
   formatted_text <- strsplit(text_content, "\n")[[1]]
-  
-  # Insert the text
   result <- c(
     editor_content[1:(insertion_point-1)],
     formatted_text,
-    "",  # Add an empty line after the text
+    "",
     editor_content[insertion_point:length(editor_content)]
   )
   
-  # Return the updated content
   return(paste(result, collapse = "\n"))
 }
 
 # Find the best insertion point for a new question
 find_insertion_point <- function(editor_content, page_start_line, page_end_line) {
-  # Find the next button chunk if it exists
+
   for (i in page_start_line:page_end_line) {
     if (grepl("^```\\{r\\}", editor_content[i])) {
       chunk_start <- i
@@ -1331,7 +1159,6 @@ find_insertion_point <- function(editor_content, page_start_line, page_end_line)
     }
   }
   
-  # If no next button found, insert before the page end
   return(page_end_line)
 }
 
@@ -1341,28 +1168,23 @@ reorder_pages <- function(new_order, editor_content) {
     return(NULL)
   }
   
-  # Ensure editor_content is in lines
   if (is.character(editor_content) && length(editor_content) == 1) {
     editor_content <- strsplit(editor_content, "\n")[[1]]
   }
   
-  # Find each page's start and end lines
   page_blocks <- list()
   
   for (page_id in new_order) {
-    # Find the page start
     page_start_pattern <- paste0("::: \\{.sd[_-]page id=", page_id, "\\}")
     page_start_lines <- grep(page_start_pattern, editor_content, perl = TRUE)
     
     if (length(page_start_lines) == 0) {
-      next  # Skip if page not found
+      next
     }
     
-    # Use the first match
     page_start_line <- page_start_lines[1]
     page_end_line <- NULL
     
-    # Find the page end
     for (i in page_start_line:length(editor_content)) {
       if (i > page_start_line && grepl("^:::$", editor_content[i])) {
         page_end_line <- i
@@ -1371,7 +1193,6 @@ reorder_pages <- function(new_order, editor_content) {
     }
     
     if (!is.null(page_end_line)) {
-      # Store the page block
       page_blocks[[page_id]] <- list(
         start = page_start_line,
         end = page_end_line,
@@ -1380,16 +1201,13 @@ reorder_pages <- function(new_order, editor_content) {
     }
   }
   
-  # Check if we found all pages
   if (length(page_blocks) != length(new_order)) {
     return(NULL)
   }
   
-  # Find the position range for pages
   first_page_start <- min(sapply(page_blocks, function(block) block$start))
   last_page_end <- max(sapply(page_blocks, function(block) block$end))
   
-  # Create the new content with reordered pages
   result <- c(
     editor_content[1:(first_page_start-1)],
     unlist(lapply(new_order, function(page_id) page_blocks[[page_id]]$content)),
@@ -1405,12 +1223,10 @@ reorder_page_content <- function(page_id, new_content_order, editor_content) {
     return(NULL)
   }
   
-  # Ensure editor_content is in lines
   if (is.character(editor_content) && length(editor_content) == 1) {
     editor_content <- strsplit(editor_content, "\n")[[1]]
   }
   
-  # Find the page
   page_start_pattern <- paste0("::: \\{.sd[_-]page id=", page_id, "\\}")
   page_start_lines <- grep(page_start_pattern, editor_content, perl = TRUE)
   
@@ -1418,11 +1234,9 @@ reorder_page_content <- function(page_id, new_content_order, editor_content) {
     return(NULL)
   }
   
-  # Use the first match
   page_start_line <- page_start_lines[1]
-  
-  # Find the page end
   page_end_line <- NULL
+
   for (i in page_start_line:length(editor_content)) {
     if (grepl("^:::$", editor_content[i])) {
       page_end_line <- i
@@ -1434,33 +1248,22 @@ reorder_page_content <- function(page_id, new_content_order, editor_content) {
     return(NULL)
   }
   
-  # Get the page content
   original_page_content <- editor_content[page_start_line:page_end_line]
-  
-  # Find navigation chunks (containing sd_next, sd_prev, sd_close)
   navigation_chunks <- extract_navigation_chunks(original_page_content)
-  
-  # Get the current survey structure
   survey_structure <- parse_survey_structure()
   
-  # Validate survey structure
   if (is.null(survey_structure) || !("pages" %in% names(survey_structure)) ||
       !(page_id %in% names(survey_structure$pages))) {
     return(NULL)
   }
   
-  # Get page items
   page_items <- survey_structure$pages[[page_id]]
-  
-  # Create new page content
   new_page_content <- c(
-    editor_content[page_start_line],  # Page opening tag
-    ""  # Add a blank line after the opening tag
+    editor_content[page_start_line],
+    ""
   )
   
-  # Add content in the new order
   for (item in new_content_order) {
-    # Check if item has required fields and exists in page items
     if (!is.list(item) || !all(c("type", "id") %in% names(item)) ||
         !(item$id %in% names(page_items))) {
       next
@@ -1468,12 +1271,10 @@ reorder_page_content <- function(page_id, new_content_order, editor_content) {
     
     current_item <- page_items[[item$id]]
     
-    # Check if current item is valid
     if (!is.list(current_item) || !("is_question" %in% names(current_item))) {
       next
     }
     
-    # Add the content based on item type
     if (current_item$is_question) {
       if ("raw" %in% names(current_item)) {
         r_chunk_lines <- strsplit(current_item$raw, "\n")[[1]]
@@ -1487,17 +1288,14 @@ reorder_page_content <- function(page_id, new_content_order, editor_content) {
     }
   }
   
-  # Add navigation chunks
   if (length(navigation_chunks) > 0) {
     for (chunk in navigation_chunks) {
       new_page_content <- c(new_page_content, chunk$lines, "")
     }
   }
   
-  # Add page closing tag
   new_page_content <- c(new_page_content, ":::")
   
-  # Combine with content before and after the page
   result <- c(
     editor_content[1:(page_start_line-1)],
     new_page_content,
@@ -1521,8 +1319,8 @@ extract_navigation_chunks <- function(page_content) {
       chunk_start <- i
     } else if (in_chunk && grepl("^```$", line)) {
       in_chunk <- FALSE
-      # Check if this is a navigation chunk
       chunk_content <- page_content[(chunk_start+1):(i-1)]
+
       if (any(grepl("sd_next\\(|sd_prev\\(|sd_close\\(", chunk_content))) {
         navigation_chunks[[length(navigation_chunks) + 1]] <- list(
           start = chunk_start,
@@ -1542,7 +1340,6 @@ r_chunk_separation <- function(editor_content) {
     return(NULL)
   }
   
-  # Ensure editor_content is in lines
   if (length(editor_content) == 1) {
     editor_content <- strsplit(editor_content, "\n")[[1]]
   }
@@ -1551,9 +1348,7 @@ r_chunk_separation <- function(editor_content) {
   i <- 1
   
   while (i <= length(editor_content)) {
-    # Check if this is the start of an R chunk
     if (grepl("^```\\{r\\}", editor_content[i])) {
-      # Find the end of this chunk
       chunk_start <- i
       chunk_end <- NULL
       
@@ -1564,9 +1359,7 @@ r_chunk_separation <- function(editor_content) {
         }
       }
       
-      # If we found a complete chunk
       if (!is.null(chunk_end)) {
-        # Extract the chunk content
         chunk_content <- editor_content[(chunk_start+1):(chunk_end-1)]
         
         # Check for sd_ function calls
@@ -1574,9 +1367,7 @@ r_chunk_separation <- function(editor_content) {
         
         # If multiple sd_ calls, split the chunk
         if (length(sd_start_indices) > 1) {
-          # Process each sd_ call
           for (start_idx in sd_start_indices) {
-            # Find the end of this call by tracking parentheses
             call_end <- find_function_call_end(chunk_content, start_idx)
             
             # Add this call as a separate chunk
@@ -1585,7 +1376,7 @@ r_chunk_separation <- function(editor_content) {
               "```{r}",
               chunk_content[start_idx:call_end],
               "```",
-              ""  # Add an empty line between chunks
+              ""
             )
           }
           
