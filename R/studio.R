@@ -211,20 +211,20 @@ ui_construction_tab <- function() {
           shiny::wellPanel(
             style = "background-color: #f0f8ff; border-color: #cce5ff; padding: 0.5rem;",
             
+            shiny::div(
+              style = "overflow-y: auto; height: calc(100vh - 191px);",
+              shiny::uiOutput("survey_structure")
+            ),
+            
             # Add A New Page button
             shiny::div(
-              style = "margin-bottom: 10px;",
+              style = "margin-top: 10px;",
               shiny::actionButton(
                 "add_page_btn",
                 "Add A New Page",
                 class = "btn-success",
                 style = "width: 100%; padding: 8px; font-weight: bold;"
               )
-            ),
-            
-            shiny::div(
-              style = "overflow-y: auto; height: calc(100vh - 180px);", # Adjust height to account for the button
-              shiny::uiOutput("survey_structure")
             )
           )
         )
@@ -235,30 +235,10 @@ ui_construction_tab <- function() {
         width = 7,
         style = "border-right: 1px solid #ddd;",
         shiny::div(
-          # Code header with undo/redo buttons
+          # Code header
           shiny::div(
             style = "display: flex; justify-content: space-between; align-items: center; background-color: #d4edda; padding: 6px; margin-bottom: 10px; border-radius: 4px;",
-            
-            # Undo button (left)
-            shiny::actionButton(
-              "undo_btn",
-              NULL,
-              icon = shiny::icon("undo"),
-              class = "btn-sm",
-              style = "background-color: #d4edda; border-color: #28a745; color: #28a745; padding: 2px 5px; font-size: 0.8rem;"
-            ),
-            
-            # Code title (center)
-            shiny::h5("Code", style = "margin: 0; text-align: center; flex-grow: 1;"),
-            
-            # Redo button (right)
-            shiny::actionButton(
-              "redo_btn",
-              NULL,
-              icon = shiny::icon("redo"),
-              class = "btn-sm",
-              style = "background-color: #d4edda; border-color: #28a745; color: #28a745; padding: 2px 5px; font-size: 0.8rem;"
-            )
+            shiny::h5("Code", style = "margin: 0; text-align: center; flex-grow: 1;")
           ),
           
           # Code panel with tabs
@@ -1814,15 +1794,6 @@ render_survey_structure <- function(survey_structure) {
           shiny::div(
             class = "page-actions",
             style = "display: flex; gap: 5px;",
-            # Add Content button
-            shiny::actionButton(
-              inputId = "add_content_btn_ui",
-              label = NULL,
-              icon = shiny::icon("plus"),
-              class = "btn-sm btn-outline-success add-content-btn",
-              title = "Add content to this page",
-              `data-page-id` = page_id
-            ),
             # Modify page button
             shiny::actionButton(
               inputId = "modify_page_btn_ui",
@@ -1855,6 +1826,19 @@ render_survey_structure <- function(survey_structure) {
           id = paste0("page-", page_id, "-content"),
           `data-page-id` = page_id,
           style = "display: block;",
+          
+          # Add Content button
+          shiny::div(
+            style = "margin-bottom: 10px; text-align: center;",
+            shiny::actionButton(
+              inputId = "add_content_btn_ui",
+              label = "Add Content",
+              class = "btn-success add-content-btn",
+              style = "width: 98%; padding: 8px; font-weight: bold;",
+              title = "Add content to this page",
+              `data-page-id` = page_id
+            )
+          ),
           
           # Add content items in their order
           if (length(sorted_items) > 0) {
@@ -2675,6 +2659,21 @@ get_studio_css <- function() {
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
+    /* Add content button styling */
+    .add-content-btn {
+      background-color: #e8f5e8 !important;
+      border-color: #c8e6c8 !important;
+      color: #2e7d32 !important;
+    }
+
+    .add-content-btn:hover {
+      background-color: #c8e6c8 !important;
+      border-color: #a5d6a7 !important;
+      color: #1b5e20 !important;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
     /* Code section undo/redo buttons */
     .btn-sm[style*=\"background-color: #d4edda\"]:hover {
       background-color: #b8e6c1 !important;
@@ -2728,9 +2727,9 @@ get_studio_css <- function() {
     /* Base styling for content items */
     .question-item, 
     .text-item {
-      margin-left: 5px; 
-      margin-bottom: 10px; 
-      padding: 5px 5px 5px 25px; 
+      margin: 0 auto 10px auto; 
+      padding: 5px 5px 5px 20px; 
+      width: 98%;
       position: relative;
       display: flex;
       align-items: center;
@@ -3035,14 +3034,15 @@ get_studio_js <- function() {
             animation: 150,
             handle: '.drag-handle',
             ghostClass: 'sortable-ghost',
+            draggable: '.question-item, .text-item', // Only allow these specific items to be dragged
             filter: '.delete-content-btn, .content-actions, .modify-content-btn',
             preventOnFilter: true,
             onEnd: function(evt) {
               // Create an array of content order
               var contentOrder = [];
               
-              // Select all direct children of the container
-              $(this.el).children('div').each(function() {
+              // Select only question and text items (not the add button)
+              $(this.el).children('.question-item, .text-item').each(function() {
                 var $element = $(this);
                 var type = $element.attr('data-content-type');
                 
