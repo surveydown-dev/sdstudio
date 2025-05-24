@@ -824,17 +824,12 @@ studio_server <- function() {
           if (!is.null(updated_content)) {
             updated_content <- r_chunk_separation(updated_content)
             shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
-            shiny::showNotification(
-              paste("Content moved from page", from_page_id, "to page", to_page_id), 
-              type = "message"
-            )
-            survey_structure$refresh()
           } else {
             shiny::showNotification("Failed to move content between pages", type = "error")
             survey_structure$refresh()
           }
         } else {
-          # Handle within-page reordering (existing logic)
+          # Handle within-page reordering
           check_and_separate_content(to_page_id, content_list, current_content, session)
           updated_content <- reorder_page_content(to_page_id, content_list, current_content)
           
@@ -1175,7 +1170,8 @@ find_insertion_point <- function(editor_content, page_start_line, page_end_line)
       
       if (!is.null(chunk_end)) {
         chunk_content <- editor_content[(chunk_start+1):(chunk_end-1)]
-        if (any(grepl("sd_next\\(", chunk_content, perl = TRUE))) {
+        # Updated pattern to include sd_close() and sd_prev() as navigation functions
+        if (any(grepl("sd_next\\(|sd_prev\\(|sd_close\\(", chunk_content, perl = TRUE))) {
           return(chunk_start)
         }
       }
@@ -1674,43 +1670,73 @@ delete_content_from_survey_lines <- function(page_id, content_id, content_type, 
 
 # Add content to target page
 add_content_to_target_page <- function(page_id, content_items, target_order, editor_lines) {
-  # Find target page boundaries
+  moved_item_id <- names(content_items)[1]
+  moved_item <- content_items[[moved_item_id]]
+  
+  # Find where moved item appears in target order
+  moved_position <- 0
+  for (i in seq_along(target_order)) {
+    if (target_order[[i]]$id == moved_item_id) {
+      moved_position <- i
+      break
+    }
+  }
+  
+  # Find target page
   page_start_pattern <- paste0("::: \\{.sd[_-]page id=", page_id, "\\}")
   page_start_lines <- grep(page_start_pattern, editor_lines, perl = TRUE)
-  
   if (length(page_start_lines) == 0) return(NULL)
   
   page_start_line <- page_start_lines[1]
   page_end_line <- NULL
-  
   for (i in page_start_line:length(editor_lines)) {
     if (grepl("^:::$", editor_lines[i])) {
       page_end_line <- i
       break
     }
   }
-  
   if (is.null(page_end_line)) return(NULL)
   
-  # Find insertion point (before navigation chunks)
-  insertion_point <- find_insertion_point(editor_lines, page_start_line, page_end_line)
-  
-  # Build content to insert
-  content_to_insert <- c()
-  for (item in target_order) {
-    if (item$id %in% names(content_items)) {
-      content_item <- content_items[[item$id]]
-      if (content_item$is_question && "raw" %in% names(content_item)) {
-        content_lines <- strsplit(content_item$raw, "\n")[[1]]
-        content_to_insert <- c(content_to_insert, content_lines, "")
-      } else if (!content_item$is_question && "content" %in% names(content_item)) {
-        text_lines <- strsplit(content_item$content, "\n")[[1]]
-        content_to_insert <- c(content_to_insert, text_lines, "")
+  # If position 1, insert at beginning
+  if (moved_position <= 1) {
+    insertion_point <- page_start_line + 2
+  } else {
+    # Count existing content blocks and insert after the (position-1)th block
+    content_blocks_found <- 0
+    insertion_point <- find_insertion_point(editor_lines, page_start_line, page_end_line)
+    
+    for (i in (page_start_line + 1):(page_end_line - 1)) {
+      # Count R chunks and text blocks
+      if (grepl("^```\\{r\\}", editor_lines[i]) || 
+          (i > page_start_line + 1 && !grepl("^```|^$", editor_lines[i]) && trimws(editor_lines[i]) != "")) {
+        content_blocks_found <- content_blocks_found + 1
+        if (content_blocks_found == moved_position - 1) {
+          # Find end of this block
+          if (grepl("^```\\{r\\}", editor_lines[i])) {
+            for (j in (i+1):(page_end_line-1)) {
+              if (grepl("^```$", editor_lines[j])) {
+                insertion_point <- j + 1
+                break
+              }
+            }
+          } else {
+            insertion_point <- i + 1
+          }
+          break
+        }
       }
     }
   }
   
   # Insert content
+  if (moved_item$is_question && "raw" %in% names(moved_item)) {
+    content_to_insert <- c(strsplit(moved_item$raw, "\n")[[1]], "")
+  } else if (!moved_item$is_question && "content" %in% names(moved_item)) {
+    content_to_insert <- c(strsplit(moved_item$content, "\n")[[1]], "")
+  } else {
+    return(NULL)
+  }
+  
   result <- c(
     editor_lines[1:(insertion_point-1)],
     content_to_insert,
@@ -2579,6 +2605,45 @@ get_studio_css <- function() {
       margin-top: 10px !important;
     }
 
+    /* ===== DRAG & DROP EFFECTS ===== */
+    .sortable-ghost {
+      opacity: 0.4;
+    }
+
+    .sortable-placeholder {
+      background-color: #f9f9f9;
+      border: 1px dashed #ccc;
+      margin: 5px 0;
+    }
+
+    /* Visual feedback during content dragging */
+    .content-dragging .page-header {
+      transition: background-color 0.2s ease;
+    }
+
+    .content-dragging .page-header.drag-hover {
+      background-color: #b3d9ff !important;
+      border: 2px dashed #007bff;
+    }
+
+    .content-dragging .questions-container {
+      min-height: 50px;
+      transition: min-height 0.2s ease;
+    }
+
+    /* Ensure expanded pages during drag have visible drop zones */
+    .content-dragging .questions-container:empty::after {
+      content: \"Drop content here\";
+      display: block;
+      text-align: center;
+      color: #666;
+      font-style: italic;
+      padding: 20px;
+      border: 2px dashed #ccc;
+      border-radius: 5px;
+      margin: 10px;
+    }
+
     /* ===== TAB ENLARGEMENT ===== */
     .navbar-nav .nav-link {
       font-size: 1.1rem;
@@ -3009,23 +3074,39 @@ get_studio_js <- function() {
             filter: '.delete-content-btn, .content-actions, .modify-content-btn, .add-content-btn',
             preventOnFilter: true,
             
-            // Auto-expand collapsed pages when dragging over them
-            onMove: function(evt) {
-              var $targetContainer = $(evt.to);
-              var $targetPageHeader = $targetContainer.prev('.page-header');
-              var $targetQuestions = $targetPageHeader.next('.questions-container');
+            // Expand collapsed pages when dragging starts
+            onStart: function(evt) {
+              // Add a class to indicate we're dragging
+              $('body').addClass('content-dragging');
               
-              // If the target page is collapsed, expand it
-              if ($targetQuestions.is(':hidden')) {
-                $targetQuestions.slideDown(200);
-                var $icon = $targetPageHeader.find('.toggle-icon i');
-                $icon.removeClass('fa-chevron-right').addClass('fa-chevron-down');
-              }
+              // Set up hover handlers for page headers during drag
+              $('.page-header').on('dragenter.sortable dragover.sortable', function(e) {
+                e.preventDefault();
+                var $pageHeader = $(this);
+                var $questionsContainer = $pageHeader.next('.questions-container');
+                
+                // If the page is collapsed, expand it immediately
+                if ($questionsContainer.is(':hidden')) {
+                  $questionsContainer.show(); // Use show() instead of slideDown() for immediate effect
+                  var $icon = $pageHeader.find('.toggle-icon i');
+                  $icon.removeClass('fa-chevron-right').addClass('fa-chevron-down');
+                  
+                  // Add visual feedback
+                  $pageHeader.addClass('drag-hover');
+                }
+              });
               
-              return true; // Allow the move
+              $('.page-header').on('dragleave.sortable', function(e) {
+                $(this).removeClass('drag-hover');
+              });
             },
             
+            // Clean up when dragging ends
             onEnd: function(evt) {
+              // Remove dragging class and clean up event handlers
+              $('body').removeClass('content-dragging');
+              $('.page-header').off('.sortable').removeClass('drag-hover');
+              
               var fromPageId = $(evt.from).attr('data-page-id');
               var toPageId = $(evt.to).attr('data-page-id');
               
