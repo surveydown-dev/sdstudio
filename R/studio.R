@@ -160,7 +160,10 @@ ui_construction_tab <- function() {
             shiny::div(
               class = "modal-body",
               shiny::textInput("add_page_id_input", "Page ID:", 
-                              placeholder = "Enter page ID")
+                              placeholder = "Enter page ID"),
+              
+              # Conditional UI for page positioning
+              shiny::uiOutput("add_page_position_ui")
             ),
             shiny::div(
               class = "modal-footer",
@@ -463,6 +466,28 @@ studio_server <- function() {
       )
     })
 
+    # Add page position UI (conditional)
+    output$add_page_position_ui <- shiny::renderUI({
+      # Get current page structure
+      survey_structure <- parse_survey_structure()
+      
+      # If no pages exist or error in parsing, don't show the dropdown
+      if (is.null(survey_structure) || !is.null(survey_structure$error) || 
+          is.null(survey_structure$page_ids) || length(survey_structure$page_ids) == 0) {
+        return(NULL)
+      }
+      
+      # If pages exist, show the dropdown with the last page selected by default
+      last_page <- survey_structure$page_ids[length(survey_structure$page_ids)]
+      
+      shiny::selectInput(
+        "add_page_below", 
+        "Below Page:", 
+        choices = setNames(survey_structure$page_ids, survey_structure$page_ids),
+        selected = last_page
+      )
+    })
+
     # Initialize structure and preview handlers
     survey_structure <- server_structure_handlers(input, output, session)
     preview_handlers <- server_preview_handlers(input, output, session)
@@ -509,8 +534,17 @@ studio_server <- function() {
       current_content <- input$survey_editor
       current_content <- r_chunk_separation(current_content)
       
+      # Determine insertion position
+      below_page <- input$add_page_below
+      
       # Insert the new page
-      updated_content <- insert_page_into_survey(page_id, current_content)
+      if (is.null(below_page)) {
+        # If no dropdown (no existing pages), insert at the end
+        updated_content <- insert_page_into_survey(page_id, current_content)
+      } else {
+        # Insert below the specified page
+        updated_content <- insert_page_below_specific_page(page_id, below_page, current_content)
+      }
       
       if (!is.null(updated_content)) {
         # Update editor and clear input field
@@ -1094,6 +1128,57 @@ insert_page_into_survey <- function(page_id, editor_content) {
     editor_content[1:last_page_end],
     page_template,
     if(last_page_end < length(editor_content)) editor_content[(last_page_end+1):length(editor_content)] else NULL
+  )
+  
+  # Return the updated content
+  return(paste(result, collapse = "\n"))
+}
+
+# Insert a new page below a specific existing page
+insert_page_below_specific_page <- function(new_page_id, below_page_id, editor_content) {
+  if (is.null(editor_content) || is.null(new_page_id) || is.null(below_page_id)) {
+    return(NULL)
+  }
+  
+  # Ensure editor_content is in lines
+  if (is.character(editor_content) && length(editor_content) == 1) {
+    editor_content <- strsplit(editor_content, "\n")[[1]]
+  }
+  
+  # Find the target page to insert below
+  page_start_pattern <- paste0("::: \\{.sd[_-]page id=", below_page_id, "\\}")
+  page_start_lines <- grep(page_start_pattern, editor_content, perl = TRUE)
+  
+  if (length(page_start_lines) == 0) {
+    # If target page not found, fall back to end insertion
+    return(insert_page_into_survey(new_page_id, editor_content))
+  }
+  
+  # Use the first match
+  page_start_line <- page_start_lines[1]
+  
+  # Find the end of the target page
+  page_end_line <- NULL
+  for (i in page_start_line:length(editor_content)) {
+    if (grepl("^:::$", editor_content[i])) {
+      page_end_line <- i
+      break
+    }
+  }
+  
+  if (is.null(page_end_line)) {
+    # If can't find page end, fall back to end insertion
+    return(insert_page_into_survey(new_page_id, editor_content))
+  }
+  
+  # Generate the page template
+  page_template <- generate_page_template(new_page_id)
+  
+  # Insert the page template after the target page
+  result <- c(
+    editor_content[1:page_end_line],
+    page_template,
+    if(page_end_line < length(editor_content)) editor_content[(page_end_line+1):length(editor_content)] else NULL
   )
   
   # Return the updated content
@@ -2770,6 +2855,13 @@ get_studio_js <- function() {
       function resetAddPageModal() {
         // Clear the page ID input
         $('#add_page_id_input').val('');
+        
+        // Reset the position dropdown to the last option if it exists
+        if ($('#add_page_below').length) {
+          var $dropdown = $('#add_page_below');
+          var lastOption = $dropdown.find('option:last').val();
+          $dropdown.val(lastOption);
+        }
       }
 
       // Add page modal event handlers
