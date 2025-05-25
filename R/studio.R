@@ -206,7 +206,7 @@ ui_construction_tab <- function() {
           
           # Structure content panel
           shiny::wellPanel(
-            style = "background-color: #f0f8ff; border-color: #cce5ff; padding: 0.5rem;",
+            style = "background-color: #ffffff; border-color: #cce5ff; padding: 0.5rem;",
             
             shiny::div(
               style = "overflow-y: auto; height: calc(100vh - 191px);",
@@ -392,16 +392,18 @@ studio_server <- function() {
         return(shiny::div("Select content type..."))
       }
       
-      shiny::div(
-        shiny::selectInput("add_content_type", "Content Type:", 
-                          choices = c("Text" = "text", "Question" = "question")),
-        shiny::conditionalPanel(
-          condition = "input.add_content_type == 'text'",
+      content_type <- form_info$content_type  # Get pre-set content type
+      
+      if (content_type == "text") {
+        return(shiny::div(
           shiny::textAreaInput("add_text_content", "Text:", rows = 3, 
-                              placeholder = "Enter markdown text to add to the page")
-        ),
-        shiny::conditionalPanel(
-          condition = "input.add_content_type == 'question'",
+                              placeholder = "Enter markdown text to add to the page"),
+          shiny::div(style = "font-size: 0.8em; color: #666; margin-top: 10px;",
+            paste0("Adding text to page \"", form_info$page_id, "\".")
+          )
+        ))
+      } else if (content_type == "question") {
+        return(shiny::div(
           shiny::selectInput("add_question_type", "Question Type:", 
                             choices = c(
                               "Multiple Choice" = "mc",
@@ -418,12 +420,14 @@ studio_server <- function() {
                               "Date Range" = "daterange"
                             )),
           shiny::textInput("add_question_id", "Question ID:", placeholder = "Enter unique question ID"),
-          shiny::textInput("add_question_label", "Question Label:", placeholder = "Enter question text")
-        ),
-        shiny::div(style = "font-size: 0.8em; color: #666; margin-top: 10px;",
-          paste0("Adding content to page \"", form_info$page_id, "\".")
-        )
-      )
+          shiny::textInput("add_question_label", "Question Label:", placeholder = "Enter question text"),
+          shiny::div(style = "font-size: 0.8em; color: #666; margin-top: 10px;",
+            paste0("Adding question to page \"", form_info$page_id, "\".")
+          )
+        ))
+      }
+      
+      return(shiny::div("Unknown content type"))
     })
 
     # Add page position UI
@@ -503,20 +507,42 @@ studio_server <- function() {
       }
     })
 
-    # Handle add content button
-    shiny::observeEvent(input$add_content_btn, {
-      content_data <- input$add_content_btn
+    # Handle add text button
+    shiny::observeEvent(input$add_text_btn, {
+      content_data <- input$add_text_btn
       page_id <- content_data$pageId
       
       if (!is.null(page_id) && page_id != "") {
         add_content_page_id(page_id)
         session$sendCustomMessage("updateModalTitle", list(
           modalId = "add-content-modal-title",
-          title = paste("Add Content to Page:", page_id)
+          title = paste("Add Text to Page:", page_id)
         ))
         
         add_form_trigger(list(
           page_id = page_id,
+          content_type = "text",  # Pre-set to text
+          timestamp = as.numeric(Sys.time()) * 1000 + sample(1:1000, 1)
+        ))
+        session$sendCustomMessage("showModal", "add-content-modal")
+      }
+    }, ignoreInit = TRUE, ignoreNULL = TRUE)
+
+    # Handle add question button
+    shiny::observeEvent(input$add_question_btn, {
+      content_data <- input$add_question_btn
+      page_id <- content_data$pageId
+      
+      if (!is.null(page_id) && page_id != "") {
+        add_content_page_id(page_id)
+        session$sendCustomMessage("updateModalTitle", list(
+          modalId = "add-content-modal-title",
+          title = paste("Add Question to Page:", page_id)
+        ))
+        
+        add_form_trigger(list(
+          page_id = page_id,
+          content_type = "question",  # Pre-set to question
           timestamp = as.numeric(Sys.time()) * 1000 + sample(1:1000, 1)
         ))
         session$sendCustomMessage("showModal", "add-content-modal")
@@ -526,13 +552,16 @@ studio_server <- function() {
     # Handle add content confirmation
     shiny::observeEvent(input$add_content_confirm, {
       page_id <- add_content_page_id()
+      form_info <- add_form_trigger()
       
-      if (!is.null(page_id)) {
+      if (!is.null(page_id) && !is.null(form_info)) {
         current_content <- input$survey_editor
         current_content <- r_chunk_separation(current_content)
         updated_content <- NULL
         
-        if (input$add_content_type == "text") {
+        content_type <- form_info$content_type
+        
+        if (content_type == "text") {
           if (is.null(input$add_text_content) || trimws(input$add_text_content) == "") {
             shiny::showNotification("Please enter some text content", type = "error")
             return()
@@ -552,7 +581,7 @@ studio_server <- function() {
             shiny::showNotification("Failed to add text. Check page ID and try again.", type = "error")
           }
           
-        } else if (input$add_content_type == "question") {
+        } else if (content_type == "question") {
           if (is.null(input$add_question_id) || input$add_question_id == "" ||
               is.null(input$add_question_label) || input$add_question_label == "") {
             shiny::showNotification("Please fill in all question fields", type = "error")
@@ -1670,77 +1699,89 @@ delete_content_from_survey_lines <- function(page_id, content_id, content_type, 
 
 # Add content to target page
 add_content_to_target_page <- function(page_id, content_items, target_order, editor_lines) {
-  moved_item_id <- names(content_items)[1]
-  moved_item <- content_items[[moved_item_id]]
-  
-  # Find where moved item appears in target order
-  moved_position <- 0
-  for (i in seq_along(target_order)) {
-    if (target_order[[i]]$id == moved_item_id) {
-      moved_position <- i
-      break
-    }
-  }
-  
-  # Find target page
+  # Find target page boundaries
   page_start_pattern <- paste0("::: \\{.sd[_-]page id=", page_id, "\\}")
   page_start_lines <- grep(page_start_pattern, editor_lines, perl = TRUE)
+  
   if (length(page_start_lines) == 0) return(NULL)
   
   page_start_line <- page_start_lines[1]
   page_end_line <- NULL
+  
   for (i in page_start_line:length(editor_lines)) {
     if (grepl("^:::$", editor_lines[i])) {
       page_end_line <- i
       break
     }
   }
+  
   if (is.null(page_end_line)) return(NULL)
   
-  # If position 1, insert at beginning
-  if (moved_position <= 1) {
-    insertion_point <- page_start_line + 2
-  } else {
-    # Count existing content blocks and insert after the (position-1)th block
-    content_blocks_found <- 0
-    insertion_point <- find_insertion_point(editor_lines, page_start_line, page_end_line)
+  # Get current page structure to identify existing content and navigation
+  original_page_content <- editor_lines[page_start_line:page_end_line]
+  navigation_chunks <- extract_navigation_chunks(original_page_content)
+  
+  # Get existing content from target page (excluding moved items)
+  survey_structure <- parse_survey_structure()
+  if (is.null(survey_structure) || !("pages" %in% names(survey_structure))) {
+    return(NULL)
+  }
+  
+  existing_page_items <- survey_structure$pages[[page_id]]
+  moved_item_ids <- names(content_items)
+  
+  # Filter out moved items from existing content
+  remaining_existing_items <- existing_page_items[!names(existing_page_items) %in% moved_item_ids]
+  
+  # Rebuild page content in the exact order specified by target_order
+  new_page_content <- c(
+    editor_lines[page_start_line],  # Page opening
+    ""
+  )
+  
+  # Process each item in the target order
+  for (item in target_order) {
+    item_id <- item$id
     
-    for (i in (page_start_line + 1):(page_end_line - 1)) {
-      # Count R chunks and text blocks
-      if (grepl("^```\\{r\\}", editor_lines[i]) || 
-          (i > page_start_line + 1 && !grepl("^```|^$", editor_lines[i]) && trimws(editor_lines[i]) != "")) {
-        content_blocks_found <- content_blocks_found + 1
-        if (content_blocks_found == moved_position - 1) {
-          # Find end of this block
-          if (grepl("^```\\{r\\}", editor_lines[i])) {
-            for (j in (i+1):(page_end_line-1)) {
-              if (grepl("^```$", editor_lines[j])) {
-                insertion_point <- j + 1
-                break
-              }
-            }
-          } else {
-            insertion_point <- i + 1
-          }
-          break
-        }
+    # Check if it's a moved item
+    if (item_id %in% names(content_items)) {
+      content_item <- content_items[[item_id]]
+      if (content_item$is_question && "raw" %in% names(content_item)) {
+        content_lines <- strsplit(content_item$raw, "\n")[[1]]
+        new_page_content <- c(new_page_content, content_lines, "")
+      } else if (!content_item$is_question && "content" %in% names(content_item)) {
+        text_lines <- strsplit(content_item$content, "\n")[[1]]
+        new_page_content <- c(new_page_content, text_lines, "")
+      }
+    }
+    # Check if it's an existing item that stayed in the page
+    else if (item_id %in% names(remaining_existing_items)) {
+      existing_item <- remaining_existing_items[[item_id]]
+      if (existing_item$is_question && "raw" %in% names(existing_item)) {
+        content_lines <- strsplit(existing_item$raw, "\n")[[1]]
+        new_page_content <- c(new_page_content, content_lines, "")
+      } else if (!existing_item$is_question && "content" %in% names(existing_item)) {
+        text_lines <- strsplit(existing_item$content, "\n")[[1]]
+        new_page_content <- c(new_page_content, text_lines, "")
       }
     }
   }
   
-  # Insert content
-  if (moved_item$is_question && "raw" %in% names(moved_item)) {
-    content_to_insert <- c(strsplit(moved_item$raw, "\n")[[1]], "")
-  } else if (!moved_item$is_question && "content" %in% names(moved_item)) {
-    content_to_insert <- c(strsplit(moved_item$content, "\n")[[1]], "")
-  } else {
-    return(NULL)
+  # Add navigation chunks at the end
+  if (length(navigation_chunks) > 0) {
+    for (chunk in navigation_chunks) {
+      new_page_content <- c(new_page_content, chunk$lines, "")
+    }
   }
   
+  # Add page closing
+  new_page_content <- c(new_page_content, ":::")
+  
+  # Rebuild the entire file
   result <- c(
-    editor_lines[1:(insertion_point-1)],
-    content_to_insert,
-    editor_lines[insertion_point:length(editor_lines)]
+    editor_lines[1:(page_start_line-1)],
+    new_page_content,
+    if (page_end_line < length(editor_lines)) editor_lines[(page_end_line+1):length(editor_lines)] else NULL
   )
   
   return(result)
@@ -1770,7 +1811,7 @@ render_survey_structure <- function(survey_structure) {
           class = "page-header",
           shiny::div(
             class = "page-drag-handle drag-handle",
-            shiny::icon("grip-lines")
+            shiny::icon("grip-vertical")
           ),
           shiny::div(paste0("Page: ", page_id), style = "margin: 0; font-weight: bold;"),
           
@@ -1810,18 +1851,25 @@ render_survey_structure <- function(survey_structure) {
           `data-page-id` = page_id,
           style = "display: block;",
           
-          # Add Content button
-          shiny::div(
-            style = "margin-bottom: 10px; text-align: center;",
-            shiny::actionButton(
-              inputId = "add_content_btn_ui",
-              label = "Add Content",
-              class = "btn-success add-content-btn",
-              style = "width: 98%; padding: 8px; font-weight: bold;",
-              title = "Add content to this page",
-              `data-page-id` = page_id
-            )
+        shiny::div(
+          style = "margin-bottom: 10px; width: 98%; margin-left: auto; margin-right: auto; display: flex; gap: 5px;",
+          shiny::actionButton(
+            inputId = "add_text_btn_ui",
+            label = "Add Text",
+            class = "btn-success add-text-btn",
+            style = "width: calc(50% - 2.5px); padding: 8px; font-weight: bold;",
+            title = "Add text to this page",
+            `data-page-id` = page_id
           ),
+          shiny::actionButton(
+            inputId = "add_question_btn_ui", 
+            label = "Add Question",
+            class = "btn-info add-question-btn",
+            style = "width: calc(50% - 2.5px); padding: 8px; font-weight: bold;",
+            title = "Add question to this page",
+            `data-page-id` = page_id
+          )
+        ),
           
           # Add content items in their order
           if (length(sorted_items) > 0) {
@@ -2679,17 +2727,32 @@ get_studio_css <- function() {
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
-    /* Add content button styling */
-    .add-content-btn {
-      background-color: #e8f5e8 !important;
-      border-color: #c8e6c8 !important;
-      color: #2e7d32 !important;
+    /* Add text button styling */
+    .add-text-btn {
+      background-color: #f0fff0 !important;
+      border-color: #28a745 !important;
+      color: #28a745 !important;
     }
 
-    .add-content-btn:hover {
-      background-color: #c8e6c8 !important;
-      border-color: #a5d6a7 !important;
-      color: #1b5e20 !important;
+    .add-text-btn:hover {
+      background-color: #e8f5e8 !important;
+      border-color: #1e7e34 !important;
+      color: #1e7e34 !important;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    /* Add question button styling */
+    .add-question-btn {
+      background-color: #f0f8ff !important;
+      border-color: #5bc0de !important;
+      color: #5bc0de !important;
+    }
+
+    .add-question-btn:hover {
+      background-color: #e6f3ff !important;
+      border-color: #31b0d5 !important;
+      color: #31b0d5 !important;
       transform: translateY(-1px);
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
@@ -2737,6 +2800,7 @@ get_studio_css <- function() {
     
     .page-header .toggle-icon {
       margin-left: 10px;
+      min-width: 20px;
     }
     
     .page-actions {
@@ -2960,12 +3024,24 @@ get_studio_js <- function() {
       });
 
       // Add content button handler
-      $(document).off('click', '.add-content-btn').on('click', '.add-content-btn', function(e) {
+      $(document).off('click', '.add-text-btn').on('click', '.add-text-btn', function(e) {
         e.preventDefault();
         e.stopPropagation();
         
         var pageId = $(this).attr('data-page-id');
-        Shiny.setInputValue('add_content_btn', {
+        Shiny.setInputValue('add_text_btn', {
+          pageId: pageId,
+          timestamp: new Date().getTime()
+        });
+        return false;
+      });
+
+      $(document).off('click', '.add-question-btn').on('click', '.add-question-btn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        var pageId = $(this).attr('data-page-id');
+        Shiny.setInputValue('add_question_btn', {
           pageId: pageId,
           timestamp: new Date().getTime()
         });
