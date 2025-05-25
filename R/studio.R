@@ -889,6 +889,10 @@ studio_server <- function() {
 # Handler for survey structure management
 server_structure_handlers <- function(input, output, session) {
   structure_trigger <- shiny::reactiveVal(0)
+  
+  # Store page toggle states
+  page_toggle_states <- shiny::reactiveVal(list())
+  
   output$survey_structure <- shiny::renderUI({
     structure_trigger()
     survey_structure <- parse_survey_structure()
@@ -901,10 +905,30 @@ server_structure_handlers <- function(input, output, session) {
       ))
     }
     
-    render_survey_structure(survey_structure)
+    # Use isolate() to prevent reactive dependency on page_toggle_states
+    current_states <- shiny::isolate(page_toggle_states())
+    if (length(current_states) == 0 && !is.null(survey_structure$page_ids)) {
+      # Initialize all pages as expanded (TRUE) on first launch
+      initial_states <- setNames(
+        rep(TRUE, length(survey_structure$page_ids)), 
+        survey_structure$page_ids
+      )
+      page_toggle_states(initial_states)
+      current_states <- initial_states
+    }
+    
+    render_survey_structure(survey_structure, current_states)
   })
   
-  # Function to refresh the structure
+  # Handle page toggle events from JavaScript
+  shiny::observeEvent(input$page_toggled, {
+    if (!is.null(input$page_toggled$pageId)) {
+      current_states <- page_toggle_states()
+      current_states[[input$page_toggled$pageId]] <- input$page_toggled$isExpanded
+      page_toggle_states(current_states)
+    }
+  }, ignoreInit = TRUE)
+  
   refresh_structure <- function() {
     structure_trigger(structure_trigger() + 1)
     shiny::invalidateLater(200)
@@ -1788,7 +1812,7 @@ add_content_to_target_page <- function(page_id, content_items, target_order, edi
 }
 
 # Function to render the survey structure UI
-render_survey_structure <- function(survey_structure) {
+render_survey_structure <- function(survey_structure, page_states = NULL) {
   shiny::div(
     id = "pages-container",
     lapply(survey_structure$page_ids, function(page_id) {
@@ -1800,6 +1824,12 @@ render_survey_structure <- function(survey_structure) {
         sorted_items <- page_items[order(positions)]
       } else {
         sorted_items <- list()
+      }
+      
+      # Check if this page should be expanded or collapsed
+      is_expanded <- TRUE  # default
+      if (!is.null(page_states) && page_id %in% names(page_states)) {
+        is_expanded <- page_states[[page_id]]
       }
       
       shiny::div(
@@ -1840,36 +1870,37 @@ render_survey_structure <- function(survey_structure) {
           
           shiny::div(
             class = "toggle-icon",
-            shiny::icon("chevron-down")
+            # Update icon based on state
+            shiny::icon(if(is_expanded) "chevron-down" else "chevron-right")
           )
         ),
         
-        # Content container
+        # Content container - set display based on state
         shiny::div(
           class = "questions-container",
           id = paste0("page-", page_id, "-content"),
           `data-page-id` = page_id,
-          style = "display: block;",
+          style = if(is_expanded) "display: block;" else "display: none;",
           
-        shiny::div(
-          style = "margin-bottom: 10px; width: 98%; margin-left: auto; margin-right: auto; display: flex; gap: 5px;",
-          shiny::actionButton(
-            inputId = "add_text_btn_ui",
-            label = "Add Text",
-            class = "btn-success add-text-btn",
-            style = "width: calc(50% - 2.5px); padding: 8px; font-weight: bold;",
-            title = "Add text to this page",
-            `data-page-id` = page_id
+          shiny::div(
+            style = "margin-bottom: 10px; width: 98%; margin-left: auto; margin-right: auto; display: flex; gap: 5px;",
+            shiny::actionButton(
+              inputId = "add_text_btn_ui",
+              label = "Add Text",
+              class = "btn-success add-text-btn",
+              style = "width: calc(50% - 2.5px); padding: 8px; font-weight: bold;",
+              title = "Add text to this page",
+              `data-page-id` = page_id
+            ),
+            shiny::actionButton(
+              inputId = "add_question_btn_ui", 
+              label = "Add Question",
+              class = "btn-info add-question-btn",
+              style = "width: calc(50% - 2.5px); padding: 8px; font-weight: bold;",
+              title = "Add question to this page",
+              `data-page-id` = page_id
+            )
           ),
-          shiny::actionButton(
-            inputId = "add_question_btn_ui", 
-            label = "Add Question",
-            class = "btn-info add-question-btn",
-            style = "width: calc(50% - 2.5px); padding: 8px; font-weight: bold;",
-            title = "Add question to this page",
-            `data-page-id` = page_id
-          )
-        ),
           
           # Add content items in their order
           if (length(sorted_items) > 0) {
@@ -3097,7 +3128,11 @@ get_studio_js <- function() {
               !$(e.target).hasClass('delete-page-btn') &&
               !$(e.target).closest('.delete-page-btn').length &&
               !$(e.target).closest('.page-actions').length) {
+            
             var $questions = $(this).next('.questions-container');
+            var pageId = $(this).closest('.page-wrapper').attr('data-page-id');
+            var willBeExpanded = $questions.is(':hidden'); // Will be expanded after toggle
+            
             $questions.slideToggle();
             
             // Toggle icon
@@ -3107,6 +3142,12 @@ get_studio_js <- function() {
             } else {
               $icon.removeClass('fa-chevron-right').addClass('fa-chevron-down');
             }
+            
+            // Send toggle state to Shiny
+            Shiny.setInputValue('page_toggled', {
+              pageId: pageId,
+              isExpanded: willBeExpanded
+            });
           }
         });
       }
