@@ -452,7 +452,7 @@ studio_server <- function() {
             id = "add_question_options_div",
             style = "display: none; margin-top: 10px;",
             shiny::textAreaInput("add_question_options", 
-                                "Options (comma-separated):", 
+                                "Options:", 
                                 rows = 3,
                                 placeholder = "Apple, Banana, Cherry")
           ),
