@@ -344,7 +344,15 @@ studio_server <- function() {
         current_id <- if("id" %in% names(current_item) && !is.null(current_item$id)) current_item$id else ""
         current_label <- if("label" %in% names(current_item) && !is.null(current_item$label)) current_item$label else ""
         
-        return(shiny::div(
+        # Extract current options if it's a choice question
+        current_options <- ""
+        if (current_type %in% c("mc", "mc_buttons", "mc_multiple", "mc_multiple_buttons", "select", "slider")) {
+          if ("raw" %in% names(current_item)) {
+            current_options <- extract_options_from_raw(current_item$raw)
+          }
+        }
+        
+        form_elements <- list(
           shiny::selectInput("modify_question_type", "Question Type:", 
                     choices = c(
                       "Multiple Choice" = "mc",
@@ -362,11 +370,30 @@ studio_server <- function() {
                     ),
                     selected = current_type),
           shiny::textInput("modify_question_id", "Question ID:", value = current_id),
-          shiny::textInput("modify_question_label", "Question Label:", value = current_label),
+          shiny::textInput("modify_question_label", "Question Label:", value = current_label)
+        )
+        
+        # Add options input for choice questions
+        if (current_type %in% c("mc", "mc_buttons", "mc_multiple", "mc_multiple_buttons", "select", "slider")) {
+          form_elements <- append(form_elements, list(
+            shiny::div(
+              style = "margin-top: 10px;",
+              shiny::textAreaInput("modify_question_options", 
+                                  "Options:", 
+                                  value = current_options,
+                                  rows = 3,
+                                  placeholder = "Apple, Banana, Cherry")
+            )
+          ))
+        }
+        
+        form_elements <- append(form_elements, list(
           shiny::div(style = "font-size: 0.8em; color: #666; margin-top: 10px;",
             paste0("Editing question \"", form_info$content_id, "\" on page \"", form_info$page_id, "\".")
           )
         ))
+        
+        return(shiny::div(form_elements))
         
       } else if (form_info$type == "text") {
         current_item <- form_info$item
@@ -392,7 +419,7 @@ studio_server <- function() {
         return(shiny::div("Select content type..."))
       }
       
-      content_type <- form_info$content_type  # Get pre-set content type
+      content_type <- form_info$content_type
       
       if (content_type == "text") {
         return(shiny::div(
@@ -403,7 +430,7 @@ studio_server <- function() {
           )
         ))
       } else if (content_type == "question") {
-        return(shiny::div(
+        form_elements <- list(
           shiny::selectInput("add_question_type", "Question Type:", 
                             choices = c(
                               "Multiple Choice" = "mc",
@@ -421,10 +448,20 @@ studio_server <- function() {
                             )),
           shiny::textInput("add_question_id", "Question ID:", placeholder = "Enter unique question ID"),
           shiny::textInput("add_question_label", "Question Label:", placeholder = "Enter question text"),
+          shiny::div(
+            id = "add_question_options_div",
+            style = "display: none; margin-top: 10px;",
+            shiny::textAreaInput("add_question_options", 
+                                "Options (comma-separated):", 
+                                rows = 3,
+                                placeholder = "Apple, Banana, Cherry")
+          ),
           shiny::div(style = "font-size: 0.8em; color: #666; margin-top: 10px;",
             paste0("Adding question to page \"", form_info$page_id, "\".")
           )
-        ))
+        )
+        
+        return(shiny::div(form_elements))
       }
       
       return(shiny::div("Unknown content type"))
@@ -587,12 +624,20 @@ studio_server <- function() {
             shiny::showNotification("Please fill in all question fields", type = "error")
             return()
           }
+          
+          # Get options input for choice questions
+          options_text <- NULL
+          if (input$add_question_type %in% c("mc", "mc_buttons", "mc_multiple", "mc_multiple_buttons", "select", "slider")) {
+            options_text <- input$add_question_options
+          }
+          
           updated_content <- insert_question_into_survey(
             page_id,
             input$add_question_type,
             input$add_question_id,
             input$add_question_label,
-            current_content
+            current_content,
+            options_text  # Pass options text
           )
           
           if (!is.null(updated_content)) {
@@ -699,11 +744,12 @@ studio_server <- function() {
           new_type <- input$modify_question_type
           new_id <- input$modify_question_id
           new_label <- input$modify_question_label
+          new_options <- input$modify_question_options  # Get options input
           
           if (!is.null(new_type) && !is.null(new_id) && !is.null(new_label) && 
               new_id != "" && new_label != "") {
             updated_content <- modify_question_content(
-              page_id, content_id, new_type, new_id, new_label, current_content
+              page_id, content_id, new_type, new_id, new_label, current_content, new_options
             )
           } else {
             shiny::showNotification("Please fill in all question fields", type = "error")
@@ -1116,7 +1162,7 @@ generate_page_template <- function(page_id) {
 }
 
 # Insert a question into a specific page
-insert_question_into_survey <- function(page_id, question_type, question_id, question_label, editor_content) {
+insert_question_into_survey <- function(page_id, question_type, question_id, question_label, editor_content, options_text = NULL) {
   if (is.null(editor_content) || is.null(page_id)) {
     return(NULL)
   }
@@ -1147,7 +1193,7 @@ insert_question_into_survey <- function(page_id, question_type, question_id, que
   }
   
   insertion_point <- find_insertion_point(editor_content, page_start_line, page_end_line)
-  question_code <- generate_question_code(question_type, question_id, question_label)
+  question_code <- generate_question_code(question_type, question_id, question_label, options_text)
   question_chunk <- c(
     "```{r}",
     question_code,
@@ -1543,21 +1589,47 @@ find_function_call_end <- function(chunk_content, start_idx) {
 }
 
 # Generate question code based on type
-generate_question_code <- function(type, id, label) {
+generate_question_code <- function(type, id, label, options_text = NULL) {
   # Ensure we have valid inputs
   if (is.null(id) || id == "") id <- paste0(type, "_id")
   if (is.null(label) || label == "") label <- paste0(type, "_label")
   
   # Generate appropriate code based on question type
   if (type %in% c("mc", "mc_buttons", "mc_multiple", "mc_multiple_buttons", "select", "slider")) {
+    # Parse options input
+    options_vector <- parse_options_input(options_text)
+    
+    # Generate option lines
+    option_lines <- character(0)
+    for (i in seq_along(options_vector)) {
+      option_label <- names(options_vector)[i]
+      option_value <- options_vector[i]
+      
+      if (i == 1) {
+        option_lines <- c(option_lines, paste0("    \"", option_label, "\" = \"", option_value, "\""))
+      } else if (i == length(options_vector)) {
+        option_lines <- c(option_lines, paste0("    \"", option_label, "\" = \"", option_value, "\""))
+      } else {
+        option_lines <- c(option_lines, paste0("    \"", option_label, "\" = \"", option_value, "\","))
+      }
+    }
+    
+    # Add comma to all but last option
+    if (length(option_lines) > 1) {
+      for (i in 1:(length(option_lines) - 1)) {
+        if (!grepl(",$", option_lines[i])) {
+          option_lines[i] <- paste0(option_lines[i], ",")
+        }
+      }
+    }
+    
     return(c(
       paste0("sd_question("),
       paste0("  type   = \"", type, "\","),
       paste0("  id     = \"", id, "\","),
       paste0("  label  = \"", label, "\","),
       paste0("  option = c("),
-      paste0("    \"Option A\" = \"option_a\","),
-      paste0("    \"Option B\" = \"option_b\""),
+      option_lines,
       paste0("  )"),
       paste0(")")
     ))
@@ -1583,6 +1655,91 @@ generate_question_code <- function(type, id, label) {
 }
 
 # Content Editing Helper Functions ----
+
+# Extract options from raw question code
+extract_options_from_raw <- function(raw_code) {
+  if (is.null(raw_code) || raw_code == "") {
+    return("")
+  }
+  
+  # Look for option = c(...) pattern
+  option_pattern <- "option\\s*=\\s*c\\s*\\(([^)]+)\\)"
+  option_match <- regexpr(option_pattern, raw_code, perl = TRUE)
+  
+  if (option_match > 0) {
+    option_content <- regmatches(raw_code, option_match)
+    # Extract just the content inside c(...)
+    inner_pattern <- "c\\s*\\(([^)]+)\\)"
+    inner_match <- regexpr(inner_pattern, option_content, perl = TRUE)
+    
+    if (inner_match > 0) {
+      start_pos <- attr(inner_match, "capture.start")[1]
+      length_val <- attr(inner_match, "capture.length")[1]
+      options_text <- substr(option_content, start_pos, start_pos + length_val - 1)
+      
+      # Parse the options to extract just the labels
+      # Remove quotes and extract labels (before =)
+      options_pairs <- strsplit(options_text, ",")[[1]]
+      labels <- character(0)
+      
+      for (pair in options_pairs) {
+        pair <- trimws(pair)
+        if (grepl("=", pair)) {
+          label_part <- strsplit(pair, "=")[[1]][1]
+          label_part <- trimws(label_part)
+          label_part <- gsub("^[\"']|[\"']$", "", label_part)  # Remove quotes
+          labels <- c(labels, label_part)
+        }
+      }
+      
+      return(paste(labels, collapse = ", "))
+    }
+  }
+  
+  return("")
+}
+
+# Convert option label to snake case value
+label_to_snake_case <- function(label) {
+  # Convert to lowercase, replace spaces and special chars with underscores
+  snake_case <- tolower(label)
+  snake_case <- gsub("[^a-z0-9]+", "_", snake_case)
+  # Remove leading/trailing underscores
+  snake_case <- gsub("^_+|_+$", "", snake_case)
+  # Replace multiple underscores with single
+  snake_case <- gsub("_+", "_", snake_case)
+  return(snake_case)
+}
+
+# Parse options input string into named vector
+parse_options_input <- function(options_text) {
+  if (is.null(options_text) || trimws(options_text) == "") {
+    return(c("Option A" = "option_a", "Option B" = "option_b"))
+  }
+  
+  # First, replace line breaks with commas to normalize separators
+  # Handle different line break types (Windows: \r\n, Unix: \n, Mac: \r)
+  options_text <- gsub("\r\n", "\n", options_text)  # Normalize Windows line breaks
+  options_text <- gsub("\r", "\n", options_text)    # Normalize Mac line breaks
+  
+  # Replace line breaks with commas, but be careful not to double up commas
+  options_text <- gsub("\n+", ",", options_text)    # Replace one or more line breaks with comma
+  
+  # Split by comma, handling various spacing
+  options_raw <- strsplit(options_text, ",")[[1]]
+  options_raw <- trimws(options_raw)
+  options_raw <- options_raw[options_raw != ""]  # Remove empty entries
+  
+  if (length(options_raw) == 0) {
+    return(c("Option A" = "option_a", "Option B" = "option_b"))
+  }
+  
+  # Create named vector
+  option_values <- sapply(options_raw, label_to_snake_case, USE.NAMES = FALSE)
+  options_vector <- setNames(option_values, options_raw)
+  
+  return(options_vector)
+}
 
 # Parse survey structure from survey.qmd file
 parse_survey_structure <- function() {
@@ -2265,7 +2422,7 @@ modify_page_id <- function(old_page_id, new_page_id, editor_content) {
 }
 
 # Modify question content in the survey
-modify_question_content <- function(page_id, old_question_id, new_type, new_id, new_label, editor_content) {
+modify_question_content <- function(page_id, old_question_id, new_type, new_id, new_label, editor_content, options_text = NULL) {
   if (is.null(editor_content) || is.null(page_id) || is.null(old_question_id)) {
     return(NULL)
   }
@@ -2317,7 +2474,7 @@ modify_question_content <- function(page_id, old_question_id, new_type, new_id, 
         # Check if this chunk contains the question we want to modify
         if (grepl(paste0('id\\s*=\\s*["\']', old_question_id, '["\']'), chunk_content, perl = TRUE)) {
           # Generate new question code
-          new_question_code <- generate_question_code(new_type, new_id, new_label)
+          new_question_code <- generate_question_code(new_type, new_id, new_label, options_text)
           
           # Replace the chunk content
           result <- c(
@@ -3021,6 +3178,52 @@ get_studio_js <- function() {
 
       $('#add-content-modal').on('show.bs.modal', function() {
         resetAddContentModal();
+      });
+
+      // Show/hide options input based on question type
+      $(document).off('change', '#add_question_type, #modify_question_type').on('change', '#add_question_type, #modify_question_type', function() {
+        updateOptionsVisibility();
+      });
+
+      // Function to update options visibility
+      function updateOptionsVisibility() {
+        // For add question modal
+        var addQuestionType = $('#add_question_type').val();
+        if (addQuestionType) {
+          var choiceTypes = ['mc', 'mc_buttons', 'mc_multiple', 'mc_multiple_buttons', 'select', 'slider'];
+          var $optionsDiv = $('#add_question_options_div');
+          if (choiceTypes.includes(addQuestionType)) {
+            $optionsDiv.show();
+          } else {
+            $optionsDiv.hide();
+          }
+        }
+        
+        // For modify question modal
+        var modifyQuestionType = $('#modify_question_type').val();
+        if (modifyQuestionType) {
+          var choiceTypes = ['mc', 'mc_buttons', 'mc_multiple', 'mc_multiple_buttons', 'select', 'slider'];
+          var $optionsInput = $('#modify_question_options');
+          var $optionsContainer = $optionsInput.closest('div');
+          if (choiceTypes.includes(modifyQuestionType)) {
+            $optionsContainer.show();
+          } else {
+            $optionsContainer.hide();
+          }
+        }
+      }
+
+      // Initialize options visibility on modal show and when DOM updates
+      $('#add-content-modal, #modify-content-modal').on('shown.bs.modal', function() {
+        // Small delay to ensure DOM is ready
+        setTimeout(updateOptionsVisibility, 100);
+      });
+
+      // Also trigger when Shiny updates the form content
+      $(document).on('shiny:value', function(event) {
+        if (event.target.id === 'add_content_form' || event.target.id === 'modify_content_form') {
+          setTimeout(updateOptionsVisibility, 100);
+        }
       });
 
       /* ===== BUTTON EVENT HANDLERS ===== */
