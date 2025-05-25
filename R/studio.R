@@ -2961,7 +2961,7 @@ get_studio_css <- function() {
 
     /* ===== MODAL & FORM STYLING ===== */
     .modal-body textarea {
-      height: 200px;
+      height: 150px;
       font-family: Monaco, 'Lucida Console', monospace;
     }
 
