@@ -12,7 +12,7 @@
 #'
 #' @return No return value, called for its side effects of creating a survey
 #'   project and launching a Shiny app.
-#' @importFrom stats runif
+#' @importFrom stats runif setNames
 #' @importFrom utils head
 #' @importFrom shiny req
 #' @importFrom surveydown sd_create_survey

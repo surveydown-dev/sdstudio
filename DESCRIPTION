@@ -1,6 +1,6 @@
 Package: sdApps
 Title: Supportive Applications for surveydown
-Version: 0.0.1
+Version: 0.0.2
 Authors@R: c(
     person("John Paul", "Helveston", , "john.helveston@gmail.com", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0002-2657-9191")),
