@@ -2,20 +2,17 @@ Package: sdApps
 Title: Supportive Applications for surveydown
 Version: 0.0.2
 Authors@R: c(
-    person("John Paul", "Helveston", , "john.helveston@gmail.com", role = c("aut", "cre", "cph"),
-           comment = c(ORCID = "0000-0002-2657-9191")),
-    person("Pingfan", "Hu", , "pingfan0727@gmail.com", role = c("aut", "cph"),
+    person("Pingfan", "Hu", , "pingfan0727@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0009-0001-4877-4844")),
+    person("John Paul", "Helveston", , "john.helveston@gmail.com", role = c("aut", "cph"),
+           comment = c(ORCID = "0000-0002-2657-9191")),
     person("Bogdan", "Bunea", , "buneabt@yahoo.com", role = c("aut", "cph"),
-           comment = c(ORCID = "0009-0006-2942-0588")),
-    person("Stefan", "Munnes", , "stefan.munnes@wzb.eu", role = "ctb")
+           comment = c(ORCID = "0009-0006-2942-0588"))
   )
-Description: Generate Shiny applications based on the surveydown package.
-    The original way of using surveydown is to hard code the survey into
-    survey.qmd and app.R files. With sdApps, you can create and manage
-    surveys with interactive Shiny applications.
+Description: Generate Shiny applications that support the surveydown package.
+    The default method for working with a surveydown survey is to edit the plain text survey.qmd and app.R files. With sdApps, you can create and manage surveys with interactive Shiny applications.
 License: MIT + file LICENSE
-URL: https://pkg.surveydown.org
+URL: https://sdApps.surveydown.org
 BugReports: https://github.com/surveydown-dev/sdApps/issues
 Depends:
     R (>= 4.1.0)
