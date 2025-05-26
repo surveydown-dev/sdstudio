@@ -1167,14 +1167,30 @@ add_library_chunk_to_beginning <- function(content_lines, library_calls) {
   }
   
   # Find where to insert the library chunk (after YAML header)
+  yaml_start_line <- 0
   yaml_end_line <- 0
   in_yaml <- FALSE
   
   for (i in seq_along(content_lines)) {
     line <- content_lines[i]
     
-    if (i == 1 && grepl("^---\\s*$", line)) {
-      in_yaml <- TRUE
+    # Look for YAML start (first non-empty line that starts with ---)
+    if (!in_yaml && grepl("^---\\s*$", line)) {
+      # For the first line, always consider it as YAML start if it matches
+      if (i == 1) {
+        yaml_start_line <- i
+        in_yaml <- TRUE
+      } else {
+        # For other lines, check if there's substantial content before it
+        preceding_content <- content_lines[1:(i-1)]
+        has_substantial_content <- any(grepl("\\S", preceding_content) & 
+                                     !grepl("^\\s*$", preceding_content))
+        
+        if (!has_substantial_content) {
+          yaml_start_line <- i
+          in_yaml <- TRUE
+        }
+      }
     } else if (in_yaml && grepl("^---\\s*$", line)) {
       yaml_end_line <- i
       break
