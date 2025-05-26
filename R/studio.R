@@ -2237,7 +2237,8 @@ extract_page_items <- function(page_content, page_id) {
       content_items[[paste0("text_", page_id, "_1")]] <- create_text_item(
         paste0("text_", page_id, "_1"),
         trimws(page_content),
-        1
+        1,
+        page_id
       )
     }
     return(content_items)
