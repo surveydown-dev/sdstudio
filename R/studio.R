@@ -127,7 +127,7 @@ ui_construction_tab <- function() {
             class = "modal-content",
             shiny::div(
               class = "modal-header",
-              shiny::h5(id = "add-content-modal-title", "Add Content to Page", class = "modal-title"),
+              shiny::h5(id = "add-content-modal-title", "Add Content", class = "modal-title"),
               shiny::tags$button(type = "button", class = "btn-close", `data-bs-dismiss` = "modal")
             ),
             shiny::div(
@@ -424,10 +424,7 @@ studio_server <- function() {
       if (content_type == "text") {
         return(shiny::div(
           shiny::textAreaInput("add_text_content", "Text:", rows = 3, 
-                              placeholder = "Enter markdown text to add to the page"),
-          shiny::div(style = "font-size: 0.8em; color: #666; margin-top: 10px;",
-            paste0("Adding text to page \"", form_info$page_id, "\".")
-          )
+                              placeholder = "Enter markdown text to add to the page")
         ))
       } else if (content_type == "question") {
         form_elements <- list(
@@ -455,9 +452,6 @@ studio_server <- function() {
                                 "Options:", 
                                 rows = 3,
                                 placeholder = "Apple, Banana, Cherry")
-          ),
-          shiny::div(style = "font-size: 0.8em; color: #666; margin-top: 10px;",
-            paste0("Adding question to page \"", form_info$page_id, "\".")
           )
         )
         
@@ -553,12 +547,12 @@ studio_server <- function() {
         add_content_page_id(page_id)
         session$sendCustomMessage("updateModalTitle", list(
           modalId = "add-content-modal-title",
-          title = paste("Add Text to Page:", page_id)
+          title = paste0("Add text to page \"", page_id, "\"")
         ))
         
         add_form_trigger(list(
           page_id = page_id,
-          content_type = "text",  # Pre-set to text
+          content_type = "text",
           timestamp = as.numeric(Sys.time()) * 1000 + sample(1:1000, 1)
         ))
         session$sendCustomMessage("showModal", "add-content-modal")
@@ -574,12 +568,12 @@ studio_server <- function() {
         add_content_page_id(page_id)
         session$sendCustomMessage("updateModalTitle", list(
           modalId = "add-content-modal-title",
-          title = paste("Add Question to Page:", page_id)
+          title = paste0("Add question to page \"", page_id, "\"")
         ))
         
         add_form_trigger(list(
           page_id = page_id,
-          content_type = "question",  # Pre-set to question
+          content_type = "question",
           timestamp = as.numeric(Sys.time()) * 1000 + sample(1:1000, 1)
         ))
         session$sendCustomMessage("showModal", "add-content-modal")
@@ -3352,9 +3346,6 @@ get_studio_js <- function() {
       function resetAddContentModal() {
         // Clear any cached form values
         $('#add-content-modal .modal-body input, #add-content-modal .modal-body textarea, #add-content-modal .modal-body select').val('');
-        
-        // Reset modal title
-        $('#add-content-modal-title').text('Add Content to Page');
         
         // Reset content type to default
         $('#add_content_type').val('text').trigger('change');
