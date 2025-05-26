@@ -1063,6 +1063,155 @@ server_preview_handlers <- function(input, output, session) {
 
 # Content Editing Functions ----
 
+# Reorganize library calls to the beginning of the file
+reorganize_libraries <- function(editor_content) {
+  if (is.null(editor_content)) {
+    return(NULL)
+  }
+  
+  if (is.character(editor_content) && length(editor_content) == 1) {
+    editor_content <- strsplit(editor_content, "\n")[[1]]
+  }
+  
+  # Extract all library calls
+  library_calls <- extract_library_calls(editor_content)
+  
+  # If no library calls found, return original content
+  if (length(library_calls) == 0) {
+    return(paste(editor_content, collapse = "\n"))
+  }
+  
+  # Remove library calls from their current locations
+  cleaned_content <- remove_library_calls_from_content(editor_content)
+  
+  # Add consolidated library chunk at the beginning
+  final_content <- add_library_chunk_to_beginning(cleaned_content, library_calls)
+  
+  return(paste(final_content, collapse = "\n"))
+}
+
+# Extract all library() calls from the content
+extract_library_calls <- function(editor_content) {
+  library_calls <- character(0)
+  in_r_chunk <- FALSE
+  
+  for (i in seq_along(editor_content)) {
+    line <- editor_content[i]
+    
+    if (grepl("^```\\{r\\}", line)) {
+      in_r_chunk <- TRUE
+    } else if (in_r_chunk && grepl("^```$", line)) {
+      in_r_chunk <- FALSE
+    } else if (in_r_chunk) {
+      # Check for library calls in this line
+      if (grepl("^\\s*library\\s*\\(", line, perl = TRUE)) {
+        library_calls <- c(library_calls, trimws(line))
+      }
+    }
+  }
+  
+  # Remove duplicates while preserving order
+  return(unique(library_calls))
+}
+
+# Remove library calls from their current locations
+remove_library_calls_from_content <- function(editor_content) {
+  result <- character(0)
+  in_r_chunk <- FALSE
+  current_chunk_lines <- character(0)
+  chunk_start_line <- ""
+  
+  i <- 1
+  while (i <= length(editor_content)) {
+    line <- editor_content[i]
+    
+    if (grepl("^```\\{r\\}", line)) {
+      # Start of R chunk
+      in_r_chunk <- TRUE
+      current_chunk_lines <- character(0)
+      chunk_start_line <- line
+    } else if (in_r_chunk && grepl("^```$", line)) {
+      # End of R chunk - process the accumulated lines
+      in_r_chunk <- FALSE
+      
+      # Filter out library calls from chunk content
+      non_library_lines <- character(0)
+      for (chunk_line in current_chunk_lines) {
+        if (!grepl("^\\s*library\\s*\\(", chunk_line, perl = TRUE)) {
+          non_library_lines <- c(non_library_lines, chunk_line)
+        }
+      }
+      
+      # Only add the chunk if it has non-library content
+      if (length(non_library_lines) > 0) {
+        # Check if all remaining lines are just whitespace
+        non_empty_lines <- non_library_lines[trimws(non_library_lines) != ""]
+        if (length(non_empty_lines) > 0) {
+          result <- c(result, chunk_start_line, non_library_lines, line)
+        }
+      }
+      
+      current_chunk_lines <- character(0)
+    } else if (in_r_chunk) {
+      # Inside R chunk - collect lines
+      current_chunk_lines <- c(current_chunk_lines, line)
+    } else {
+      # Outside R chunk - add line as-is
+      result <- c(result, line)
+    }
+    
+    i <- i + 1
+  }
+  
+  return(result)
+}
+
+# Add consolidated library chunk to the beginning
+add_library_chunk_to_beginning <- function(content_lines, library_calls) {
+  if (length(library_calls) == 0) {
+    return(content_lines)
+  }
+  
+  # Find where to insert the library chunk (after YAML header)
+  yaml_end_line <- 0
+  in_yaml <- FALSE
+  
+  for (i in seq_along(content_lines)) {
+    line <- content_lines[i]
+    
+    if (i == 1 && grepl("^---\\s*$", line)) {
+      in_yaml <- TRUE
+    } else if (in_yaml && grepl("^---\\s*$", line)) {
+      yaml_end_line <- i
+      break
+    }
+  }
+  
+  # Create the library chunk
+  library_chunk <- c(
+    "```{r}",
+    library_calls,
+    "```"
+  )
+  
+  # Insert after YAML header or at the very beginning
+  if (yaml_end_line > 0) {
+    result <- c(
+      content_lines[1:yaml_end_line],
+      "",
+      library_chunk,
+      content_lines[(yaml_end_line + 1):length(content_lines)]
+    )
+  } else {
+    result <- c(
+      library_chunk,
+      content_lines
+    )
+  }
+  
+  return(result)
+}
+
 # Insert a new page into the survey.qmd file
 insert_page_into_survey <- function(page_id, editor_content) {
   if (is.null(editor_content)) {
@@ -1470,7 +1619,7 @@ extract_navigation_chunks <- function(page_content) {
   return(navigation_chunks)
 }
 
-# Separate multiple sd_* function calls into individual R chunks
+# Separate multiple sd_* function calls into individual R chunks AND clean up content
 r_chunk_separation <- function(editor_content) {
   if (is.null(editor_content)) {
     return(NULL)
@@ -1543,7 +1692,16 @@ r_chunk_separation <- function(editor_content) {
     result <- result[-length(result)]
   }
   
-  return(clean_consecutive_empty_lines(paste(result, collapse = "\n")))
+  # Convert to string for processing
+  content_string <- paste(result, collapse = "\n")
+  
+  # Apply library reorganization
+  content_string <- reorganize_libraries(content_string)
+  
+  # Apply empty line cleanup
+  content_string <- clean_multiple_empty_lines(content_string)
+  
+  return(content_string)
 }
 
 # Find the end of a function call by tracking parentheses
@@ -1655,6 +1813,36 @@ generate_question_code <- function(type, id, label, options_text = NULL) {
 }
 
 # Content Editing Helper Functions ----
+
+# Clean up multiple consecutive empty lines - reduce to single empty line
+clean_multiple_empty_lines <- function(content) {
+  if (is.null(content)) {
+    return(NULL)
+  }
+  
+  if (is.character(content) && length(content) == 1) {
+    content <- strsplit(content, "\n")[[1]]
+  }
+  
+  result <- character(0)
+  empty_line_count <- 0
+  
+  for (line in content) {
+    if (trimws(line) == "") {
+      empty_line_count <- empty_line_count + 1
+      # Only add one empty line, regardless of how many consecutive we find
+      if (empty_line_count == 1) {
+        result <- c(result, line)
+      }
+    } else {
+      # Non-empty line, reset counter
+      empty_line_count <- 0
+      result <- c(result, line)
+    }
+  }
+  
+  return(paste(result, collapse = "\n"))
+}
 
 # Extract options from raw question code
 extract_options_from_raw <- function(raw_code) {
