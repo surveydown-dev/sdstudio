@@ -11,7 +11,7 @@ Authors@R: c(
   )
 Description: Companion Shiny applications that support the surveydown survey platform. The default method for working with a surveydown survey is to edit the plain text survey.qmd and app.R files. With sdApps, you can create and manage surveys with interactive Shiny applications.
 License: MIT + file LICENSE
-URL: https://sdApps.surveydown.org
+URL: https://sdapps.surveydown.org
 BugReports: https://github.com/surveydown-dev/sdApps/issues
 Depends:
     R (>= 4.1.0)
