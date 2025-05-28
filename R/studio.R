@@ -4,11 +4,11 @@
 #' 1. It generates a new survey project from a template
 #' 2. It launches a Shiny app to preview and edit the survey
 #'
-#' @param path A character string specifying the directory where the survey
-#'   template should be created. Defaults to the current working directory.
 #' @param template A character string specifying the template to use.
 #'   Default is "default" which uses the built-in package template.
 #'   See `surveydown::sd_create_survey()` for other available templates.
+#' @param path A character string specifying the directory where the survey
+#'   template should be created. Defaults to the current working directory.
 #'
 #' @return No return value, called for its side effects of creating a survey
 #'   project and launching a Shiny app.
@@ -24,15 +24,15 @@
 #'   sd_studio()
 #'
 #'   # Launch studio with a specific template and path
-#'   sd_studio(path = "my_survey", template = "question_types")
+#'   sd_studio(template = "question_types", path = "my_survey")
 #' }
-sd_studio <- function(path = getwd(), template = "default") {
+sd_studio <- function(template = "default", path = getwd()) {
   template_explicitly_provided <- !missing(template)
   survey_exists <- file.exists(file.path(path, "survey.qmd"))
   app_exists <- file.exists(file.path(path, "app.R"))
 
   if (template_explicitly_provided || !survey_exists || !app_exists) {
-    surveydown::sd_create_survey(path = path, template = template)
+    surveydown::sd_create_survey(template = template, path = path)
   }
   
   original_dir <- getwd()

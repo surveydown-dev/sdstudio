@@ -4,15 +4,15 @@
 \alias{sd_studio}
 \title{Launch surveydown Studio}
 \usage{
-sd_studio(path = getwd(), template = "default")
+sd_studio(template = "default", path = getwd())
 }
 \arguments{
-\item{path}{A character string specifying the directory where the survey
-template should be created. Defaults to the current working directory.}
-
 \item{template}{A character string specifying the template to use.
 Default is "default" which uses the built-in package template.
 See \code{surveydown::sd_create_survey()} for other available templates.}
+
+\item{path}{A character string specifying the directory where the survey
+template should be created. Defaults to the current working directory.}
 }
 \value{
 No return value, called for its side effects of creating a survey
@@ -31,6 +31,6 @@ if (interactive()) {
   sd_studio()
 
   # Launch studio with a specific template and path
-  sd_studio(path = "my_survey", template = "question_types")
+  sd_studio(template = "question_types", path = "my_survey")
 }
 }
