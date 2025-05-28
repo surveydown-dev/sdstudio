@@ -12,7 +12,7 @@
 #'
 #' @return No return value, called for its side effects of creating a survey
 #'   project and launching a Shiny app.
-#' @importFrom stats runif
+#' @importFrom stats runif setNames
 #' @importFrom utils head
 #' @importFrom shiny req
 #' @importFrom surveydown sd_create_survey
@@ -63,78 +63,121 @@ ui_construction_tab <- function() {
     shiny::tags$head(
       shiny::tags$style(shiny::HTML(get_studio_css())),
       shiny::tags$script(src = "https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"),
-      shiny::tags$script(shiny::HTML(get_studio_js()))
-    ),
+      shiny::tags$script(shiny::HTML(get_studio_js())),
 
-    shiny::fluidRow(
-      # Left - Add Content Panel
-      shiny::column(
-        width = 3,
-        style = "border-right: 1px solid #ddd;",
-        
-        # Add Page UI
-        shiny::h5("Add Page", 
-            style = "text-align: center; background-color: #ffe0b2; padding: 6px; margin-bottom: 10px; border-radius: 4px;"),
-        shiny::wellPanel(
-          style = "background-color: #fff9f0; border-color: #ffe0b2; padding: 0.5rem;",
-          shiny::textInput("new_page_id", "Page ID:", placeholder = "Enter page ID (e.g., welcome, questions, end)"),
-          shiny::actionButton("add_page_btn", "Add Page", class = "btn-success", style = "width: 100%;")
-        ),
-        
-        shiny::tags$hr(style = "margin: 1rem 0;"),
-
-        # Add Content UI
-        shiny::h5("Add Content", 
-            style = "text-align: center; background-color: #ffe0b2; padding: 6px; margin-bottom: 10px; border-radius: 4px;"),
-        shiny::wellPanel(
-          style = "background-color: #fff3e0; border-color: #ffe0b2; padding: 0.5rem;",
+      shiny::div(
+        id = "modify-page-modal",
+        class = "modal fade",
+        tabindex = "-1",
+        shiny::div(
+          class = "modal-dialog",
           shiny::div(
-            style = "overflow-y: auto; height: calc(100vh - 368px);",
-            
-            # Inputs of content
-            shiny::selectInput("page_for_content", "To Page:", choices = NULL),
-            shiny::selectInput("content_type", "Content Type:", 
-                      choices = c("Text" = "text", "Question" = "question")),
-            
-            # Conditional UI based on content type
-            shiny::conditionalPanel(
-              condition = "input.content_type == 'text'",
-              shiny::textAreaInput("text_content", "Text:", rows = 3, 
-                                placeholder = "Enter markdown text to add to the page")
+            class = "modal-content",
+            shiny::div(
+              class = "modal-header",
+              shiny::h5("Modify Page ID", class = "modal-title"),
+              shiny::tags$button(type = "button", class = "btn-close", `data-bs-dismiss` = "modal")
             ),
-            
-            shiny::conditionalPanel(
-              condition = "input.content_type == 'question'",
-              shiny::selectInput("question_type", "Question Type:", 
-                        choices = c(
-                          "Multiple Choice" = "mc",
-                          "Text Input" = "text",
-                          "Textarea" = "textarea",
-                          "Numeric Input" = "numeric",
-                          "Multiple Choice Buttons" = "mc_buttons",
-                          "Multiple Choice Multiple" = "mc_multiple",
-                          "Multiple Choice Multiple Buttons" = "mc_multiple_buttons",
-                          "Select Dropdown" = "select",
-                          "Slider" = "slider",
-                          "Slider Numeric" = "slider_numeric",
-                          "Date" = "date",
-                          "Date Range" = "daterange"
-                        )),
-              shiny::textInput("question_id", "Question ID:", placeholder = "Enter unique question ID"),
-              shiny::textInput("question_label", "Question Label:", placeholder = "Enter question text")
+            shiny::div(
+              class = "modal-body",
+              shiny::textInput("modify_page_id_input", "Page ID:", value = "")
             ),
-            
-            # Add button
-            shiny::actionButton("add_content_btn", "Add Content", class = "btn-primary", style = "width: 100%; margin-top: 10px;")
+            shiny::div(
+              class = "modal-footer",
+              shiny::actionButton("modify_page_confirm", "Save Changes", class = "btn btn-primary"),
+              shiny::tags$button("Cancel", type = "button", class = "btn btn-secondary", `data-bs-dismiss` = "modal")
+            )
           )
         )
       ),
-      
-      # Middle - Structure Panel
-      shiny::column(
-        width = 4,
-        style = "border-right: 1px solid #ddd;",
+
+      shiny::div(
+        id = "modify-content-modal",
+        class = "modal fade",
+        tabindex = "-1",
         shiny::div(
+          class = "modal-dialog",
+          shiny::div(
+            class = "modal-content",
+            shiny::div(
+              class = "modal-header",
+              shiny::h5(id = "modify-content-modal-title", "Modify Content", class = "modal-title"),
+              shiny::tags$button(type = "button", class = "btn-close", `data-bs-dismiss` = "modal")
+            ),
+            shiny::div(
+              class = "modal-body",
+              shiny::uiOutput("modify_content_form")
+            ),
+            shiny::div(
+              class = "modal-footer",
+              shiny::actionButton("modify_content_confirm", "Save Changes", class = "btn btn-primary"),
+              shiny::tags$button("Cancel", type = "button", class = "btn btn-secondary", `data-bs-dismiss` = "modal")
+            )
+          )
+        )
+      ),
+
+      shiny::div(
+        id = "add-content-modal",
+        class = "modal fade",
+        tabindex = "-1",
+        shiny::div(
+          class = "modal-dialog",
+          shiny::div(
+            class = "modal-content",
+            shiny::div(
+              class = "modal-header",
+              shiny::h5(id = "add-content-modal-title", "Add Content", class = "modal-title"),
+              shiny::tags$button(type = "button", class = "btn-close", `data-bs-dismiss` = "modal")
+            ),
+            shiny::div(
+              class = "modal-body",
+              shiny::uiOutput("add_content_form")
+            ),
+            shiny::div(
+              class = "modal-footer",
+              shiny::actionButton("add_content_confirm", "Add Content", class = "btn btn-primary"),
+              shiny::tags$button("Cancel", type = "button", class = "btn btn-secondary", `data-bs-dismiss` = "modal")
+            )
+          )
+        )
+      ),
+
+      shiny::div(
+        id = "add-page-modal",
+        class = "modal fade",
+        tabindex = "-1",
+        shiny::div(
+          class = "modal-dialog",
+          shiny::div(
+            class = "modal-content",
+            shiny::div(
+              class = "modal-header",
+              shiny::h5("Add A New Page", class = "modal-title"),
+              shiny::tags$button(type = "button", class = "btn-close", `data-bs-dismiss` = "modal")
+            ),
+            shiny::div(
+              class = "modal-body",
+              shiny::textInput("add_page_id_input", "Page ID:", 
+                              placeholder = "Enter page ID"),
+              shiny::uiOutput("add_page_position_ui")
+            ),
+            shiny::div(
+              class = "modal-footer",
+              shiny::actionButton("add_page_confirm", "Add Page", class = "btn btn-success"),
+              shiny::tags$button("Cancel", type = "button", class = "btn btn-secondary", `data-bs-dismiss` = "modal")
+            )
+          )
+        )
+      )
+    ),
+
+    shiny::fluidRow(      
+      # Left - Structure Panel
+      shiny::column(
+        width = 5,
+        style = "border-right: 1px solid #ddd;",
+        shiny::div(          
           # Structure header with undo/redo buttons
           shiny::div(
             style = "display: flex; justify-content: space-between; align-items: center; background-color: #cce5ff; padding: 6px; margin-bottom: 10px; border-radius: 4px;",
@@ -163,10 +206,22 @@ ui_construction_tab <- function() {
           
           # Structure content panel
           shiny::wellPanel(
-            style = "background-color: #f0f8ff; border-color: #cce5ff; padding: 0.5rem;",
+            style = "background-color: #ffffff; border-color: #cce5ff; padding: 0.5rem;",
+            
             shiny::div(
-              style = "overflow-y: auto; height: calc(100vh - 140px);",
+              style = "overflow-y: auto; height: calc(100vh - 191px);",
               shiny::uiOutput("survey_structure")
+            ),
+            
+            # Add A New Page button
+            shiny::div(
+              style = "margin-top: 10px;",
+              shiny::actionButton(
+                "add_page_btn",
+                "Add A New Page",
+                class = "btn-success",
+                style = "width: 100%; padding: 8px; font-weight: bold;"
+              )
             )
           )
         )
@@ -174,33 +229,13 @@ ui_construction_tab <- function() {
       
       # Right - Code Panel
       shiny::column(
-        width = 5,
+        width = 7,
         style = "border-right: 1px solid #ddd;",
         shiny::div(
-          # Code header with undo/redo buttons
+          # Code header
           shiny::div(
             style = "display: flex; justify-content: space-between; align-items: center; background-color: #d4edda; padding: 6px; margin-bottom: 10px; border-radius: 4px;",
-            
-            # Undo button (left)
-            shiny::actionButton(
-              "undo_btn",
-              NULL,
-              icon = shiny::icon("undo"),
-              class = "btn-sm",
-              style = "background-color: #d4edda; border-color: #28a745; color: #28a745; padding: 2px 5px; font-size: 0.8rem;"
-            ),
-            
-            # Code title (center)
-            shiny::h5("Code", style = "margin: 0; text-align: center; flex-grow: 1;"),
-            
-            # Redo button (right)
-            shiny::actionButton(
-              "redo_btn",
-              NULL,
-              icon = shiny::icon("redo"),
-              class = "btn-sm",
-              style = "background-color: #d4edda; border-color: #28a745; color: #28a745; padding: 2px 5px; font-size: 0.8rem;"
-            )
+            shiny::h5("Code", style = "margin: 0; text-align: center; flex-grow: 1;")
           ),
           
           # Code panel with tabs
@@ -259,7 +294,13 @@ ui_preview_tab <- function() {
 # Main server function
 studio_server <- function() {
   function(input, output, session) {
-    # Setup code editors
+    # Reactive values for modify content state
+    modify_form_trigger <- shiny::reactiveVal(NULL)
+    modify_content_info <- shiny::reactiveVal(NULL)
+    add_content_page_id <- shiny::reactiveVal(NULL)
+    add_form_trigger <- shiny::reactiveVal(NULL)
+
+    # Setup survey.qmd editor
     output$survey_editor_ui <- shiny::renderUI({
       survey_content <- paste(readLines("survey.qmd", warn = FALSE), collapse = "\n")
       
@@ -274,6 +315,7 @@ studio_server <- function() {
       )
     })
 
+    # Setup app.R editor
     output$app_editor_ui <- shiny::renderUI({
       app_content <- paste(readLines("app.R", warn = FALSE), collapse = "\n")
       
@@ -285,6 +327,154 @@ studio_server <- function() {
         height = "calc(100vh - 193px)",
         fontSize = 14,
         wordWrap = TRUE
+      )
+    })
+
+    # Setup modify content form modal
+    output$modify_content_form <- shiny::renderUI({
+      form_info <- modify_form_trigger()
+      
+      if (is.null(form_info)) {
+        return(shiny::div("Select content to modify..."))
+      }
+      
+      if (form_info$type == "question") {
+        current_item <- form_info$item
+        current_type <- if("type" %in% names(current_item) && !is.null(current_item$type)) current_item$type else "mc"
+        current_id <- if("id" %in% names(current_item) && !is.null(current_item$id)) current_item$id else ""
+        current_label <- if("label" %in% names(current_item) && !is.null(current_item$label)) current_item$label else ""
+        
+        # Extract current options if it's a choice question
+        current_options <- ""
+        if (current_type %in% c("mc", "mc_buttons", "mc_multiple", "mc_multiple_buttons", "select", "slider")) {
+          if ("raw" %in% names(current_item)) {
+            current_options <- extract_options_from_raw(current_item$raw)
+          }
+        }
+        
+        form_elements <- list(
+          shiny::selectInput("modify_question_type", "Question Type:", 
+                    choices = c(
+                      "Multiple Choice" = "mc",
+                      "Text Input" = "text",
+                      "Textarea" = "textarea",
+                      "Numeric Input" = "numeric",
+                      "Multiple Choice Buttons" = "mc_buttons",
+                      "Multiple Choice Multiple" = "mc_multiple",
+                      "Multiple Choice Multiple Buttons" = "mc_multiple_buttons",
+                      "Select Dropdown" = "select",
+                      "Slider" = "slider",
+                      "Slider Numeric" = "slider_numeric",
+                      "Date" = "date",
+                      "Date Range" = "daterange"
+                    ),
+                    selected = current_type),
+          shiny::textInput("modify_question_id", "Question ID:", value = current_id),
+          shiny::textInput("modify_question_label", "Question Label:", value = current_label)
+        )
+        
+        # Add options input for choice questions
+        if (current_type %in% c("mc", "mc_buttons", "mc_multiple", "mc_multiple_buttons", "select", "slider")) {
+          form_elements <- append(form_elements, list(
+            shiny::div(
+              style = "margin-top: 10px;",
+              shiny::textAreaInput("modify_question_options", 
+                                  "Options:", 
+                                  value = current_options,
+                                  rows = 3,
+                                  placeholder = "Apple, Banana, Cherry")
+            )
+          ))
+        }
+        
+        form_elements <- append(form_elements, list(
+          shiny::div(style = "font-size: 0.8em; color: #666; margin-top: 10px;",
+            paste0("Editing question \"", form_info$content_id, "\" on page \"", form_info$page_id, "\".")
+          )
+        ))
+        
+        return(shiny::div(form_elements))
+        
+      } else if (form_info$type == "text") {
+        current_item <- form_info$item
+        current_content <- if("content" %in% names(current_item) && !is.null(current_item$content)) current_item$content else ""
+        
+        return(shiny::div(
+          shiny::textAreaInput("modify_text_content", "Text:", rows = 3, value = current_content),
+          shiny::div(style = "font-size: 0.8em; color: #666; margin-top: 10px;",
+            paste0("Editing text on page \"", form_info$page_id, "\".")
+          )
+        ))
+      }
+      
+      # Fallback
+      return(shiny::div("Unknown content type"))
+    })
+
+    # Add content form modal
+    output$add_content_form <- shiny::renderUI({
+      form_info <- add_form_trigger()
+      
+      if (is.null(form_info)) {
+        return(shiny::div("Select content type..."))
+      }
+      
+      content_type <- form_info$content_type
+      
+      if (content_type == "text") {
+        return(shiny::div(
+          shiny::textAreaInput("add_text_content", "Text:", rows = 3, 
+                              placeholder = "Enter markdown text to add to the page")
+        ))
+      } else if (content_type == "question") {
+        form_elements <- list(
+          shiny::selectInput("add_question_type", "Question Type:", 
+                            choices = c(
+                              "Multiple Choice" = "mc",
+                              "Text Input" = "text",
+                              "Textarea" = "textarea",
+                              "Numeric Input" = "numeric",
+                              "Multiple Choice Buttons" = "mc_buttons",
+                              "Multiple Choice Multiple" = "mc_multiple",
+                              "Multiple Choice Multiple Buttons" = "mc_multiple_buttons",
+                              "Select Dropdown" = "select",
+                              "Slider" = "slider",
+                              "Slider Numeric" = "slider_numeric",
+                              "Date" = "date",
+                              "Date Range" = "daterange"
+                            )),
+          shiny::textInput("add_question_id", "Question ID:", placeholder = "Enter unique question ID"),
+          shiny::textInput("add_question_label", "Question Label:", placeholder = "Enter question text"),
+          shiny::div(
+            id = "add_question_options_div",
+            style = "display: none; margin-top: 10px;",
+            shiny::textAreaInput("add_question_options", 
+                                "Options:", 
+                                rows = 3,
+                                placeholder = "Apple, Banana, Cherry")
+          )
+        )
+        
+        return(shiny::div(form_elements))
+      }
+      
+      return(shiny::div("Unknown content type"))
+    })
+
+    # Add page position UI
+    output$add_page_position_ui <- shiny::renderUI({
+      survey_structure <- parse_survey_structure()
+      if (is.null(survey_structure) || !is.null(survey_structure$error) || 
+          is.null(survey_structure$page_ids) || length(survey_structure$page_ids) == 0) {
+        return(NULL)
+      }
+      last_page <- survey_structure$page_ids[length(survey_structure$page_ids)]
+      
+      shiny::selectInput(
+        "add_page_below", 
+        "Below Page:", 
+        choices = setNames(survey_structure$page_ids, survey_structure$page_ids),
+        selected = last_page
       )
     })
 
@@ -312,118 +502,287 @@ studio_server <- function() {
       }
     }, ignoreInit = TRUE, ignoreNULL = TRUE)
 
-    # Update page dropdown for content creation when pages change
-    shiny::observe({
-      page_ids <- survey_structure$get_page_ids()
-      if (!is.null(page_ids) && length(page_ids) > 0) {
-        shiny::updateSelectInput(session, "page_for_content", choices = page_ids)
-      }
-    })
-
-    # Handle Add Page button
+    # Handle add page button
     shiny::observeEvent(input$add_page_btn, {
-      page_id <- input$new_page_id
-      if (is.null(page_id) || page_id == "") {
+      shiny::updateTextInput(session, "add_page_id_input", value = "")
+      session$sendCustomMessage("showModal", "add-page-modal")
+    }, ignoreInit = TRUE, ignoreNULL = TRUE)
+
+    # Handle add page confirmation
+    shiny::observeEvent(input$add_page_confirm, {
+      page_id <- input$add_page_id_input
+      
+      if (is.null(page_id) || trimws(page_id) == "") {
         shiny::showNotification("Please enter a page ID", type = "error")
         return()
       }
       
-      # Get and prepare current editor content
       current_content <- input$survey_editor
       current_content <- r_chunk_separation(current_content)
+      below_page <- input$add_page_below
       
       # Insert the new page
-      updated_content <- insert_page_into_survey(page_id, current_content)
-      
-      # Update editor and clear input field
-      shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
-      shiny::updateTextInput(session, "new_page_id", value = "")
-      shiny::showNotification(paste("Page", page_id, "added successfully!"), type = "message")
-      
-      # Refresh structure
-      survey_structure$refresh()
-    })
-    
-    # Handle Add Content button
-    shiny::observeEvent(input$add_content_btn, {
-      # Validate common inputs
-      if (is.null(input$page_for_content) || input$page_for_content == "") {
-        shiny::showNotification("Please select a page", type = "error")
-        return()
+      if (is.null(below_page)) {
+        updated_content <- insert_page_into_survey(page_id, current_content)
+      } else {
+        updated_content <- insert_page_below_specific_page(page_id, below_page, current_content)
       }
       
-      # Get and prepare current editor content
-      current_content <- input$survey_editor
-      current_content <- r_chunk_separation(current_content)
+      if (!is.null(updated_content)) {
+        shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
+        shiny::showNotification(paste("Page", page_id, "added successfully!"), type = "message")
+        survey_structure$refresh()
+        session$sendCustomMessage("hideModal", "add-page-modal")
+      } else {
+        shiny::showNotification("Failed to add page. Please try again.", type = "error")
+      }
+    })
+
+    # Handle add text button
+    shiny::observeEvent(input$add_text_btn, {
+      content_data <- input$add_text_btn
+      page_id <- content_data$pageId
       
-      # Process based on content type
-      if (input$content_type == "text") {
-        # Validate text inputs
-        if (is.null(input$text_content) || trimws(input$text_content) == "") {
-          shiny::showNotification("Please enter some text content", type = "error")
-          return()
-        }
+      if (!is.null(page_id) && page_id != "") {
+        add_content_page_id(page_id)
+        session$sendCustomMessage("updateModalTitle", list(
+          modalId = "add-content-modal-title",
+          title = paste0("Add text to page \"", page_id, "\"")
+        ))
         
-        # Insert the new text
-        updated_content <- insert_text_into_survey(
-          input$page_for_content,
-          input$text_content,
-          current_content
-        )
+        add_form_trigger(list(
+          page_id = page_id,
+          content_type = "text",
+          timestamp = as.numeric(Sys.time()) * 1000 + sample(1:1000, 1)
+        ))
+        session$sendCustomMessage("showModal", "add-content-modal")
+      }
+    }, ignoreInit = TRUE, ignoreNULL = TRUE)
+
+    # Handle add question button
+    shiny::observeEvent(input$add_question_btn, {
+      content_data <- input$add_question_btn
+      page_id <- content_data$pageId
+      
+      if (!is.null(page_id) && page_id != "") {
+        add_content_page_id(page_id)
+        session$sendCustomMessage("updateModalTitle", list(
+          modalId = "add-content-modal-title",
+          title = paste0("Add question to page \"", page_id, "\"")
+        ))
         
-        # Update editor if successful
-        if (!is.null(updated_content)) {
-          shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
-          shiny::updateTextAreaInput(session, "text_content", value = "")
-          shiny::showNotification(paste("Text added to page", input$page_for_content), type = "message")
-          survey_structure$refresh()
-        } else {
-          shiny::showNotification("Failed to add text. Check page ID and try again.", type = "error")
-        }
+        add_form_trigger(list(
+          page_id = page_id,
+          content_type = "question",
+          timestamp = as.numeric(Sys.time()) * 1000 + sample(1:1000, 1)
+        ))
+        session$sendCustomMessage("showModal", "add-content-modal")
+      }
+    }, ignoreInit = TRUE, ignoreNULL = TRUE)
+
+    # Handle add content confirmation
+    shiny::observeEvent(input$add_content_confirm, {
+      page_id <- add_content_page_id()
+      form_info <- add_form_trigger()
+      
+      if (!is.null(page_id) && !is.null(form_info)) {
+        current_content <- input$survey_editor
+        current_content <- r_chunk_separation(current_content)
+        updated_content <- NULL
         
-      } else if (input$content_type == "question") {
-        # Validate question inputs
-        if (is.null(input$question_id) || input$question_id == "") {
-          shiny::showNotification("Please enter a question ID", type = "error")
-          return()
-        }
+        content_type <- form_info$content_type
         
-        # Insert the new question
-        updated_content <- insert_question_into_survey(
-          input$page_for_content,
-          input$question_type,
-          input$question_id,
-          input$question_label,
-          current_content
-        )
-        
-        # Update editor if successful
-        if (!is.null(updated_content)) {
-          shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
-          shiny::updateTextInput(session, "question_id", value = "")
-          shiny::updateTextInput(session, "question_label", value = "")
-          shiny::showNotification(paste("Question", input$question_id, "added to page", input$page_for_content), type = "message")
-          survey_structure$refresh()
-        } else {
-          shiny::showNotification("Failed to add question. Check page ID and try again.", type = "error")
+        if (content_type == "text") {
+          if (is.null(input$add_text_content) || trimws(input$add_text_content) == "") {
+            shiny::showNotification("Please enter some text content", type = "error")
+            return()
+          }
+          updated_content <- insert_text_into_survey(
+            page_id,
+            input$add_text_content,
+            current_content
+          )
+          
+          if (!is.null(updated_content)) {
+            shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
+            shiny::showNotification(paste("Text added to page", page_id), type = "message")
+            survey_structure$refresh()
+            session$sendCustomMessage("hideModal", "add-content-modal")
+          } else {
+            shiny::showNotification("Failed to add text. Check page ID and try again.", type = "error")
+          }
+          
+        } else if (content_type == "question") {
+          if (is.null(input$add_question_id) || input$add_question_id == "" ||
+              is.null(input$add_question_label) || input$add_question_label == "") {
+            shiny::showNotification("Please fill in all question fields", type = "error")
+            return()
+          }
+          
+          # Get options input for choice questions
+          options_text <- NULL
+          if (input$add_question_type %in% c("mc", "mc_buttons", "mc_multiple", "mc_multiple_buttons", "select", "slider")) {
+            options_text <- input$add_question_options
+          }
+          
+          updated_content <- insert_question_into_survey(
+            page_id,
+            input$add_question_type,
+            input$add_question_id,
+            input$add_question_label,
+            current_content,
+            options_text  # Pass options text
+          )
+          
+          if (!is.null(updated_content)) {
+            shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
+            shiny::showNotification(paste("Question", input$add_question_id, "added to page", page_id), type = "message")
+            survey_structure$refresh()
+            session$sendCustomMessage("hideModal", "add-content-modal")
+          } else {
+            shiny::showNotification("Failed to add question. Check page ID and try again.", type = "error")
+          }
         }
       }
     })
-    
+
+    # Handle modify page button
+    shiny::observeEvent(input$modify_page_btn, {
+      page_data <- input$modify_page_btn
+      page_id <- page_data$pageId
+      
+      if (!is.null(page_id) && page_id != "") {
+        shiny::updateTextInput(session, "modify_page_id_input", value = page_id)
+        session$userData$modify_page_original_id <- page_id
+        session$sendCustomMessage("showModal", "modify-page-modal")
+      }
+    }, ignoreInit = TRUE, ignoreNULL = TRUE)
+
+    # Handle modify page confirmation
+    shiny::observeEvent(input$modify_page_confirm, {
+      new_page_id <- input$modify_page_id_input
+      original_page_id <- session$userData$modify_page_original_id
+      
+      if (!is.null(new_page_id) && !is.null(original_page_id) && 
+          new_page_id != "" && new_page_id != original_page_id) {
+        current_content <- input$survey_editor
+        current_content <- r_chunk_separation(current_content)
+        updated_content <- modify_page_id(original_page_id, new_page_id, current_content)
+        
+        if (!is.null(updated_content)) {
+          shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
+          shiny::showNotification(paste0("Page ID changed from \"", original_page_id, "\" to \"", new_page_id, "\""), type = "message")
+          survey_structure$refresh()
+          session$sendCustomMessage("hideModal", "modify-page-modal")
+        } else {
+          shiny::showNotification("Failed to modify page ID", type = "error")
+        }
+      } else if (new_page_id == original_page_id) {
+        session$sendCustomMessage("hideModal", "modify-page-modal")
+      } else {
+        shiny::showNotification("Please enter a valid page ID", type = "error")
+      }
+    })
+
+    # Handle modify content button
+    shiny::observeEvent(input$modify_content_btn, {
+      content_data <- input$modify_content_btn
+      # Extract from the data structure
+      page_id <- content_data$pageId
+      content_id <- content_data$contentId
+      content_type <- content_data$contentType
+      
+      if (!is.null(page_id) && !is.null(content_id) && !is.null(content_type)) {
+        modify_content_info(content_data)
+        survey_structure <- parse_survey_structure()
+        if (!is.null(survey_structure) && page_id %in% names(survey_structure$pages) &&
+            content_id %in% names(survey_structure$pages[[page_id]])) {
+          current_item <- survey_structure$pages[[page_id]][[content_id]]
+          
+          if (content_type == "question") {
+            session$sendCustomMessage("updateModalTitle", list(
+              modalId = "modify-content-modal-title",
+              title = paste("Modify Question:", content_id)
+            ))
+          } else {
+            session$sendCustomMessage("updateModalTitle", list(
+              modalId = "modify-content-modal-title", 
+              title = paste("Modify Text:", content_id)
+            ))
+          }
+          modify_form_trigger(list(
+            type = content_type,
+            item = current_item,
+            page_id = page_id,
+            content_id = content_id,
+            timestamp = as.numeric(Sys.time()) * 1000 + sample(1:1000, 1)
+          ))
+          session$sendCustomMessage("showModal", "modify-content-modal")
+        }
+      }
+    }, ignoreInit = TRUE, ignoreNULL = TRUE)
+
+    # Handle modify content confirmation
+    shiny::observeEvent(input$modify_content_confirm, {
+      content_info <- modify_content_info()
+      
+      if (!is.null(content_info)) {
+        page_id <- content_info$pageId
+        content_id <- content_info$contentId
+        content_type <- content_info$contentType
+        current_content <- input$survey_editor
+        current_content <- r_chunk_separation(current_content)
+        updated_content <- NULL
+        
+        if (content_type == "question") {
+          new_type <- input$modify_question_type
+          new_id <- input$modify_question_id
+          new_label <- input$modify_question_label
+          new_options <- input$modify_question_options  # Get options input
+          
+          if (!is.null(new_type) && !is.null(new_id) && !is.null(new_label) && 
+              new_id != "" && new_label != "") {
+            updated_content <- modify_question_content(
+              page_id, content_id, new_type, new_id, new_label, current_content, new_options
+            )
+          } else {
+            shiny::showNotification("Please fill in all question fields", type = "error")
+            return()
+          }
+        } else if (content_type == "text") {
+          new_text <- input$modify_text_content
+          
+          if (!is.null(new_text) && trimws(new_text) != "") {
+            updated_content <- modify_text_content(
+              page_id, content_id, new_text, current_content
+            )
+          } else {
+            shiny::showNotification("Please enter some text content", type = "error")
+            return()
+          }
+        }
+        
+        if (!is.null(updated_content)) {
+          shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
+          shiny::showNotification(paste0(toupper(substr(content_type, 1, 1)), substr(content_type, 2, nchar(content_type)), 
+                                    " modified successfully!"), type = "message")
+          survey_structure$refresh()
+          session$sendCustomMessage("hideModal", "modify-content-modal")
+        } else {
+          shiny::showNotification(paste("Failed to modify", content_type), type = "error")
+        }
+      }
+    })
+
     # Handle delete page button
     shiny::observeEvent(input$delete_page_btn, {
-      # The input$delete_page_btn will contain the page ID when a button is clicked
       page_id <- input$delete_page_btn
       
       if (!is.null(page_id) && page_id != "") {
-        # Get and prepare current editor content
         current_content <- input$survey_editor
         current_content <- r_chunk_separation(current_content)
-        
-        # Delete the page
         updated_content <- delete_page_from_survey(page_id, current_content)
         
-        # Update editor if successful
         if (!is.null(updated_content)) {
           shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
           shiny::showNotification(paste0("Page \"", page_id, "\" deleted successfully!"), type = "message")
@@ -437,22 +796,16 @@ studio_server <- function() {
     # Handle delete content button
     shiny::observeEvent(input$delete_content_btn, {
       req(input$delete_content_btn, input$survey_editor)
-      
-      # Extract content info from the input
       content_info <- input$delete_content_btn
       page_id <- content_info$pageId
       content_id <- content_info$contentId
       content_type <- content_info$contentType
       
       if (!is.null(page_id) && !is.null(content_id)) {
-        # Get and prepare current editor content
         current_content <- input$survey_editor
         current_content <- r_chunk_separation(current_content)
-        
-        # Delete the content
         updated_content <- delete_content_from_survey(page_id, content_id, content_type, current_content)
         
-        # Update editor if successful
         if (!is.null(updated_content)) {
           shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
           shiny::showNotification(paste0(toupper(substr(content_type, 1, 1)), substr(content_type, 2, nchar(content_type)), 
@@ -466,7 +819,6 @@ studio_server <- function() {
 
     # Handle Undo button
     shiny::observeEvent(input$undo_btn, {
-      # Determine which editor is active
       if (input$code_tabs == "survey.qmd") {
         session$sendCustomMessage("aceUndo", "survey_editor")
       } else if (input$code_tabs == "app.R") {
@@ -476,7 +828,6 @@ studio_server <- function() {
 
     # Handle Redo button
     shiny::observeEvent(input$redo_btn, {
-      # Determine which editor is active
       if (input$code_tabs == "survey.qmd") {
         session$sendCustomMessage("aceRedo", "survey_editor")
       } else if (input$code_tabs == "app.R") {
@@ -486,81 +837,82 @@ studio_server <- function() {
 
     # Handle page drag and drop reordering
     shiny::observeEvent(input$page_drag_completed, {
-      # Prepare and separate content
       current_content <- input$survey_editor
       separated_content <- r_chunk_separation(current_content)
       
       if (!identical(current_content, separated_content)) {
         shinyAce::updateAceEditor(session, "survey_editor", value = separated_content)
-        Sys.sleep(0.1)
         current_content <- separated_content
       } else {
         current_content <- input$survey_editor
       }
       
-      # Reorder pages if order array exists
       if (length(input$page_drag_completed$order) > 0) {
         updated_content <- reorder_pages(input$page_drag_completed$order, current_content)
         
         if (!is.null(updated_content)) {
           shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
-          survey_structure$refresh()
         } else {
           shiny::showNotification("Failed to reorder pages", type = "error")
+          survey_structure$refresh()
         }
       }
     }, ignoreInit = TRUE)
 
     # Handle content drag and drop reordering
     shiny::observeEvent(input$content_drag_completed, {
-      # Extract page ID and order
-      page_id <- input$content_drag_completed$pageId
+      from_page_id <- input$content_drag_completed$fromPageId
+      to_page_id <- input$content_drag_completed$toPageId
       flat_order <- input$content_drag_completed$order
+      is_cross_page <- input$content_drag_completed$isCrossPage
       
-      # Prepare and separate content
       current_content <- input$survey_editor
       separated_content <- r_chunk_separation(current_content)
       
       if (!identical(current_content, separated_content)) {
         shinyAce::updateAceEditor(session, "survey_editor", value = separated_content)
-        Sys.sleep(0.1)
         current_content <- separated_content
       } else {
         current_content <- input$survey_editor
       }
       
-      # Process the flat order array into content list
       content_list <- process_content_order(flat_order)
       
-      # Skip if no valid items
       if (length(content_list) == 0) {
         shiny::showNotification("No valid content items found", type = "error")
         return(NULL)
       }
       
-      # Try to reorder content with error handling
       tryCatch({
-        # Check for chunks that need separation
-        check_and_separate_content(page_id, content_list, current_content, session)
-        
-        # Reorder the content
-        updated_content <- reorder_page_content(page_id, content_list, current_content)
-        
-        if (!is.null(updated_content)) {
-          # Ensure proper separation
-          updated_content <- r_chunk_separation(updated_content)
+        if (is_cross_page) {
+          # Handle cross-page move
+          updated_content <- handle_cross_page_content_move(
+            from_page_id, to_page_id, content_list, current_content
+          )
           
-          # Update editor
-          shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
-          survey_structure$refresh()
-          
-          # Force a slight delay before allowing another drag
-          shiny::invalidateLater(300)
+          if (!is.null(updated_content)) {
+            updated_content <- r_chunk_separation(updated_content)
+            shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
+          } else {
+            shiny::showNotification("Failed to move content between pages", type = "error")
+            survey_structure$refresh()
+          }
         } else {
-          shiny::showNotification(paste("Failed to reorder content in page", page_id), type = "error")
+          # Handle within-page reordering
+          check_and_separate_content(to_page_id, content_list, current_content, session)
+          updated_content <- reorder_page_content(to_page_id, content_list, current_content)
+          
+          if (!is.null(updated_content)) {
+            updated_content <- r_chunk_separation(updated_content)
+            shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
+          } else {
+            shiny::showNotification(paste("Failed to reorder content in page", to_page_id), type = "error")
+            survey_structure$refresh()
+          }
         }
       }, error = function(e) {
         shiny::showNotification(paste("Error:", e$message), type = "error")
+        survey_structure$refresh()
       })
     }, ignoreInit = TRUE)
     
@@ -576,18 +928,15 @@ studio_server <- function() {
 
 # Handler for survey structure management
 server_structure_handlers <- function(input, output, session) {
-  # Track structure changes
   structure_trigger <- shiny::reactiveVal(0)
   
-  # Render the survey structure UI
+  # Store page toggle states
+  page_toggle_states <- shiny::reactiveVal(list())
+  
   output$survey_structure <- shiny::renderUI({
-    # Re-render on structure changes
     structure_trigger()
-    
-    # Parse survey structure
     survey_structure <- parse_survey_structure()
     
-    # Check for errors
     if (!is.null(survey_structure$error)) {
       return(shiny::div(
         style = "color: red;",
@@ -596,11 +945,30 @@ server_structure_handlers <- function(input, output, session) {
       ))
     }
     
-    # Create the structure visualization
-    render_survey_structure(survey_structure)
+    # Use isolate() to prevent reactive dependency on page_toggle_states
+    current_states <- shiny::isolate(page_toggle_states())
+    if (length(current_states) == 0 && !is.null(survey_structure$page_ids)) {
+      # Initialize all pages as expanded (TRUE) on first launch
+      initial_states <- setNames(
+        rep(TRUE, length(survey_structure$page_ids)), 
+        survey_structure$page_ids
+      )
+      page_toggle_states(initial_states)
+      current_states <- initial_states
+    }
+    
+    render_survey_structure(survey_structure, current_states)
   })
   
-  # Function to refresh the structure
+  # Handle page toggle events from JavaScript
+  shiny::observeEvent(input$page_toggled, {
+    if (!is.null(input$page_toggled$pageId)) {
+      current_states <- page_toggle_states()
+      current_states[[input$page_toggled$pageId]] <- input$page_toggled$isExpanded
+      page_toggle_states(current_states)
+    }
+  }, ignoreInit = TRUE)
+  
   refresh_structure <- function() {
     structure_trigger(structure_trigger() + 1)
     shiny::invalidateLater(200)
@@ -637,11 +1005,8 @@ server_structure_handlers <- function(input, output, session) {
 
 # Handler for survey preview functionality
 server_preview_handlers <- function(input, output, session) {
-  # Store preview process
   preview_process <- shiny::reactiveVal(NULL)
   preview_port <- stats::runif(1, 3000, 8000) |> floor()
-  
-  # Launch preview function
   refresh_preview <- function() {
     # Get current process
     current_process <- NULL
@@ -649,19 +1014,16 @@ server_preview_handlers <- function(input, output, session) {
       current_process <- preview_process()
     })
     
-    # Stop existing process if it exists
     if (!is.null(current_process)) {
       try(tools::pskill(current_process), silent = TRUE)
       preview_process(NULL)
     }
     
-    # Check if files exist
     if (!file.exists("survey.qmd") || !file.exists("app.R")) {
       shiny::showNotification("Error: survey.qmd or app.R file not found!", type = "error")
       return()
     }
     
-    # Save current editor content to files before previewing
     if (exists("input") && !is.null(input$survey_editor)) {
       writeLines(input$survey_editor, "survey.qmd")
     }
@@ -673,15 +1035,9 @@ server_preview_handlers <- function(input, output, session) {
     # Launch preview server
     new_process <- launch_preview_server(preview_port)
     
-    # Store the process ID
     preview_process(new_process)
-    
-    # Display in iframe
     preview_url <- paste0("http://127.0.0.1:", preview_port)
-    
-    # Give the app a moment to start
-    Sys.sleep(2)
-    
+
     output$preview_frame <- shiny::renderUI({
       shiny::tags$iframe(
         src = preview_url,
@@ -701,36 +1057,236 @@ server_preview_handlers <- function(input, output, session) {
 
 # Content Editing Functions ----
 
+# Reorganize library calls to the beginning of the file
+reorganize_libraries <- function(editor_content) {
+  if (is.null(editor_content)) {
+    return(NULL)
+  }
+  
+  if (is.character(editor_content) && length(editor_content) == 1) {
+    editor_content <- strsplit(editor_content, "\n")[[1]]
+  }
+  
+  # Extract all library calls
+  library_calls <- extract_library_calls(editor_content)
+  
+  # If no library calls found, return original content
+  if (length(library_calls) == 0) {
+    return(paste(editor_content, collapse = "\n"))
+  }
+  
+  # Remove library calls from their current locations
+  cleaned_content <- remove_library_calls_from_content(editor_content)
+  
+  # Add consolidated library chunk at the beginning
+  final_content <- add_library_chunk_to_beginning(cleaned_content, library_calls)
+  
+  return(paste(final_content, collapse = "\n"))
+}
+
+# Extract all library() calls from the content
+extract_library_calls <- function(editor_content) {
+  library_calls <- character(0)
+  in_r_chunk <- FALSE
+  
+  for (i in seq_along(editor_content)) {
+    line <- editor_content[i]
+    
+    if (grepl("^```\\{r\\}", line)) {
+      in_r_chunk <- TRUE
+    } else if (in_r_chunk && grepl("^```$", line)) {
+      in_r_chunk <- FALSE
+    } else if (in_r_chunk) {
+      # Check for library calls in this line
+      if (grepl("^\\s*library\\s*\\(", line, perl = TRUE)) {
+        library_calls <- c(library_calls, trimws(line))
+      }
+    }
+  }
+  
+  # Remove duplicates while preserving order
+  return(unique(library_calls))
+}
+
+# Remove library calls from their current locations
+remove_library_calls_from_content <- function(editor_content) {
+  result <- character(0)
+  in_r_chunk <- FALSE
+  current_chunk_lines <- character(0)
+  chunk_start_line <- ""
+  
+  i <- 1
+  while (i <= length(editor_content)) {
+    line <- editor_content[i]
+    
+    if (grepl("^```\\{r\\}", line)) {
+      # Start of R chunk
+      in_r_chunk <- TRUE
+      current_chunk_lines <- character(0)
+      chunk_start_line <- line
+    } else if (in_r_chunk && grepl("^```$", line)) {
+      # End of R chunk - process the accumulated lines
+      in_r_chunk <- FALSE
+      
+      # Filter out library calls from chunk content
+      non_library_lines <- character(0)
+      for (chunk_line in current_chunk_lines) {
+        if (!grepl("^\\s*library\\s*\\(", chunk_line, perl = TRUE)) {
+          non_library_lines <- c(non_library_lines, chunk_line)
+        }
+      }
+      
+      # Only add the chunk if it has non-library content
+      if (length(non_library_lines) > 0) {
+        # Check if all remaining lines are just whitespace
+        non_empty_lines <- non_library_lines[trimws(non_library_lines) != ""]
+        if (length(non_empty_lines) > 0) {
+          result <- c(result, chunk_start_line, non_library_lines, line)
+        }
+      }
+      
+      current_chunk_lines <- character(0)
+    } else if (in_r_chunk) {
+      # Inside R chunk - collect lines
+      current_chunk_lines <- c(current_chunk_lines, line)
+    } else {
+      # Outside R chunk - add line as-is
+      result <- c(result, line)
+    }
+    
+    i <- i + 1
+  }
+  
+  return(result)
+}
+
+# Add consolidated library chunk to the beginning
+add_library_chunk_to_beginning <- function(content_lines, library_calls) {
+  if (length(library_calls) == 0) {
+    return(content_lines)
+  }
+  
+  # Find where to insert the library chunk (after YAML header)
+  yaml_start_line <- 0
+  yaml_end_line <- 0
+  in_yaml <- FALSE
+  
+  for (i in seq_along(content_lines)) {
+    line <- content_lines[i]
+    
+    # Look for YAML start (first non-empty line that starts with ---)
+    if (!in_yaml && grepl("^---\\s*$", line)) {
+      # For the first line, always consider it as YAML start if it matches
+      if (i == 1) {
+        yaml_start_line <- i
+        in_yaml <- TRUE
+      } else {
+        # For other lines, check if there's substantial content before it
+        preceding_content <- content_lines[1:(i-1)]
+        has_substantial_content <- any(grepl("\\S", preceding_content) & 
+                                     !grepl("^\\s*$", preceding_content))
+        
+        if (!has_substantial_content) {
+          yaml_start_line <- i
+          in_yaml <- TRUE
+        }
+      }
+    } else if (in_yaml && grepl("^---\\s*$", line)) {
+      yaml_end_line <- i
+      break
+    }
+  }
+  
+  # Create the library chunk
+  library_chunk <- c(
+    "```{r}",
+    library_calls,
+    "```"
+  )
+  
+  # Insert after YAML header or at the very beginning
+  if (yaml_end_line > 0) {
+    result <- c(
+      content_lines[1:yaml_end_line],
+      "",
+      library_chunk,
+      content_lines[(yaml_end_line + 1):length(content_lines)]
+    )
+  } else {
+    result <- c(
+      library_chunk,
+      content_lines
+    )
+  }
+  
+  return(result)
+}
+
 # Insert a new page into the survey.qmd file
 insert_page_into_survey <- function(page_id, editor_content) {
   if (is.null(editor_content)) {
     return(NULL)
   }
-  
-  # Ensure editor_content is in lines
+
   if (is.character(editor_content) && length(editor_content) == 1) {
     editor_content <- strsplit(editor_content, "\n")[[1]]
   }
   
-  # Find the last page closing tag
   last_page_end <- max(which(grepl(":::", editor_content, fixed = TRUE)), 0)
   
-  # If no page found, insert at the end of the file
   if (last_page_end == 0) {
     last_page_end <- length(editor_content)
   }
   
-  # Generate the page template
   page_template <- generate_page_template(page_id)
-  
-  # Insert the page template after the last page or at the end
   result <- c(
     editor_content[1:last_page_end],
     page_template,
     if(last_page_end < length(editor_content)) editor_content[(last_page_end+1):length(editor_content)] else NULL
   )
   
-  # Return the updated content
+  return(paste(result, collapse = "\n"))
+}
+
+# Insert a new page below a specific existing page
+insert_page_below_specific_page <- function(new_page_id, below_page_id, editor_content) {
+  if (is.null(editor_content) || is.null(new_page_id) || is.null(below_page_id)) {
+    return(NULL)
+  }
+  
+  if (is.character(editor_content) && length(editor_content) == 1) {
+    editor_content <- strsplit(editor_content, "\n")[[1]]
+  }
+  
+  page_start_pattern <- paste0("::: \\{.sd[_-]page id=", below_page_id, "\\}")
+  page_start_lines <- grep(page_start_pattern, editor_content, perl = TRUE)
+  
+  if (length(page_start_lines) == 0) {
+    return(insert_page_into_survey(new_page_id, editor_content))
+  }
+  
+  page_start_line <- page_start_lines[1]
+  page_end_line <- NULL
+
+  for (i in page_start_line:length(editor_content)) {
+    if (grepl("^:::$", editor_content[i])) {
+      page_end_line <- i
+      break
+    }
+  }
+  
+  if (is.null(page_end_line)) {
+    return(insert_page_into_survey(new_page_id, editor_content))
+  }
+  
+  page_template <- generate_page_template(new_page_id)
+  
+  result <- c(
+    editor_content[1:page_end_line],
+    page_template,
+    if(page_end_line < length(editor_content)) editor_content[(page_end_line+1):length(editor_content)] else NULL
+  )
+  
   return(paste(result, collapse = "\n"))
 }
 
@@ -765,17 +1321,15 @@ generate_page_template <- function(page_id) {
 }
 
 # Insert a question into a specific page
-insert_question_into_survey <- function(page_id, question_type, question_id, question_label, editor_content) {
+insert_question_into_survey <- function(page_id, question_type, question_id, question_label, editor_content, options_text = NULL) {
   if (is.null(editor_content) || is.null(page_id)) {
     return(NULL)
   }
   
-  # Ensure editor_content is in lines
   if (is.character(editor_content) && length(editor_content) == 1) {
     editor_content <- strsplit(editor_content, "\n")[[1]]
   }
   
-  # Find the page
   page_start_pattern <- paste0("::: \\{.sd[_-]page id=", page_id, "\\}")
   page_start_lines <- grep(page_start_pattern, editor_content, perl = TRUE)
   
@@ -783,11 +1337,9 @@ insert_question_into_survey <- function(page_id, question_type, question_id, que
     return(NULL)
   }
   
-  # Use the first match
   page_start_line <- page_start_lines[1]
-  
-  # Find the end of the page
   page_end_line <- NULL
+
   for (i in page_start_line:length(editor_content)) {
     if (grepl("^:::$", editor_content[i])) {
       page_end_line <- i
@@ -799,27 +1351,20 @@ insert_question_into_survey <- function(page_id, question_type, question_id, que
     return(NULL)
   }
   
-  # Find the insertion point (before next button if exists)
   insertion_point <- find_insertion_point(editor_content, page_start_line, page_end_line)
-  
-  # Generate the question code
-  question_code <- generate_question_code(question_type, question_id, question_label)
-  
-  # Create the question chunk
+  question_code <- generate_question_code(question_type, question_id, question_label, options_text)
   question_chunk <- c(
     "```{r}",
     question_code,
     "```"
   )
   
-  # Insert the question chunk
   result <- c(
     editor_content[1:(insertion_point-1)],
     question_chunk,
     editor_content[insertion_point:length(editor_content)]
   )
   
-  # Return the updated content
   return(paste(result, collapse = "\n"))
 }
 
@@ -829,12 +1374,10 @@ insert_text_into_survey <- function(page_id, text_content, editor_content) {
     return(NULL)
   }
   
-  # Ensure editor_content is in lines
   if (is.character(editor_content) && length(editor_content) == 1) {
     editor_content <- strsplit(editor_content, "\n")[[1]]
   }
   
-  # Find the page
   page_start_pattern <- paste0("::: \\{.sd[_-]page id=", page_id, "\\}")
   page_start_lines <- grep(page_start_pattern, editor_content, perl = TRUE)
   
@@ -842,11 +1385,9 @@ insert_text_into_survey <- function(page_id, text_content, editor_content) {
     return(NULL)
   }
   
-  # Use the first match
   page_start_line <- page_start_lines[1]
-  
-  # Find the end of the page
   page_end_line <- NULL
+
   for (i in page_start_line:length(editor_content)) {
     if (grepl("^:::$", editor_content[i])) {
       page_end_line <- i
@@ -858,27 +1399,21 @@ insert_text_into_survey <- function(page_id, text_content, editor_content) {
     return(NULL)
   }
   
-  # Find the insertion point (before next button if exists)
   insertion_point <- find_insertion_point(editor_content, page_start_line, page_end_line)
-  
-  # Format the text (ensure it has proper line breaks)
   formatted_text <- strsplit(text_content, "\n")[[1]]
-  
-  # Insert the text
   result <- c(
     editor_content[1:(insertion_point-1)],
     formatted_text,
-    "",  # Add an empty line after the text
+    "",
     editor_content[insertion_point:length(editor_content)]
   )
   
-  # Return the updated content
   return(paste(result, collapse = "\n"))
 }
 
 # Find the best insertion point for a new question
 find_insertion_point <- function(editor_content, page_start_line, page_end_line) {
-  # Find the next button chunk if it exists
+
   for (i in page_start_line:page_end_line) {
     if (grepl("^```\\{r\\}", editor_content[i])) {
       chunk_start <- i
@@ -893,14 +1428,14 @@ find_insertion_point <- function(editor_content, page_start_line, page_end_line)
       
       if (!is.null(chunk_end)) {
         chunk_content <- editor_content[(chunk_start+1):(chunk_end-1)]
-        if (any(grepl("sd_next\\(", chunk_content, perl = TRUE))) {
+        # Updated pattern to include sd_close() and sd_prev() as navigation functions
+        if (any(grepl("sd_next\\(|sd_prev\\(|sd_close\\(", chunk_content, perl = TRUE))) {
           return(chunk_start)
         }
       }
     }
   }
   
-  # If no next button found, insert before the page end
   return(page_end_line)
 }
 
@@ -910,28 +1445,29 @@ reorder_pages <- function(new_order, editor_content) {
     return(NULL)
   }
   
-  # Ensure editor_content is in lines
+  # Ensure new_order is a character vector
+  if (is.list(new_order)) {
+    new_order <- unlist(new_order)
+  }
+  new_order <- as.character(new_order)
+  
   if (is.character(editor_content) && length(editor_content) == 1) {
     editor_content <- strsplit(editor_content, "\n")[[1]]
   }
   
-  # Find each page's start and end lines
   page_blocks <- list()
   
   for (page_id in new_order) {
-    # Find the page start
     page_start_pattern <- paste0("::: \\{.sd[_-]page id=", page_id, "\\}")
     page_start_lines <- grep(page_start_pattern, editor_content, perl = TRUE)
     
     if (length(page_start_lines) == 0) {
-      next  # Skip if page not found
+      next
     }
     
-    # Use the first match
     page_start_line <- page_start_lines[1]
     page_end_line <- NULL
     
-    # Find the page end
     for (i in page_start_line:length(editor_content)) {
       if (i > page_start_line && grepl("^:::$", editor_content[i])) {
         page_end_line <- i
@@ -940,7 +1476,6 @@ reorder_pages <- function(new_order, editor_content) {
     }
     
     if (!is.null(page_end_line)) {
-      # Store the page block
       page_blocks[[page_id]] <- list(
         start = page_start_line,
         end = page_end_line,
@@ -949,19 +1484,28 @@ reorder_pages <- function(new_order, editor_content) {
     }
   }
   
-  # Check if we found all pages
   if (length(page_blocks) != length(new_order)) {
     return(NULL)
   }
   
-  # Find the position range for pages
   first_page_start <- min(sapply(page_blocks, function(block) block$start))
   last_page_end <- max(sapply(page_blocks, function(block) block$end))
   
-  # Create the new content with reordered pages
+  # Build page content with blank lines between pages
+  page_content_list <- list()
+  for (i in seq_along(new_order)) {
+    page_id <- new_order[i]
+    page_content_list[[length(page_content_list) + 1]] <- page_blocks[[page_id]]$content
+    
+    # Add blank line after each page except the last one
+    if (i < length(new_order)) {
+      page_content_list[[length(page_content_list) + 1]] <- ""
+    }
+  }
+  
   result <- c(
     editor_content[1:(first_page_start-1)],
-    unlist(lapply(new_order, function(page_id) page_blocks[[page_id]]$content)),
+    unlist(page_content_list),
     if(last_page_end < length(editor_content)) editor_content[(last_page_end+1):length(editor_content)] else NULL
   )
   
@@ -974,12 +1518,10 @@ reorder_page_content <- function(page_id, new_content_order, editor_content) {
     return(NULL)
   }
   
-  # Ensure editor_content is in lines
   if (is.character(editor_content) && length(editor_content) == 1) {
     editor_content <- strsplit(editor_content, "\n")[[1]]
   }
   
-  # Find the page
   page_start_pattern <- paste0("::: \\{.sd[_-]page id=", page_id, "\\}")
   page_start_lines <- grep(page_start_pattern, editor_content, perl = TRUE)
   
@@ -987,11 +1529,9 @@ reorder_page_content <- function(page_id, new_content_order, editor_content) {
     return(NULL)
   }
   
-  # Use the first match
   page_start_line <- page_start_lines[1]
-  
-  # Find the page end
   page_end_line <- NULL
+
   for (i in page_start_line:length(editor_content)) {
     if (grepl("^:::$", editor_content[i])) {
       page_end_line <- i
@@ -1003,33 +1543,22 @@ reorder_page_content <- function(page_id, new_content_order, editor_content) {
     return(NULL)
   }
   
-  # Get the page content
   original_page_content <- editor_content[page_start_line:page_end_line]
-  
-  # Find navigation chunks (containing sd_next, sd_prev, sd_close)
   navigation_chunks <- extract_navigation_chunks(original_page_content)
-  
-  # Get the current survey structure
   survey_structure <- parse_survey_structure()
   
-  # Validate survey structure
   if (is.null(survey_structure) || !("pages" %in% names(survey_structure)) ||
       !(page_id %in% names(survey_structure$pages))) {
     return(NULL)
   }
   
-  # Get page items
   page_items <- survey_structure$pages[[page_id]]
-  
-  # Create new page content
   new_page_content <- c(
-    editor_content[page_start_line],  # Page opening tag
-    ""  # Add a blank line after the opening tag
+    editor_content[page_start_line],
+    ""
   )
   
-  # Add content in the new order
   for (item in new_content_order) {
-    # Check if item has required fields and exists in page items
     if (!is.list(item) || !all(c("type", "id") %in% names(item)) ||
         !(item$id %in% names(page_items))) {
       next
@@ -1037,12 +1566,10 @@ reorder_page_content <- function(page_id, new_content_order, editor_content) {
     
     current_item <- page_items[[item$id]]
     
-    # Check if current item is valid
     if (!is.list(current_item) || !("is_question" %in% names(current_item))) {
       next
     }
     
-    # Add the content based on item type
     if (current_item$is_question) {
       if ("raw" %in% names(current_item)) {
         r_chunk_lines <- strsplit(current_item$raw, "\n")[[1]]
@@ -1056,17 +1583,14 @@ reorder_page_content <- function(page_id, new_content_order, editor_content) {
     }
   }
   
-  # Add navigation chunks
   if (length(navigation_chunks) > 0) {
     for (chunk in navigation_chunks) {
       new_page_content <- c(new_page_content, chunk$lines, "")
     }
   }
   
-  # Add page closing tag
   new_page_content <- c(new_page_content, ":::")
   
-  # Combine with content before and after the page
   result <- c(
     editor_content[1:(page_start_line-1)],
     new_page_content,
@@ -1090,8 +1614,8 @@ extract_navigation_chunks <- function(page_content) {
       chunk_start <- i
     } else if (in_chunk && grepl("^```$", line)) {
       in_chunk <- FALSE
-      # Check if this is a navigation chunk
       chunk_content <- page_content[(chunk_start+1):(i-1)]
+
       if (any(grepl("sd_next\\(|sd_prev\\(|sd_close\\(", chunk_content))) {
         navigation_chunks[[length(navigation_chunks) + 1]] <- list(
           start = chunk_start,
@@ -1105,13 +1629,12 @@ extract_navigation_chunks <- function(page_content) {
   return(navigation_chunks)
 }
 
-# Separate multiple sd_* function calls into individual R chunks
+# Separate multiple sd_* function calls into individual R chunks AND clean up content
 r_chunk_separation <- function(editor_content) {
   if (is.null(editor_content)) {
     return(NULL)
   }
   
-  # Ensure editor_content is in lines
   if (length(editor_content) == 1) {
     editor_content <- strsplit(editor_content, "\n")[[1]]
   }
@@ -1120,9 +1643,7 @@ r_chunk_separation <- function(editor_content) {
   i <- 1
   
   while (i <= length(editor_content)) {
-    # Check if this is the start of an R chunk
     if (grepl("^```\\{r\\}", editor_content[i])) {
-      # Find the end of this chunk
       chunk_start <- i
       chunk_end <- NULL
       
@@ -1133,9 +1654,7 @@ r_chunk_separation <- function(editor_content) {
         }
       }
       
-      # If we found a complete chunk
       if (!is.null(chunk_end)) {
-        # Extract the chunk content
         chunk_content <- editor_content[(chunk_start+1):(chunk_end-1)]
         
         # Check for sd_ function calls
@@ -1143,9 +1662,7 @@ r_chunk_separation <- function(editor_content) {
         
         # If multiple sd_ calls, split the chunk
         if (length(sd_start_indices) > 1) {
-          # Process each sd_ call
           for (start_idx in sd_start_indices) {
-            # Find the end of this call by tracking parentheses
             call_end <- find_function_call_end(chunk_content, start_idx)
             
             # Add this call as a separate chunk
@@ -1154,7 +1671,7 @@ r_chunk_separation <- function(editor_content) {
               "```{r}",
               chunk_content[start_idx:call_end],
               "```",
-              ""  # Add an empty line between chunks
+              ""
             )
           }
           
@@ -1185,7 +1702,16 @@ r_chunk_separation <- function(editor_content) {
     result <- result[-length(result)]
   }
   
-  return(paste(result, collapse = "\n"))
+  # Convert to string for processing
+  content_string <- paste(result, collapse = "\n")
+  
+  # Apply library reorganization
+  content_string <- reorganize_libraries(content_string)
+  
+  # Apply empty line cleanup
+  content_string <- clean_multiple_empty_lines(content_string)
+  
+  return(content_string)
 }
 
 # Find the end of a function call by tracking parentheses
@@ -1231,21 +1757,47 @@ find_function_call_end <- function(chunk_content, start_idx) {
 }
 
 # Generate question code based on type
-generate_question_code <- function(type, id, label) {
+generate_question_code <- function(type, id, label, options_text = NULL) {
   # Ensure we have valid inputs
   if (is.null(id) || id == "") id <- paste0(type, "_id")
   if (is.null(label) || label == "") label <- paste0(type, "_label")
   
   # Generate appropriate code based on question type
   if (type %in% c("mc", "mc_buttons", "mc_multiple", "mc_multiple_buttons", "select", "slider")) {
+    # Parse options input
+    options_vector <- parse_options_input(options_text)
+    
+    # Generate option lines
+    option_lines <- character(0)
+    for (i in seq_along(options_vector)) {
+      option_label <- names(options_vector)[i]
+      option_value <- options_vector[i]
+      
+      if (i == 1) {
+        option_lines <- c(option_lines, paste0("    \"", option_label, "\" = \"", option_value, "\""))
+      } else if (i == length(options_vector)) {
+        option_lines <- c(option_lines, paste0("    \"", option_label, "\" = \"", option_value, "\""))
+      } else {
+        option_lines <- c(option_lines, paste0("    \"", option_label, "\" = \"", option_value, "\","))
+      }
+    }
+    
+    # Add comma to all but last option
+    if (length(option_lines) > 1) {
+      for (i in 1:(length(option_lines) - 1)) {
+        if (!grepl(",$", option_lines[i])) {
+          option_lines[i] <- paste0(option_lines[i], ",")
+        }
+      }
+    }
+    
     return(c(
       paste0("sd_question("),
       paste0("  type   = \"", type, "\","),
       paste0("  id     = \"", id, "\","),
       paste0("  label  = \"", label, "\","),
       paste0("  option = c("),
-      paste0("    \"Option A\" = \"option_a\","),
-      paste0("    \"Option B\" = \"option_b\""),
+      option_lines,
       paste0("  )"),
       paste0(")")
     ))
@@ -1271,6 +1823,121 @@ generate_question_code <- function(type, id, label) {
 }
 
 # Content Editing Helper Functions ----
+
+# Clean up multiple consecutive empty lines - reduce to single empty line
+clean_multiple_empty_lines <- function(content) {
+  if (is.null(content)) {
+    return(NULL)
+  }
+  
+  if (is.character(content) && length(content) == 1) {
+    content <- strsplit(content, "\n")[[1]]
+  }
+  
+  result <- character(0)
+  empty_line_count <- 0
+  
+  for (line in content) {
+    if (trimws(line) == "") {
+      empty_line_count <- empty_line_count + 1
+      # Only add one empty line, regardless of how many consecutive we find
+      if (empty_line_count == 1) {
+        result <- c(result, line)
+      }
+    } else {
+      # Non-empty line, reset counter
+      empty_line_count <- 0
+      result <- c(result, line)
+    }
+  }
+  
+  return(paste(result, collapse = "\n"))
+}
+
+# Extract options from raw question code
+extract_options_from_raw <- function(raw_code) {
+  if (is.null(raw_code) || raw_code == "") {
+    return("")
+  }
+  
+  # Look for option = c(...) pattern
+  option_pattern <- "option\\s*=\\s*c\\s*\\(([^)]+)\\)"
+  option_match <- regexpr(option_pattern, raw_code, perl = TRUE)
+  
+  if (option_match > 0) {
+    option_content <- regmatches(raw_code, option_match)
+    # Extract just the content inside c(...)
+    inner_pattern <- "c\\s*\\(([^)]+)\\)"
+    inner_match <- regexpr(inner_pattern, option_content, perl = TRUE)
+    
+    if (inner_match > 0) {
+      start_pos <- attr(inner_match, "capture.start")[1]
+      length_val <- attr(inner_match, "capture.length")[1]
+      options_text <- substr(option_content, start_pos, start_pos + length_val - 1)
+      
+      # Parse the options to extract just the labels
+      # Remove quotes and extract labels (before =)
+      options_pairs <- strsplit(options_text, ",")[[1]]
+      labels <- character(0)
+      
+      for (pair in options_pairs) {
+        pair <- trimws(pair)
+        if (grepl("=", pair)) {
+          label_part <- strsplit(pair, "=")[[1]][1]
+          label_part <- trimws(label_part)
+          label_part <- gsub("^[\"']|[\"']$", "", label_part)  # Remove quotes
+          labels <- c(labels, label_part)
+        }
+      }
+      
+      return(paste(labels, collapse = ", "))
+    }
+  }
+  
+  return("")
+}
+
+# Convert option label to snake case value
+label_to_snake_case <- function(label) {
+  # Convert to lowercase, replace spaces and special chars with underscores
+  snake_case <- tolower(label)
+  snake_case <- gsub("[^a-z0-9]+", "_", snake_case)
+  # Remove leading/trailing underscores
+  snake_case <- gsub("^_+|_+$", "", snake_case)
+  # Replace multiple underscores with single
+  snake_case <- gsub("_+", "_", snake_case)
+  return(snake_case)
+}
+
+# Parse options input string into named vector
+parse_options_input <- function(options_text) {
+  if (is.null(options_text) || trimws(options_text) == "") {
+    return(c("Option A" = "option_a", "Option B" = "option_b"))
+  }
+  
+  # First, replace line breaks with commas to normalize separators
+  # Handle different line break types (Windows: \r\n, Unix: \n, Mac: \r)
+  options_text <- gsub("\r\n", "\n", options_text)  # Normalize Windows line breaks
+  options_text <- gsub("\r", "\n", options_text)    # Normalize Mac line breaks
+  
+  # Replace line breaks with commas, but be careful not to double up commas
+  options_text <- gsub("\n+", ",", options_text)    # Replace one or more line breaks with comma
+  
+  # Split by comma, handling various spacing
+  options_raw <- strsplit(options_text, ",")[[1]]
+  options_raw <- trimws(options_raw)
+  options_raw <- options_raw[options_raw != ""]  # Remove empty entries
+  
+  if (length(options_raw) == 0) {
+    return(c("Option A" = "option_a", "Option B" = "option_b"))
+  }
+  
+  # Create named vector
+  option_values <- sapply(options_raw, label_to_snake_case, USE.NAMES = FALSE)
+  options_vector <- setNames(option_values, options_raw)
+  
+  return(options_vector)
+}
 
 # Parse survey structure from survey.qmd file
 parse_survey_structure <- function() {
@@ -1332,8 +1999,175 @@ parse_survey_structure <- function() {
   return(list(pages = pages, page_ids = page_ids))
 }
 
+# Clean consecutive empty lines in a text string or vector
+clean_consecutive_empty_lines <- function(content) {
+  if (is.character(content) && length(content) == 1) {
+    content <- strsplit(content, "\n")[[1]]
+  }
+  
+  result <- character(0)
+  prev_empty <- FALSE
+  
+  for (line in content) {
+    current_empty <- trimws(line) == ""
+    
+    # Only add empty line if previous wasn't empty
+    if (!(prev_empty && current_empty)) {
+      result <- c(result, line)
+    }
+    
+    prev_empty <- current_empty
+  }
+  
+  return(paste(result, collapse = "\n"))
+}
+
+# Handle moving content between pages
+handle_cross_page_content_move <- function(from_page_id, to_page_id, target_content_list, editor_content) {
+  if (is.null(editor_content) || is.null(from_page_id) || is.null(to_page_id)) {
+    return(NULL)
+  }
+  
+  if (is.character(editor_content) && length(editor_content) == 1) {
+    editor_content <- strsplit(editor_content, "\n")[[1]]
+  }
+  
+  survey_structure <- parse_survey_structure()
+  if (is.null(survey_structure) || !("pages" %in% names(survey_structure))) {
+    return(NULL)
+  }
+  
+  # Get content items that need to be moved
+  content_to_move <- list()
+  for (item in target_content_list) {
+    if (item$id %in% names(survey_structure$pages[[from_page_id]])) {
+      content_to_move[[item$id]] <- survey_structure$pages[[from_page_id]][[item$id]]
+    }
+  }
+  
+  if (length(content_to_move) == 0) {
+    return(NULL)
+  }
+  
+  # Remove content from source page
+  temp_content <- editor_content
+  for (content_id in names(content_to_move)) {
+    content_item <- content_to_move[[content_id]]
+    content_type <- if (content_item$is_question) "question" else "text"
+    temp_content <- delete_content_from_survey_lines(from_page_id, content_id, content_type, temp_content)
+    if (is.null(temp_content)) {
+      return(NULL)
+    }
+  }
+  
+  # Add content to target page in the specified order
+  result_content <- add_content_to_target_page(to_page_id, content_to_move, target_content_list, temp_content)
+  
+  return(paste(result_content, collapse = "\n"))
+}
+
+# Delete content from survey (working with lines array)
+delete_content_from_survey_lines <- function(page_id, content_id, content_type, editor_lines) {
+  # Similar to delete_content_from_survey but works with lines array
+  # Implementation needed based on your existing delete_content_from_survey function
+  editor_content_str <- paste(editor_lines, collapse = "\n")
+  result_str <- delete_content_from_survey(page_id, content_id, content_type, editor_content_str)
+  if (is.null(result_str)) return(NULL)
+  return(strsplit(result_str, "\n")[[1]])
+}
+
+# Add content to target page
+add_content_to_target_page <- function(page_id, content_items, target_order, editor_lines) {
+  # Find target page boundaries
+  page_start_pattern <- paste0("::: \\{.sd[_-]page id=", page_id, "\\}")
+  page_start_lines <- grep(page_start_pattern, editor_lines, perl = TRUE)
+  
+  if (length(page_start_lines) == 0) return(NULL)
+  
+  page_start_line <- page_start_lines[1]
+  page_end_line <- NULL
+  
+  for (i in page_start_line:length(editor_lines)) {
+    if (grepl("^:::$", editor_lines[i])) {
+      page_end_line <- i
+      break
+    }
+  }
+  
+  if (is.null(page_end_line)) return(NULL)
+  
+  # Get current page structure to identify existing content and navigation
+  original_page_content <- editor_lines[page_start_line:page_end_line]
+  navigation_chunks <- extract_navigation_chunks(original_page_content)
+  
+  # Get existing content from target page (excluding moved items)
+  survey_structure <- parse_survey_structure()
+  if (is.null(survey_structure) || !("pages" %in% names(survey_structure))) {
+    return(NULL)
+  }
+  
+  existing_page_items <- survey_structure$pages[[page_id]]
+  moved_item_ids <- names(content_items)
+  
+  # Filter out moved items from existing content
+  remaining_existing_items <- existing_page_items[!names(existing_page_items) %in% moved_item_ids]
+  
+  # Rebuild page content in the exact order specified by target_order
+  new_page_content <- c(
+    editor_lines[page_start_line],  # Page opening
+    ""
+  )
+  
+  # Process each item in the target order
+  for (item in target_order) {
+    item_id <- item$id
+    
+    # Check if it's a moved item
+    if (item_id %in% names(content_items)) {
+      content_item <- content_items[[item_id]]
+      if (content_item$is_question && "raw" %in% names(content_item)) {
+        content_lines <- strsplit(content_item$raw, "\n")[[1]]
+        new_page_content <- c(new_page_content, content_lines, "")
+      } else if (!content_item$is_question && "content" %in% names(content_item)) {
+        text_lines <- strsplit(content_item$content, "\n")[[1]]
+        new_page_content <- c(new_page_content, text_lines, "")
+      }
+    }
+    # Check if it's an existing item that stayed in the page
+    else if (item_id %in% names(remaining_existing_items)) {
+      existing_item <- remaining_existing_items[[item_id]]
+      if (existing_item$is_question && "raw" %in% names(existing_item)) {
+        content_lines <- strsplit(existing_item$raw, "\n")[[1]]
+        new_page_content <- c(new_page_content, content_lines, "")
+      } else if (!existing_item$is_question && "content" %in% names(existing_item)) {
+        text_lines <- strsplit(existing_item$content, "\n")[[1]]
+        new_page_content <- c(new_page_content, text_lines, "")
+      }
+    }
+  }
+  
+  # Add navigation chunks at the end
+  if (length(navigation_chunks) > 0) {
+    for (chunk in navigation_chunks) {
+      new_page_content <- c(new_page_content, chunk$lines, "")
+    }
+  }
+  
+  # Add page closing
+  new_page_content <- c(new_page_content, ":::")
+  
+  # Rebuild the entire file
+  result <- c(
+    editor_lines[1:(page_start_line-1)],
+    new_page_content,
+    if (page_end_line < length(editor_lines)) editor_lines[(page_end_line+1):length(editor_lines)] else NULL
+  )
+  
+  return(result)
+}
+
 # Function to render the survey structure UI
-render_survey_structure <- function(survey_structure) {
+render_survey_structure <- function(survey_structure, page_states = NULL) {
   shiny::div(
     id = "pages-container",
     lapply(survey_structure$page_ids, function(page_id) {
@@ -1347,6 +2181,12 @@ render_survey_structure <- function(survey_structure) {
         sorted_items <- list()
       }
       
+      # Check if this page should be expanded or collapsed
+      is_expanded <- TRUE  # default
+      if (!is.null(page_states) && page_id %in% names(page_states)) {
+        is_expanded <- page_states[[page_id]]
+      }
+      
       shiny::div(
         class = "page-wrapper",
         `data-page-id` = page_id,
@@ -1356,14 +2196,22 @@ render_survey_structure <- function(survey_structure) {
           class = "page-header",
           shiny::div(
             class = "page-drag-handle drag-handle",
-            shiny::icon("grip-lines")
+            shiny::icon("grip-vertical")
           ),
           shiny::div(paste0("Page: ", page_id), style = "margin: 0; font-weight: bold;"),
           
-          # Add this new section for the delete button
           shiny::div(
             class = "page-actions",
             style = "display: flex; gap: 5px;",
+            # Modify page button
+            shiny::actionButton(
+              inputId = "modify_page_btn_ui",
+              label = NULL,
+              icon = shiny::icon("edit"),
+              class = "btn-sm btn-outline-primary modify-page-btn",
+              title = "Modify page ID",
+              `data-page-id` = page_id
+            ),
             # Delete page button
             shiny::actionButton(
               inputId = "delete_page_btn_ui",
@@ -1377,16 +2225,37 @@ render_survey_structure <- function(survey_structure) {
           
           shiny::div(
             class = "toggle-icon",
-            shiny::icon("chevron-down")
+            # Update icon based on state
+            shiny::icon(if(is_expanded) "chevron-down" else "chevron-right")
           )
         ),
         
-        # Content container
+        # Content container - set display based on state
         shiny::div(
           class = "questions-container",
           id = paste0("page-", page_id, "-content"),
           `data-page-id` = page_id,
-          style = "display: block;",
+          style = if(is_expanded) "display: block;" else "display: none;",
+          
+          shiny::div(
+            style = "margin-bottom: 10px; width: 98%; margin-left: auto; margin-right: auto; display: flex; gap: 5px;",
+            shiny::actionButton(
+              inputId = "add_text_btn_ui",
+              label = "Add Text",
+              class = "btn-success add-text-btn",
+              style = "width: calc(50% - 2.5px); padding: 8px; font-weight: bold;",
+              title = "Add text to this page",
+              `data-page-id` = page_id
+            ),
+            shiny::actionButton(
+              inputId = "add_question_btn_ui", 
+              label = "Add Question",
+              class = "btn-info add-question-btn",
+              style = "width: calc(50% - 2.5px); padding: 8px; font-weight: bold;",
+              title = "Add question to this page",
+              `data-page-id` = page_id
+            )
+          ),
           
           # Add content items in their order
           if (length(sorted_items) > 0) {
@@ -1436,7 +2305,19 @@ render_content_item <- function(item) {
       # Content delete button
       shiny::div(
         class = "content-actions",
-        style = "margin-left: auto;",
+        style = "margin-left: auto; display: flex; gap: 5px;",
+        # Modify question button
+        shiny::actionButton(
+          inputId = "modify_content_btn_ui",
+          label = NULL,
+          icon = shiny::icon("edit"),
+          class = "btn-sm btn-outline-success modify-content-btn",
+          title = "Modify question",
+          `data-content-id` = item$id,
+          `data-page-id` = item$page_id,
+          `data-content-type` = "question"
+        ),
+        # Delete question button
         shiny::actionButton(
           inputId = "delete_content_btn_ui",
           label = NULL,
@@ -1476,7 +2357,19 @@ render_content_item <- function(item) {
       # Content delete button
       shiny::div(
         class = "content-actions",
-        style = "margin-left: auto;",
+        style = "margin-left: auto; display: flex; gap: 5px;",
+        # Modify text button
+        shiny::actionButton(
+          inputId = "modify_content_btn_ui",
+          label = NULL,
+          icon = shiny::icon("edit"),
+          class = "btn-sm btn-outline-success modify-content-btn",
+          title = "Modify text",
+          `data-content-id` = item$id,
+          `data-page-id` = item$page_id,
+          `data-content-type` = "text"
+        ),
+        # Delete text button
         shiny::actionButton(
           inputId = "delete_content_btn_ui",
           label = NULL,
@@ -1484,7 +2377,7 @@ render_content_item <- function(item) {
           class = "btn-sm btn-outline-danger delete-content-btn",
           title = "Delete text",
           onclick = paste0("Shiny.setInputValue('delete_content_btn', { pageId: '", 
-                         item$page_id, "', contentId: '", item$id, "', contentType: 'text' });"),
+                        item$page_id, "', contentId: '", item$id, "', contentType: 'text' });"),
           `data-content-id` = item$id,
           `data-page-id` = item$page_id
         )
@@ -1542,7 +2435,8 @@ extract_page_items <- function(page_content, page_id) {
       content_items[[paste0("text_", page_id, "_1")]] <- create_text_item(
         paste0("text_", page_id, "_1"),
         trimws(page_content),
-        1
+        1,
+        page_id
       )
     }
     return(content_items)
@@ -1686,6 +2580,161 @@ create_text_item <- function(id, content, position, page_id) {
     is_question = FALSE,
     page_id = page_id
   )
+}
+
+# Modify page ID in the survey.qmd file
+modify_page_id <- function(old_page_id, new_page_id, editor_content) {
+  if (is.null(editor_content) || is.null(old_page_id) || is.null(new_page_id)) {
+    return(NULL)
+  }
+  
+  # Ensure editor_content is in lines
+  if (is.character(editor_content) && length(editor_content) == 1) {
+    editor_content <- strsplit(editor_content, "\n")[[1]]
+  }
+  
+  # Find and replace the page ID in the opening tag
+  page_pattern_underscore <- paste0("::: \\{.sd_page id=", old_page_id, "\\}")
+  page_pattern_dash <- paste0("::: \\{.sd-page id=", old_page_id, "\\}")
+  
+  # Check which pattern exists and replace
+  replaced <- FALSE
+  for (i in seq_along(editor_content)) {
+    if (grepl(page_pattern_underscore, editor_content[i], perl = TRUE)) {
+      editor_content[i] <- gsub(page_pattern_underscore, 
+                               paste0("::: {.sd_page id=", new_page_id, "}"), 
+                               editor_content[i], perl = TRUE)
+      replaced <- TRUE
+    } else if (grepl(page_pattern_dash, editor_content[i], perl = TRUE)) {
+      editor_content[i] <- gsub(page_pattern_dash, 
+                               paste0("::: {.sd-page id=", new_page_id, "}"), 
+                               editor_content[i], perl = TRUE)
+      replaced <- TRUE
+    }
+  }
+  
+  if (!replaced) {
+    return(NULL)
+  }
+  
+  return(paste(editor_content, collapse = "\n"))
+}
+
+# Modify question content in the survey
+modify_question_content <- function(page_id, old_question_id, new_type, new_id, new_label, editor_content, options_text = NULL) {
+  if (is.null(editor_content) || is.null(page_id) || is.null(old_question_id)) {
+    return(NULL)
+  }
+  
+  # Ensure editor_content is in lines
+  if (is.character(editor_content) && length(editor_content) == 1) {
+    editor_content <- strsplit(editor_content, "\n")[[1]]
+  }
+  
+  # Find the page
+  page_start_pattern <- paste0("::: \\{.sd[_-]page id=", page_id, "\\}")
+  page_start_lines <- grep(page_start_pattern, editor_content, perl = TRUE)
+  
+  if (length(page_start_lines) == 0) {
+    return(NULL)
+  }
+  
+  page_start_line <- page_start_lines[1]
+  
+  # Find the page end
+  page_end_line <- NULL
+  for (i in page_start_line:length(editor_content)) {
+    if (grepl("^:::$", editor_content[i])) {
+      page_end_line <- i
+      break
+    }
+  }
+  
+  if (is.null(page_end_line)) {
+    return(NULL)
+  }
+  
+  # Find the R chunk containing the old question
+  for (i in page_start_line:page_end_line) {
+    if (grepl("^```\\{r\\}", editor_content[i])) {
+      chunk_start <- i
+      chunk_end <- NULL
+      
+      for (j in (i+1):page_end_line) {
+        if (grepl("^```$", editor_content[j])) {
+          chunk_end <- j
+          break
+        }
+      }
+      
+      if (!is.null(chunk_end)) {
+        chunk_content <- paste(editor_content[(chunk_start+1):(chunk_end-1)], collapse = "\n")
+        
+        # Check if this chunk contains the question we want to modify
+        if (grepl(paste0('id\\s*=\\s*["\']', old_question_id, '["\']'), chunk_content, perl = TRUE)) {
+          # Generate new question code
+          new_question_code <- generate_question_code(new_type, new_id, new_label, options_text)
+          
+          # Replace the chunk content
+          result <- c(
+            editor_content[1:(chunk_start)],
+            new_question_code,
+            editor_content[chunk_end:length(editor_content)]
+          )
+          
+          return(paste(result, collapse = "\n"))
+        }
+      }
+    }
+  }
+  
+  return(NULL)
+}
+
+# Modify text content in the survey
+modify_text_content <- function(page_id, old_text_id, new_text, editor_content) {
+  if (is.null(editor_content) || is.null(page_id) || is.null(old_text_id)) {
+    return(NULL)
+  }
+  
+  # Get the current survey structure
+  survey_structure <- parse_survey_structure()
+  
+  if (is.null(survey_structure) || !("pages" %in% names(survey_structure)) ||
+      !(page_id %in% names(survey_structure$pages)) ||
+      !(old_text_id %in% names(survey_structure$pages[[page_id]]))) {
+    return(NULL)
+  }
+  
+  # Get the old content
+  old_text_item <- survey_structure$pages[[page_id]][[old_text_id]]
+  
+  if (!("content" %in% names(old_text_item))) {
+    return(NULL)
+  }
+  
+  old_text <- old_text_item$content
+  
+  # Ensure editor_content is in lines
+  if (is.character(editor_content) && length(editor_content) == 1) {
+    editor_content <- strsplit(editor_content, "\n")[[1]]
+  }
+  
+  # Find and replace the old text with new text
+  editor_content_str <- paste(editor_content, collapse = "\n")
+  
+  # Escape special characters for regex
+  escaped_old_text <- gsub("([\\$\\^\\*\\+\\?\\(\\)\\[\\]\\{\\}\\.\\|])", "\\\\\\1", old_text)
+  
+  # Replace the text
+  updated_content_str <- gsub(escaped_old_text, new_text, editor_content_str, fixed = TRUE)
+  
+  # Check if replacement was successful
+  if (identical(editor_content_str, updated_content_str)) {
+    return(NULL)
+  }
+  
+  return(updated_content_str)
 }
 
 # Delete a page from the survey.qmd file
@@ -1955,8 +3004,6 @@ check_and_separate_content <- function(page_id, content_list, current_content, s
       shinyAce::updateAceEditor(session, "survey_editor", value = current_content)
       shiny::showNotification("Separated multiple functions in dragged content", 
                             type = "message", duration = 2)
-      # Brief pause to let the editor update
-      Sys.sleep(0.1)
     }
   }
 }
@@ -1988,14 +3035,140 @@ launch_preview_server <- function(port) {
 # Function to get the custom CSS for the studio
 get_studio_css <- function() {
   return("
+    /* ===== GENERAL LAYOUT & NAVIGATION ===== */
     .navbar:not(.fixed-bottom):not(.navbar-fixed-bottom):not(.navbar-fixed-bottom)+div>.tab-content>.tab-pane {
       margin-top: 10px !important;
     }
+
+    /* ===== DRAG & DROP EFFECTS ===== */
+    .sortable-ghost {
+      opacity: 0.4;
+    }
+
+    .sortable-placeholder {
+      background-color: #f9f9f9;
+      border: 1px dashed #ccc;
+      margin: 5px 0;
+    }
+
+    /* Visual feedback during content dragging */
+    .content-dragging .page-header {
+      transition: background-color 0.2s ease;
+    }
+
+    .content-dragging .page-header.drag-hover {
+      background-color: #b3d9ff !important;
+      border: 2px dashed #007bff;
+    }
+
+    .content-dragging .questions-container {
+      min-height: 50px;
+      transition: min-height 0.2s ease;
+    }
+
+    /* Ensure expanded pages during drag have visible drop zones */
+    .content-dragging .questions-container:empty::after {
+      content: \"Drop content here\";
+      display: block;
+      text-align: center;
+      color: #666;
+      font-style: italic;
+      padding: 20px;
+      border: 2px dashed #ccc;
+      border-radius: 5px;
+      margin: 10px;
+    }
+
+    /* ===== TAB ENLARGEMENT ===== */
+    .navbar-nav .nav-link {
+      font-size: 1.1rem;
+    }
+    
+    /* ===== CODE EDITOR STYLING ===== */
     .shiny-ace.ace_editor {
       margin-bottom: 0.1rem !important;
     }
     
-    /* Structure styling */
+    /* ===== UNDO/REDO BUTTON HOVER EFFECTS ===== */
+    /* Structure section undo/redo buttons */
+    .btn-sm[style*=\"background-color: #cce5ff\"]:hover {
+      background-color: #99d6ff !important;
+      border-color: #0056b3 !important;
+      color: #0056b3 !important;
+      transform: scale(1.05);
+      transition: all 0.2s ease;
+    }
+
+    /* Add page button styling */
+    #add_page_btn {
+      background-color: #ffe0b2 !important;
+      border-color: #ffcc80 !important;
+      color: #f57c00 !important;
+    }
+
+    #add_page_btn:hover {
+      background-color: #ffcc80 !important;
+      border-color: #ffb74d !important;
+      color: #bf360c !important;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    /* Add text button styling */
+    .add-text-btn {
+      background-color: #f0fff0 !important;
+      border-color: #28a745 !important;
+      color: #28a745 !important;
+    }
+
+    .add-text-btn:hover {
+      background-color: #e8f5e8 !important;
+      border-color: #1e7e34 !important;
+      color: #1e7e34 !important;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    /* Add question button styling */
+    .add-question-btn {
+      background-color: #f0f8ff !important;
+      border-color: #5bc0de !important;
+      color: #5bc0de !important;
+    }
+
+    .add-question-btn:hover {
+      background-color: #e6f3ff !important;
+      border-color: #31b0d5 !important;
+      color: #31b0d5 !important;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    /* Code section undo/redo buttons */
+    .btn-sm[style*=\"background-color: #d4edda\"]:hover {
+      background-color: #b8e6c1 !important;
+      border-color: #1e7e34 !important;
+      color: #1e7e34 !important;
+      transform: scale(1.05);
+      transition: all 0.2s ease;
+    }
+
+    /* Add smooth transition for all small buttons */
+    .btn-sm {
+      transition: all 0.2s ease;
+    }
+
+    /* ===== MODAL & FORM STYLING ===== */
+    .modal-body textarea {
+      height: 150px;
+      font-family: Monaco, 'Lucida Console', monospace;
+    }
+
+    .modal-body input[type='text'] {
+      font-family: Monaco, 'Lucida Console', monospace;
+    }
+    
+    /* ===== PAGE STRUCTURE ===== */
     .page-header {
       background-color: #cce5ff; 
       padding: 10px; 
@@ -2005,6 +3178,7 @@ get_studio_css <- function() {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      font-family: Monaco, 'Lucida Console', monospace;
     }
     
     .page-header:hover {
@@ -2013,83 +3187,90 @@ get_studio_css <- function() {
     
     .page-header .toggle-icon {
       margin-left: 10px;
-    }
-    
-    .page-header .drag-handle {
-      cursor: move;
-      margin-right: 10px;
-      color: #777;
-    }
-    
-    .page-header .drag-handle:hover {
-      color: #333;
+      min-width: 20px;
     }
     
     .page-actions {
       margin-left: auto;
     }
-
-    .question-item {
-      margin-left: 5px; 
-      margin-bottom: 10px; 
-      padding: 5px 5px 5px 25px; 
-      border-left: 3px solid #5bc0de; 
-      background-color: #f0f0f0;
+    
+    /* ===== CONTENT ITEMS ===== */
+    /* Base styling for content items */
+    .question-item, 
+    .text-item {
+      margin: 0 auto 10px auto; 
+      padding: 5px 5px 5px 20px; 
+      width: 98%;
       position: relative;
+      display: flex;
+      align-items: center;
+      font-family: Monaco, 'Lucida Console', monospace;
+      font-size: 0.9rem;
     }
     
-    .question-item .drag-handle {
-      position: absolute;
-      left: 5px;
+    /* Rounded corners for first and last content items */
+    /* First content item */
+    .questions-container > .question-item:nth-child(2),
+    .questions-container > .text-item:nth-child(2) {
+      border-top-left-radius: 5px;
+      border-top-right-radius: 5px;
+    }
+
+    /* Last content item */
+    .questions-container > .question-item:last-child,
+    .questions-container > .text-item:last-child {
+      border-bottom-left-radius: 5px;
+      border-bottom-right-radius: 5px;
+    }
+
+    /* Question-specific styling */
+    .question-item {
+      border-left: 3px solid #5bc0de; 
+      background-color: #f0f0f0;
+    }
+    
+    /* Text-specific styling */
+    .text-item {
+      border-left: 3px solid #28a745; 
+      background-color: #e3e3e3;
+    }
+    
+    /* ===== INTERACTIVE ELEMENTS ===== */
+    /* Drag handles - unified styling */
+    .page-header .drag-handle,
+    .question-item .drag-handle,
+    .text-item .drag-handle {
       cursor: move;
       color: #777;
     }
     
-    .question-item .drag-handle:hover {
-      color: #333;
+    .page-header .drag-handle {
+      margin-right: 10px;
     }
     
-    /* Text section styling */
-    .text-item {
-      margin-left: 5px; 
-      margin-bottom: 10px; 
-      padding: 5px 5px 5px 25px; 
-      border-left: 3px solid #28a745; 
-      background-color: #e3e3e3;
-      position: relative;
-    }
-    
+    .question-item .drag-handle,
     .text-item .drag-handle {
       position: absolute;
       left: 5px;
-      cursor: move;
-      color: #777;
     }
     
+    /* Drag handle hover effects */
+    .page-header .drag-handle:hover,
+    .question-item .drag-handle:hover,
     .text-item .drag-handle:hover {
       color: #333;
     }
-
-    .question-item, .text-item {
-      display: flex;
-      align-items: center;
-    }
-
+    
+    /* Action buttons */
     .content-actions {
       margin-right: 5px;
     }
-
-    .delete-content-btn, .delete-page-btn {
-      padding: 2px 6px;
-      font-size: 0.8rem;
-    }
-
-    /* Ghost class for sortable.js */
+    
+    /* ===== DRAG & DROP EFFECTS ===== */
     .sortable-ghost {
       opacity: 0.4;
     }
     
-    /* Drop placeholder */
     .sortable-placeholder {
       background-color: #f9f9f9;
       border: 1px dashed #ccc;
@@ -2102,7 +3283,9 @@ get_studio_css <- function() {
 get_studio_js <- function() {
   return("
     $(document).ready(function() {
-      // Handle undo/redo commands from Shiny
+      
+      /* ===== SHINY MESSAGE HANDLERS ===== */
+      // Ace editor undo/redo commands
       Shiny.addCustomMessageHandler('aceUndo', function(editorId) {
         var editor = ace.edit(editorId);
         editor.undo();
@@ -2121,16 +3304,234 @@ get_studio_js <- function() {
         editor.focus();
       });
       
-      // Initialize toggle functionality after DOM is ready
+      // Modal control handlers
+      Shiny.addCustomMessageHandler('showModal', function(modalId) {
+        $('#' + modalId).modal('show');
+      });
+
+      Shiny.addCustomMessageHandler('hideModal', function(modalId) {
+        $('#' + modalId).modal('hide');
+      });
+
+      Shiny.addCustomMessageHandler('updateModalTitle', function(data) {
+        $('#' + data.modalId).text(data.title);
+      });
+
+      /* ===== MODAL MANAGEMENT ===== */
+      // Function to reset modal content
+      function resetModifyModal() {
+        // Clear any cached form values
+        $('#modify-content-modal .modal-body input, #modify-content-modal .modal-body textarea, #modify-content-modal .modal-body select').val('');
+        
+        // Reset modal title
+        $('#modify-content-modal-title').text('Modify Content');
+      }
+
+      // Modal event handlers
+      $('#modify-content-modal').on('hidden.bs.modal', function() {
+        resetModifyModal();
+      });
+
+      $('#modify-content-modal').on('show.bs.modal', function() {
+        resetModifyModal();
+      });
+
+      // Function to reset add page modal
+      function resetAddPageModal() {
+        // Clear the page ID input
+        $('#add_page_id_input').val('');
+        
+        // Reset the position dropdown to the last option if it exists
+        if ($('#add_page_below').length) {
+          var $dropdown = $('#add_page_below');
+          var lastOption = $dropdown.find('option:last').val();
+          $dropdown.val(lastOption);
+        }
+      }
+
+      // Add page modal event handlers
+      $('#add-page-modal').on('hidden.bs.modal', function() {
+        resetAddPageModal();
+      });
+
+      $('#add-page-modal').on('show.bs.modal', function() {
+        resetAddPageModal();
+      });
+
+      // Function to reset add content modal
+      function resetAddContentModal() {
+        // Clear any cached form values
+        $('#add-content-modal .modal-body input, #add-content-modal .modal-body textarea, #add-content-modal .modal-body select').val('');
+        
+        // Reset content type to default
+        $('#add_content_type').val('text').trigger('change');
+      }
+
+      // Add content modal event handlers
+      $('#add-content-modal').on('hidden.bs.modal', function() {
+        resetAddContentModal();
+      });
+
+      $('#add-content-modal').on('show.bs.modal', function() {
+        resetAddContentModal();
+      });
+
+      // Show/hide options input based on question type
+      $(document).off('change', '#add_question_type, #modify_question_type').on('change', '#add_question_type, #modify_question_type', function() {
+        updateOptionsVisibility();
+      });
+
+      // Function to update options visibility
+      function updateOptionsVisibility() {
+        // For add question modal
+        var addQuestionType = $('#add_question_type').val();
+        if (addQuestionType) {
+          var choiceTypes = ['mc', 'mc_buttons', 'mc_multiple', 'mc_multiple_buttons', 'select', 'slider'];
+          var $optionsDiv = $('#add_question_options_div');
+          if (choiceTypes.includes(addQuestionType)) {
+            $optionsDiv.show();
+          } else {
+            $optionsDiv.hide();
+          }
+        }
+        
+        // For modify question modal
+        var modifyQuestionType = $('#modify_question_type').val();
+        if (modifyQuestionType) {
+          var choiceTypes = ['mc', 'mc_buttons', 'mc_multiple', 'mc_multiple_buttons', 'select', 'slider'];
+          var $optionsInput = $('#modify_question_options');
+          var $optionsContainer = $optionsInput.closest('div');
+          if (choiceTypes.includes(modifyQuestionType)) {
+            $optionsContainer.show();
+          } else {
+            $optionsContainer.hide();
+          }
+        }
+      }
+
+      // Initialize options visibility on modal show and when DOM updates
+      $('#add-content-modal, #modify-content-modal').on('shown.bs.modal', function() {
+        // Small delay to ensure DOM is ready
+        setTimeout(updateOptionsVisibility, 100);
+      });
+
+      // Also trigger when Shiny updates the form content
+      $(document).on('shiny:value', function(event) {
+        if (event.target.id === 'add_content_form' || event.target.id === 'modify_content_form') {
+          setTimeout(updateOptionsVisibility, 100);
+        }
+      });
+
+      /* ===== BUTTON EVENT HANDLERS ===== */
+      // Modify button handlers
+      $(document).off('click', '.modify-page-btn').on('click', '.modify-page-btn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        var pageId = $(this).attr('data-page-id');
+        Shiny.setInputValue('modify_page_btn', {
+          pageId: pageId,
+          timestamp: new Date().getTime()
+        });
+        return false;
+      });
+
+      $(document).off('click', '.modify-content-btn').on('click', '.modify-content-btn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        var pageId = $(this).attr('data-page-id');
+        var contentId = $(this).attr('data-content-id');
+        var contentType = $(this).attr('data-content-type');
+        
+        Shiny.setInputValue('modify_content_btn', { 
+          pageId: pageId, 
+          contentId: contentId, 
+          contentType: contentType,
+          timestamp: new Date().getTime()
+        });
+        return false;
+      });
+
+      // Add content button handler
+      $(document).off('click', '.add-text-btn').on('click', '.add-text-btn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        var pageId = $(this).attr('data-page-id');
+        Shiny.setInputValue('add_text_btn', {
+          pageId: pageId,
+          timestamp: new Date().getTime()
+        });
+        return false;
+      });
+
+      $(document).off('click', '.add-question-btn').on('click', '.add-question-btn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        var pageId = $(this).attr('data-page-id');
+        Shiny.setInputValue('add_question_btn', {
+          pageId: pageId,
+          timestamp: new Date().getTime()
+        });
+        return false;
+      });
+
+      // Add page button handler
+      $(document).off('click', '#add_page_btn').on('click', '#add_page_btn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // This will trigger the Shiny input
+        return true;
+      });
+
+      // Delete confirmation handlers
+      $(document).off('click', '.delete-page-btn').on('click', '.delete-page-btn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        var pageId = $(this).attr('data-page-id');
+        if (confirm('Are you sure you want to delete page \"' + pageId + '\"? This action cannot be undone.')) {
+          Shiny.setInputValue('delete_page_btn', pageId);
+        }
+        return false;
+      });
+      
+      $(document).off('click', '.delete-content-btn').on('click', '.delete-content-btn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        var pageId = $(this).attr('data-page-id');
+        var contentId = $(this).attr('data-content-id');
+        var contentType = $(this).closest('[data-content-type]').attr('data-content-type');
+        
+        if (confirm('Are you sure you want to delete this ' + contentType + '? This action cannot be undone.')) {
+          Shiny.setInputValue('delete_content_btn', { 
+            pageId: pageId, 
+            contentId: contentId, 
+            contentType: contentType 
+          });
+        }
+        return false;
+      });
+
+      /* ===== UI INTERACTION HANDLERS ===== */
+      // Page toggle functionality
       function initToggle() {
         $('.page-header').off('click').on('click', function(e) {
-          // Don't toggle if clicking on drag handle or delete button
+          // Don't toggle if clicking on drag handle or action buttons
           if (!$(e.target).hasClass('drag-handle') && 
               !$(e.target).closest('.drag-handle').length &&
               !$(e.target).hasClass('delete-page-btn') &&
               !$(e.target).closest('.delete-page-btn').length &&
               !$(e.target).closest('.page-actions').length) {
+            
             var $questions = $(this).next('.questions-container');
+            var pageId = $(this).closest('.page-wrapper').attr('data-page-id');
+            var willBeExpanded = $questions.is(':hidden'); // Will be expanded after toggle
+            
             $questions.slideToggle();
             
             // Toggle icon
@@ -2140,56 +3541,27 @@ get_studio_js <- function() {
             } else {
               $icon.removeClass('fa-chevron-right').addClass('fa-chevron-down');
             }
-          }
-        });
-      }
-      
-      // Add delete confirmation handlers
-      function initDeleteConfirmations() {
-        // Page delete confirmation
-        $(document).off('click', '.delete-page-btn').on('click', '.delete-page-btn', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          
-          var pageId = $(this).attr('data-page-id');
-          if (confirm('Are you sure you want to delete page \"' + pageId + '\"? This action cannot be undone.')) {
-            Shiny.setInputValue('delete_page_btn', pageId);
-          }
-          return false;
-        });
-        
-        // Content delete confirmation
-        $(document).off('click', '.delete-content-btn').on('click', '.delete-content-btn', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          
-          var pageId = $(this).attr('data-page-id');
-          var contentId = $(this).attr('data-content-id');
-          var contentType = $(this).closest('[data-content-type]').attr('data-content-type');
-          
-          if (confirm('Are you sure you want to delete this ' + contentType + '? This action cannot be undone.')) {
-            Shiny.setInputValue('delete_content_btn', { 
-              pageId: pageId, 
-              contentId: contentId, 
-              contentType: contentType 
+            
+            // Send toggle state to Shiny
+            Shiny.setInputValue('page_toggled', {
+              pageId: pageId,
+              isExpanded: willBeExpanded
             });
           }
-          return false;
         });
       }
-      
+
+      /* ===== DRAG & DROP FUNCTIONALITY ===== */
       // Initialize drag and drop functionality
       function initSortable() {
-        // Clean up and reattach all sortable instances
-        
         // Pages sortable
         if (document.getElementById('pages-container')) {
           new Sortable(document.getElementById('pages-container'), {
             animation: 150,
             handle: '.page-drag-handle',
             ghostClass: 'sortable-ghost',
-            filter: '.delete-page-btn, .page-actions', // Add this line to filter out these elements
-            preventOnFilter: true, // Add this line to prevent default when clicking on filtered elements
+            filter: '.delete-page-btn, .page-actions, .modify-page-btn',
+            preventOnFilter: true,
             onEnd: function(evt) {
               // Gather the new page order
               var pageOrder = [];
@@ -2197,35 +3569,71 @@ get_studio_js <- function() {
                 pageOrder.push($(this).attr('data-page-id'));
               });
               
-              // Send both the separation trigger and page order to Shiny
+              // Send page order to Shiny
               Shiny.setInputValue('page_drag_completed', {
                 order: pageOrder,
-                timestamp: new Date().getTime() // Add timestamp to ensure the event is always triggered
+                timestamp: new Date().getTime()
               });
             }
           });
         }
         
-        // Content (questions and text) sortable - one for each page
+        // Content (questions and text) sortable
         $('.questions-container').each(function() {
           var pageId = $(this).attr('data-page-id');
           new Sortable(this, {
+            group: 'content-items', // This enables cross-container dragging
             animation: 150,
             handle: '.drag-handle',
             ghostClass: 'sortable-ghost',
-            filter: '.delete-content-btn, .content-actions',
+            draggable: '.question-item, .text-item',
+            filter: '.delete-content-btn, .content-actions, .modify-content-btn, .add-content-btn',
             preventOnFilter: true,
+            
+            // Expand collapsed pages when dragging starts
+            onStart: function(evt) {
+              // Add a class to indicate we're dragging
+              $('body').addClass('content-dragging');
+              
+              // Set up hover handlers for page headers during drag
+              $('.page-header').on('dragenter.sortable dragover.sortable', function(e) {
+                e.preventDefault();
+                var $pageHeader = $(this);
+                var $questionsContainer = $pageHeader.next('.questions-container');
+                
+                // If the page is collapsed, expand it immediately
+                if ($questionsContainer.is(':hidden')) {
+                  $questionsContainer.show(); // Use show() instead of slideDown() for immediate effect
+                  var $icon = $pageHeader.find('.toggle-icon i');
+                  $icon.removeClass('fa-chevron-right').addClass('fa-chevron-down');
+                  
+                  // Add visual feedback
+                  $pageHeader.addClass('drag-hover');
+                }
+              });
+              
+              $('.page-header').on('dragleave.sortable', function(e) {
+                $(this).removeClass('drag-hover');
+              });
+            },
+            
+            // Clean up when dragging ends
             onEnd: function(evt) {
-              // Create an array of objects
+              // Remove dragging class and clean up event handlers
+              $('body').removeClass('content-dragging');
+              $('.page-header').off('.sortable').removeClass('drag-hover');
+              
+              var fromPageId = $(evt.from).attr('data-page-id');
+              var toPageId = $(evt.to).attr('data-page-id');
+              
+              // Create an array of content order for the target page
               var contentOrder = [];
               
-              // Select all direct children of the container
-              $(this.el).children('div').each(function() {
+              $(evt.to).children('.question-item, .text-item').each(function() {
                 var $element = $(this);
                 var type = $element.attr('data-content-type');
-                
-                // Get the ID based on the content type
                 var id;
+                
                 if (type === 'question') {
                   id = $element.attr('data-question-id');
                 } else if (type === 'text') {
@@ -2240,44 +3648,41 @@ get_studio_js <- function() {
                 }
               });
               
-              // Only send if we have content
-              if (contentOrder.length > 0) {
-                // Convert to a simple array of strings
-                var serializedOrder = [];
-                for (var i = 0; i < contentOrder.length; i++) {
-                  serializedOrder.push(contentOrder[i].type);
-                  serializedOrder.push(contentOrder[i].id);
-                }
-                
-                // Send event to Shiny with strict string format
-                Shiny.setInputValue('content_drag_completed', {
-                  pageId: pageId,
-                  order: serializedOrder,
-                  timestamp: new Date().getTime()
-                }, {priority: 'event'});
+              // Convert to serialized format
+              var serializedOrder = [];
+              for (var i = 0; i < contentOrder.length; i++) {
+                serializedOrder.push(contentOrder[i].type);
+                serializedOrder.push(contentOrder[i].id);
               }
+              
+              // Send event to Shiny with both source and target page info
+              Shiny.setInputValue('content_drag_completed', {
+                fromPageId: fromPageId,
+                toPageId: toPageId,
+                order: serializedOrder,
+                isCrossPage: fromPageId !== toPageId,
+                timestamp: new Date().getTime()
+              }, {priority: 'event'});
             }
           });
         });
       }
 
-      // Ensure sortable is reinitialized whenever the DOM changes
-      $(document).on('shiny:value', function(event) {
-        if (event.name === 'survey_structure') {
-          // Short delay to ensure DOM is updated
-          setTimeout(function() {
-            initToggle();
-            initDeleteConfirmations(); // Initialize delete confirmations
-            initSortable();
-          }, 100);
-        }
+      /* ===== DOM MANAGEMENT & INITIALIZATION ===== */
+      // Initialize all functionality together
+      function initializeAll() {
+        initToggle();
+        initSortable();
+      }
+
+      // Ensure functionality is reinitialized whenever the DOM changes
+      $(document).on('shiny:idle', function(event) {
+        initializeAll();
       });
       
       // Watch for changes to the structure output
       var observer = new MutationObserver(function(mutations) {
-        initToggle();
-        initDeleteConfirmations(); // Initialize delete confirmations
-        initSortable();
+        initializeAll();
       });
       
       // Start observing changes to the survey structure
@@ -2286,10 +3691,8 @@ get_studio_js <- function() {
         observer.observe(target, { childList: true, subtree: true });
       }
       
-      // Initialize right away on document ready
-      initToggle();
-      initDeleteConfirmations();
-      initSortable();
+      // Initialize everything on document ready
+      initializeAll();
     });
   ")
 }
