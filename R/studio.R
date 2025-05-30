@@ -492,11 +492,17 @@ studio_server <- function() {
       preview_handlers$refresh_preview()
     }, priority = 1000)
     
-    # Handle R chunk separation for manual edits
+    # Handle format conversion and R chunk separation for manual edits
     shiny::observeEvent(input$survey_editor, {
       shiny::invalidateLater(1000)
       current_content <- input$survey_editor
-      separated_content <- r_chunk_separation(current_content)
+      
+      # First convert page formats
+      converted_content <- convert_page_formats(current_content)
+      
+      # Then separate R chunks
+      separated_content <- r_chunk_separation(converted_content)
+      
       if (!identical(current_content, separated_content)) {
         shinyAce::updateAceEditor(session, "survey_editor", value = separated_content)
       }
@@ -1056,6 +1062,29 @@ server_preview_handlers <- function(input, output, session) {
 }
 
 # Content Editing Functions ----
+
+# Convert default quarto format to surveydown format
+convert_page_formats <- function(content) {
+  if (is.null(content)) {
+    return(NULL)
+  }
+  
+  if (is.character(content) && length(content) == 1) {
+    content_text <- content
+  } else {
+    content_text <- paste(content, collapse = "\n")
+  }
+  
+  # Pattern to match default format: ::: {#id .sd_page} or ::: {#id .sd-page}
+  default_pattern_underscore <- ":::\\s*\\{\\s*#([a-zA-Z0-9_]+)\\s+\\.sd_page\\s*\\}"
+  default_pattern_dash <- ":::\\s*\\{\\s*#([a-zA-Z0-9_]+)\\s+\\.sd-page\\s*\\}"
+  
+  # Replace with surveydown format
+  content_text <- gsub(default_pattern_underscore, "::: {.sd_page id=\\1}", content_text, perl = TRUE)
+  content_text <- gsub(default_pattern_dash, "::: {.sd-page id=\\1}", content_text, perl = TRUE)
+  
+  return(content_text)
+}
 
 # Reorganize library calls to the beginning of the file
 reorganize_libraries <- function(editor_content) {
