@@ -1,0 +1,1085 @@
+# Main server function
+studio_server <- function(gssencmode = "prefer") {
+  function(input, output, session) {
+    # Reactive values for modify content state
+    modify_form_trigger <- shiny::reactiveVal(NULL)
+    modify_content_info <- shiny::reactiveVal(NULL)
+    add_content_page_id <- shiny::reactiveVal(NULL)
+    add_form_trigger <- shiny::reactiveVal(NULL)
+
+    # Dashboard reactive values - Load .env if exists
+    if (file.exists(".env")) {
+      dotenv::load_dot_env(".env")
+    }
+    
+    # Reactive values for dashboard connection status and database
+    rv <- shiny::reactiveValues(
+      connection_status = FALSE,
+      current_db = NULL
+    )
+
+    # Dashboard connection management
+    attempt_connection <- function(config = NULL) {
+      tryCatch({
+        if (is.null(config)) {
+          # Use default connection from .env with the specified gssencmode
+          db <- surveydown::sd_db_connect(gssencmode = gssencmode)
+        } else {
+          # Use provided config with the specified gssencmode
+          pool <- pool::dbPool(
+            RPostgres::Postgres(),
+            host = config$host,
+            dbname = config$dbname,
+            port = config$port,
+            user = config$user,
+            password = config$password,
+            gssencmode = gssencmode
+          )
+          db <- list(db = pool)
+        }
+
+        if (!is.null(db)) {
+          rv$connection_status <- TRUE
+          rv$current_db <- db
+          return(TRUE)
+        }
+        return(FALSE)
+      }, error = function(e) {
+        rv$connection_status <- FALSE
+        rv$current_db <- NULL
+        return(FALSE)
+      })
+    }
+
+    # Initial connection attempt
+    shiny::observe({
+      attempt_connection()
+    })
+
+    # Update table selection dropdown
+    shiny::observe({
+      if (rv$connection_status && !is.null(rv$current_db)) {
+        tryCatch({
+          tables <- pool::poolWithTransaction(rv$current_db$db, function(conn) {
+            all_tables <- DBI::dbListTables(conn)
+            all_tables[!grepl("^pg_", all_tables)]
+          })
+
+          # Set default table as first choice if available
+          default_table <- Sys.getenv("SD_TABLE", "")
+          if (default_table %in% tables) {
+            tables <- c(default_table, setdiff(tables, default_table))
+          }
+
+          shiny::updateSelectInput(session, "table_select",
+                                   choices = if (length(tables) > 0) tables else c("No tables found" = "")
+          )
+        }, error = function(e) {
+          shiny::updateSelectInput(session, "table_select",
+                                   choices = c("Connection error" = "")
+          )
+        })
+      } else {
+        shiny::updateSelectInput(session, "table_select",
+                                 choices = c("No connection" = "")
+        )
+      }
+    })
+
+    # Handle test connection button
+    shiny::observeEvent(input$test_connection, {
+      # Close existing connection
+      if (!is.null(rv$current_db) && !is.null(rv$current_db$db)) {
+        tryCatch({
+          pool::poolClose(rv$current_db$db)
+          rv$current_db <- NULL
+          rv$connection_status <- FALSE
+        }, error = function(e) {
+          warning("Error closing connection: ", e$message)
+        })
+      }
+
+      # Test new connection
+      config <- list(
+        host = input$host,
+        port = input$port,
+        dbname = input$dbname,
+        user = input$user,
+        password = input$password
+      )
+
+      success <- attempt_connection(config)
+
+      if (success) {
+        # Save to .env file
+        env_content <- paste(
+          "# Database connection settings for surveydown",
+          sprintf("SD_HOST=%s", input$host),
+          sprintf("SD_PORT=%s", input$port),
+          sprintf("SD_DBNAME=%s", input$dbname),
+          sprintf("SD_USER=%s", input$user),
+          sprintf("SD_PASSWORD=%s", input$password),
+          sprintf("SD_TABLE=%s", input$default_table),
+          sep = "\n"
+        )
+        writeLines(env_content, ".env")
+
+        # Update .gitignore
+        if (file.exists(".gitignore")) {
+          gitignore_content <- readLines(".gitignore")
+          if (!".env" %in% gitignore_content) {
+            write("\n.env", ".gitignore", append = TRUE)
+          }
+        } else {
+          write(".env", ".gitignore")
+        }
+
+        output$connection_status <- shiny::renderText(
+          "Connection successful & Parameters saved to .env file."
+        )
+      } else {
+        output$connection_status <- shiny::renderText(
+          "Connection failed. Please check your settings."
+        )
+      }
+    }, ignoreInit = TRUE)
+
+    # Reactive survey data with error handling
+    survey_data <- shiny::reactive({
+      shiny::req(rv$connection_status)
+      shiny::req(input$table_select)
+      shiny::req(rv$current_db)
+
+      tryCatch({
+        data <- pool::poolWithTransaction(rv$current_db$db, function(conn) {
+          DBI::dbGetQuery(conn, sprintf('SELECT * FROM "%s"', input$table_select))
+        })
+        return(data)
+      }, error = function(e) {
+        warning("Error fetching survey data: ", e$message)
+        return(NULL)
+      })
+    })
+
+    # Dashboard outputs
+    # Downloadable CSV of survey data
+    output$download_survey_data <- shiny::downloadHandler(
+      filename = function() {
+        paste0(input$table_select, "_", Sys.Date(), ".csv")
+      },
+      content = function(file) {
+        data <- survey_data()
+        utils::write.csv(data, file, row.names = FALSE)
+      }
+    )
+
+    # Value Boxes
+    output$total_responses <- shiny::renderText({
+      shiny::req(survey_data())
+      nrow(survey_data())
+    })
+
+    output$daily_average <- shiny::renderText({
+      shiny::req(survey_data())
+      data <- survey_data()
+      start_times <- as.POSIXct(data$time_start, format="%Y-%m-%d %H:%M:%S")
+      first_response <- min(start_times, na.rm = TRUE)
+      last_response <- max(start_times, na.rm = TRUE)
+      duration_days <- max(as.numeric(difftime(last_response, first_response, units = "days")), 1)
+      round(nrow(data) / duration_days, 1)
+    })
+
+    output$completion_rate <- shiny::renderText({
+      shiny::req(survey_data())
+      data <- survey_data()
+      total_responses <- nrow(data)
+      completed_responses <- sum(!is.na(data$time_end) & data$time_end != "", na.rm = TRUE)
+      if(total_responses > 0) {
+        sprintf("%.1f%%", (completed_responses / total_responses) * 100)
+      } else {
+        "0.0%"
+      }
+    })
+
+    # Response Trend Plots
+    output$cumulative_trend <- shiny::renderPlot({
+      data <- survey_data()
+      # Use default theme colors
+      bg_color <- "#ffffff"
+      text_color <- "#1a2226"
+      grid_color <- "gray80"
+      line_color <- "#0062cc"
+
+      if (is.null(data) || nrow(data) == 0 || !("time_start" %in% names(data))) {
+        graphics::par(bg = bg_color, fg = text_color)
+        graphics::plot.new()
+        graphics::text(0.5, 0.5, "No data available to display", col = text_color, cex = 1.2)
+        return()
+      }
+
+      dates <- try(as.Date(data$time_start))
+      if (inherits(dates, "try-error") || length(dates) == 0 || all(is.na(dates))) {
+        graphics::par(bg = bg_color, fg = text_color)
+        graphics::plot.new()
+        graphics::text(0.5, 0.5, "Unable to process date data", col = text_color, cex = 1.2)
+        return()
+      }
+
+      dates <- dates[!is.na(dates)]
+      daily_counts <- table(dates)
+      date_range <- seq(min(dates), max(dates), by = "day")
+      all_counts <- integer(length(date_range))
+      names(all_counts) <- date_range
+      all_counts[names(daily_counts)] <- daily_counts
+      cumulative_responses <- cumsum(all_counts)
+
+      # Plot setup with theme
+      graphics::par(bg = bg_color, fg = text_color, col.axis = text_color, col.lab = text_color,
+          mar = c(4, 4, 2, 2))
+
+      # Add grid first
+      graphics::plot(date_range, cumulative_responses, type = "n",
+           xlab = "Date", ylab = "Cumulative Responses")
+      graphics::grid(col = grid_color, lty = "dotted")
+
+      # Add line and points
+      graphics::lines(date_range, cumulative_responses, col = line_color, lwd = 2)
+      graphics::points(date_range, cumulative_responses, col = line_color, pch = 16)
+    }, bg = "transparent")
+
+    output$daily_trend <- shiny::renderPlot({
+      data <- survey_data()
+      # Use default theme colors
+      bg_color <- "#ffffff"
+      text_color <- "#1a2226"
+      grid_color <- "gray80"
+      bar_color <- "#0062cc"
+      bar_border <- "#00008B"
+
+      if (is.null(data) || nrow(data) == 0 || !("time_start" %in% names(data))) {
+        graphics::par(bg = bg_color, fg = text_color)
+        graphics::plot.new()
+        graphics::text(0.5, 0.5, "No data available to display", col = text_color, cex = 1.2)
+        return()
+      }
+
+      dates <- try(as.Date(data$time_start))
+      if (inherits(dates, "try-error") || length(dates) == 0 || all(is.na(dates))) {
+        graphics::par(bg = bg_color, fg = text_color)
+        graphics::plot.new()
+        graphics::text(0.5, 0.5, "Unable to process date data", col = text_color, cex = 1.2)
+        return()
+      }
+
+      dates <- dates[!is.na(dates)]
+      daily_counts <- table(dates)
+      date_range <- seq(min(dates), max(dates), by = "day")
+      all_counts <- integer(length(date_range))
+      names(all_counts) <- date_range
+      all_counts[names(daily_counts)] <- daily_counts
+
+      # Plot setup with theme
+      graphics::par(bg = bg_color, fg = text_color, col.axis = text_color, col.lab = text_color,
+          mar = c(5, 4, 2, 2))  # Increased bottom margin for date labels
+
+      # Create barplot
+      bp <- graphics::barplot(all_counts,
+                    col = bar_color,
+                    border = bar_border,
+                    xlab = "Date",
+                    ylab = "Daily Responses",
+                    xaxt = "n",
+                    space = 0.2
+      )
+
+      # Add gridlines
+      graphics::grid(col = grid_color, lty = "dotted")
+
+      # Add x-axis with rotated labels
+      graphics::axis(1,
+           at = bp,
+           labels = format(date_range, "%b %d"),
+           las = 2,
+           col.axis = text_color,
+           cex.axis = 0.9
+      )
+    }, bg = "transparent")
+
+    # Survey Data Table
+    output$survey_data_table <- DT::renderDataTable({
+      shiny::req(survey_data())
+      data <- survey_data()
+      DT::datatable(
+        data,
+        extensions = 'Scroller',
+        options = list(
+          dom = 'Bfrtip',
+          scrollX = TRUE,
+          scrollY = '400px',
+          scroller = TRUE,
+          pageLength = 50
+        ),
+        class = 'cell-border stripe'
+      )
+    })
+
+    # Setup survey.qmd editor
+    output$survey_editor_ui <- shiny::renderUI({
+      survey_content <- paste(readLines("survey.qmd", warn = FALSE), collapse = "\n")
+      
+      shinyAce::aceEditor(
+        outputId = "survey_editor",
+        value = survey_content,
+        mode = "markdown",
+        theme = "textmate",
+        height = "calc(100vh - 193px)",
+        fontSize = 14,
+        wordWrap = TRUE
+      )
+    })
+
+    # Setup app.R editor
+    output$app_editor_ui <- shiny::renderUI({
+      app_content <- paste(readLines("app.R", warn = FALSE), collapse = "\n")
+      
+      shinyAce::aceEditor(
+        outputId = "app_editor",
+        value = app_content,
+        mode = "r",
+        theme = "chrome",
+        height = "calc(100vh - 193px)",
+        fontSize = 14,
+        wordWrap = TRUE
+      )
+    })
+
+    # Setup modify content form modal
+    output$modify_content_form <- shiny::renderUI({
+      form_info <- modify_form_trigger()
+      
+      if (is.null(form_info)) {
+        return(shiny::div("Select content to modify..."))
+      }
+      
+      if (form_info$type == "question") {
+        current_item <- form_info$item
+        current_type <- if("type" %in% names(current_item) && !is.null(current_item$type)) current_item$type else "mc"
+        current_id <- if("id" %in% names(current_item) && !is.null(current_item$id)) current_item$id else ""
+        current_label <- if("label" %in% names(current_item) && !is.null(current_item$label)) current_item$label else ""
+        
+        # Extract current options if it's a choice question
+        current_options <- ""
+        if (current_type %in% c("mc", "mc_buttons", "mc_multiple", "mc_multiple_buttons", "select", "slider")) {
+          if ("raw" %in% names(current_item)) {
+            current_options <- extract_options_from_raw(current_item$raw)
+          }
+        }
+        
+        form_elements <- list(
+          shiny::selectInput("modify_question_type", "Question Type:", 
+                    choices = c(
+                      "Multiple Choice" = "mc",
+                      "Text Input" = "text",
+                      "Textarea" = "textarea",
+                      "Numeric Input" = "numeric",
+                      "Multiple Choice Buttons" = "mc_buttons",
+                      "Multiple Choice Multiple" = "mc_multiple",
+                      "Multiple Choice Multiple Buttons" = "mc_multiple_buttons",
+                      "Select Dropdown" = "select",
+                      "Slider" = "slider",
+                      "Slider Numeric" = "slider_numeric",
+                      "Date" = "date",
+                      "Date Range" = "daterange"
+                    ),
+                    selected = current_type),
+          shiny::textInput("modify_question_id", "Question ID:", value = current_id),
+          shiny::textInput("modify_question_label", "Question Label:", value = current_label)
+        )
+        
+        # Add options input for choice questions
+        if (current_type %in% c("mc", "mc_buttons", "mc_multiple", "mc_multiple_buttons", "select", "slider")) {
+          form_elements <- append(form_elements, list(
+            shiny::div(
+              style = "margin-top: 10px;",
+              shiny::textAreaInput("modify_question_options", 
+                                  "Options:", 
+                                  value = current_options,
+                                  rows = 3,
+                                  placeholder = "Apple, Banana, Cherry")
+            )
+          ))
+        }
+        
+        form_elements <- append(form_elements, list(
+          shiny::div(style = "font-size: 0.8em; color: #666; margin-top: 10px;",
+            paste0("Editing question \"", form_info$content_id, "\" on page \"", form_info$page_id, "\".")
+          )
+        ))
+        
+        return(shiny::div(form_elements))
+        
+      } else if (form_info$type == "text") {
+        current_item <- form_info$item
+        current_content <- if("content" %in% names(current_item) && !is.null(current_item$content)) current_item$content else ""
+        
+        return(shiny::div(
+          shiny::textAreaInput("modify_text_content", "Text:", rows = 3, value = current_content),
+          shiny::div(style = "font-size: 0.8em; color: #666; margin-top: 10px;",
+            paste0("Editing text on page \"", form_info$page_id, "\".")
+          )
+        ))
+      }
+      
+      # Fallback
+      return(shiny::div("Unknown content type"))
+    })
+
+    # Add content form modal
+    output$add_content_form <- shiny::renderUI({
+      form_info <- add_form_trigger()
+      
+      if (is.null(form_info)) {
+        return(shiny::div("Select content type..."))
+      }
+      
+      content_type <- form_info$content_type
+      
+      if (content_type == "text") {
+        return(shiny::div(
+          shiny::textAreaInput("add_text_content", "Text:", rows = 3, 
+                              placeholder = "Enter markdown text to add to the page")
+        ))
+      } else if (content_type == "question") {
+        form_elements <- list(
+          shiny::selectInput("add_question_type", "Question Type:", 
+                            choices = c(
+                              "Multiple Choice" = "mc",
+                              "Text Input" = "text",
+                              "Textarea" = "textarea",
+                              "Numeric Input" = "numeric",
+                              "Multiple Choice Buttons" = "mc_buttons",
+                              "Multiple Choice Multiple" = "mc_multiple",
+                              "Multiple Choice Multiple Buttons" = "mc_multiple_buttons",
+                              "Select Dropdown" = "select",
+                              "Slider" = "slider",
+                              "Slider Numeric" = "slider_numeric",
+                              "Date" = "date",
+                              "Date Range" = "daterange"
+                            )),
+          shiny::textInput("add_question_id", "Question ID:", placeholder = "Enter unique question ID"),
+          shiny::textInput("add_question_label", "Question Label:", placeholder = "Enter question text"),
+          shiny::div(
+            id = "add_question_options_div",
+            style = "display: none; margin-top: 10px;",
+            shiny::textAreaInput("add_question_options", 
+                                "Options:", 
+                                rows = 3,
+                                placeholder = "Apple, Banana, Cherry")
+          )
+        )
+        
+        return(shiny::div(form_elements))
+      }
+      
+      return(shiny::div("Unknown content type"))
+    })
+
+    # Add page position UI
+    output$add_page_position_ui <- shiny::renderUI({
+      survey_structure <- parse_survey_structure()
+      if (is.null(survey_structure) || !is.null(survey_structure$error) || 
+          is.null(survey_structure$page_ids) || length(survey_structure$page_ids) == 0) {
+        return(NULL)
+      }
+      last_page <- survey_structure$page_ids[length(survey_structure$page_ids)]
+      
+      shiny::selectInput(
+        "add_page_below", 
+        "Below Page:", 
+        choices = setNames(survey_structure$page_ids, survey_structure$page_ids),
+        selected = last_page
+      )
+    })
+
+    # Initialize structure and preview handlers
+    survey_structure <- server_structure_handlers(input, output, session)
+    preview_handlers <- server_preview_handlers(input, output, session)
+    
+    # Connect refresh button to preview function
+    shiny::observeEvent(input$refresh_preview_btn, {
+      preview_handlers$refresh_preview()
+    })
+
+    # Launch preview on startup
+    shiny::observe({
+      preview_handlers$refresh_preview()
+    }, priority = 1000)
+    
+    # Handle format conversion and R chunk separation for manual edits
+    shiny::observeEvent(input$survey_editor, {
+      shiny::invalidateLater(1000)
+      current_content <- input$survey_editor
+      
+      # First convert page formats
+      converted_content <- convert_page_formats(current_content)
+      
+      # Then separate R chunks
+      separated_content <- r_chunk_separation(converted_content)
+      
+      if (!identical(current_content, separated_content)) {
+        shinyAce::updateAceEditor(session, "survey_editor", value = separated_content)
+      }
+    }, ignoreInit = TRUE, ignoreNULL = TRUE)
+
+    # Handle add page button
+    shiny::observeEvent(input$add_page_btn, {
+      shiny::updateTextInput(session, "add_page_id_input", value = "")
+      session$sendCustomMessage("showModal", "add-page-modal")
+    }, ignoreInit = TRUE, ignoreNULL = TRUE)
+
+    # Handle add page confirmation
+    shiny::observeEvent(input$add_page_confirm, {
+      page_id <- input$add_page_id_input
+      
+      if (is.null(page_id) || trimws(page_id) == "") {
+        shiny::showNotification("Please enter a page ID", type = "error")
+        return()
+      }
+      
+      current_content <- input$survey_editor
+      current_content <- r_chunk_separation(current_content)
+      below_page <- input$add_page_below
+      
+      # Insert the new page
+      if (is.null(below_page)) {
+        updated_content <- insert_page_into_survey(page_id, current_content)
+      } else {
+        updated_content <- insert_page_below_specific_page(page_id, below_page, current_content)
+      }
+      
+      if (!is.null(updated_content)) {
+        shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
+        shiny::showNotification(paste("Page", page_id, "added successfully!"), type = "message")
+        survey_structure$refresh()
+        session$sendCustomMessage("hideModal", "add-page-modal")
+      } else {
+        shiny::showNotification("Failed to add page. Please try again.", type = "error")
+      }
+    })
+
+    # Handle add text button
+    shiny::observeEvent(input$add_text_btn, {
+      content_data <- input$add_text_btn
+      page_id <- content_data$pageId
+      
+      if (!is.null(page_id) && page_id != "") {
+        add_content_page_id(page_id)
+        session$sendCustomMessage("updateModalTitle", list(
+          modalId = "add-content-modal-title",
+          title = paste0("Add text to page \"", page_id, "\"")
+        ))
+        
+        add_form_trigger(list(
+          page_id = page_id,
+          content_type = "text",
+          timestamp = as.numeric(Sys.time()) * 1000 + sample(1:1000, 1)
+        ))
+        session$sendCustomMessage("showModal", "add-content-modal")
+      }
+    }, ignoreInit = TRUE, ignoreNULL = TRUE)
+
+    # Handle add question button
+    shiny::observeEvent(input$add_question_btn, {
+      content_data <- input$add_question_btn
+      page_id <- content_data$pageId
+      
+      if (!is.null(page_id) && page_id != "") {
+        add_content_page_id(page_id)
+        session$sendCustomMessage("updateModalTitle", list(
+          modalId = "add-content-modal-title",
+          title = paste0("Add question to page \"", page_id, "\"")
+        ))
+        
+        add_form_trigger(list(
+          page_id = page_id,
+          content_type = "question",
+          timestamp = as.numeric(Sys.time()) * 1000 + sample(1:1000, 1)
+        ))
+        session$sendCustomMessage("showModal", "add-content-modal")
+      }
+    }, ignoreInit = TRUE, ignoreNULL = TRUE)
+
+    # Handle add content confirmation
+    shiny::observeEvent(input$add_content_confirm, {
+      page_id <- add_content_page_id()
+      form_info <- add_form_trigger()
+      
+      if (!is.null(page_id) && !is.null(form_info)) {
+        current_content <- input$survey_editor
+        current_content <- r_chunk_separation(current_content)
+        updated_content <- NULL
+        
+        content_type <- form_info$content_type
+        
+        if (content_type == "text") {
+          if (is.null(input$add_text_content) || trimws(input$add_text_content) == "") {
+            shiny::showNotification("Please enter some text content", type = "error")
+            return()
+          }
+          updated_content <- insert_text_into_survey(
+            page_id,
+            input$add_text_content,
+            current_content
+          )
+          
+          if (!is.null(updated_content)) {
+            shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
+            shiny::showNotification(paste("Text added to page", page_id), type = "message")
+            survey_structure$refresh()
+            session$sendCustomMessage("hideModal", "add-content-modal")
+          } else {
+            shiny::showNotification("Failed to add text. Check page ID and try again.", type = "error")
+          }
+          
+        } else if (content_type == "question") {
+          if (is.null(input$add_question_id) || input$add_question_id == "" ||
+              is.null(input$add_question_label) || input$add_question_label == "") {
+            shiny::showNotification("Please fill in all question fields", type = "error")
+            return()
+          }
+          
+          # Get options input for choice questions
+          options_text <- NULL
+          if (input$add_question_type %in% c("mc", "mc_buttons", "mc_multiple", "mc_multiple_buttons", "select", "slider")) {
+            options_text <- input$add_question_options
+          }
+          
+          updated_content <- insert_question_into_survey(
+            page_id,
+            input$add_question_type,
+            input$add_question_id,
+            input$add_question_label,
+            current_content,
+            options_text  # Pass options text
+          )
+          
+          if (!is.null(updated_content)) {
+            shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
+            shiny::showNotification(paste("Question", input$add_question_id, "added to page", page_id), type = "message")
+            survey_structure$refresh()
+            session$sendCustomMessage("hideModal", "add-content-modal")
+          } else {
+            shiny::showNotification("Failed to add question. Check page ID and try again.", type = "error")
+          }
+        }
+      }
+    })
+
+    # Handle modify page button
+    shiny::observeEvent(input$modify_page_btn, {
+      page_data <- input$modify_page_btn
+      page_id <- page_data$pageId
+      
+      if (!is.null(page_id) && page_id != "") {
+        shiny::updateTextInput(session, "modify_page_id_input", value = page_id)
+        session$userData$modify_page_original_id <- page_id
+        session$sendCustomMessage("showModal", "modify-page-modal")
+      }
+    }, ignoreInit = TRUE, ignoreNULL = TRUE)
+
+    # Handle modify page confirmation
+    shiny::observeEvent(input$modify_page_confirm, {
+      new_page_id <- input$modify_page_id_input
+      original_page_id <- session$userData$modify_page_original_id
+      
+      if (!is.null(new_page_id) && !is.null(original_page_id) && 
+          new_page_id != "" && new_page_id != original_page_id) {
+        current_content <- input$survey_editor
+        current_content <- r_chunk_separation(current_content)
+        updated_content <- modify_page_id(original_page_id, new_page_id, current_content)
+        
+        if (!is.null(updated_content)) {
+          shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
+          shiny::showNotification(paste0("Page ID changed from \"", original_page_id, "\" to \"", new_page_id, "\""), type = "message")
+          survey_structure$refresh()
+          session$sendCustomMessage("hideModal", "modify-page-modal")
+        } else {
+          shiny::showNotification("Failed to modify page ID", type = "error")
+        }
+      } else if (new_page_id == original_page_id) {
+        session$sendCustomMessage("hideModal", "modify-page-modal")
+      } else {
+        shiny::showNotification("Please enter a valid page ID", type = "error")
+      }
+    })
+
+    # Handle modify content button
+    shiny::observeEvent(input$modify_content_btn, {
+      content_data <- input$modify_content_btn
+      # Extract from the data structure
+      page_id <- content_data$pageId
+      content_id <- content_data$contentId
+      content_type <- content_data$contentType
+      
+      if (!is.null(page_id) && !is.null(content_id) && !is.null(content_type)) {
+        modify_content_info(content_data)
+        survey_structure <- parse_survey_structure()
+        if (!is.null(survey_structure) && page_id %in% names(survey_structure$pages) &&
+            content_id %in% names(survey_structure$pages[[page_id]])) {
+          current_item <- survey_structure$pages[[page_id]][[content_id]]
+          
+          if (content_type == "question") {
+            session$sendCustomMessage("updateModalTitle", list(
+              modalId = "modify-content-modal-title",
+              title = paste("Modify Question:", content_id)
+            ))
+          } else {
+            session$sendCustomMessage("updateModalTitle", list(
+              modalId = "modify-content-modal-title", 
+              title = paste("Modify Text:", content_id)
+            ))
+          }
+          modify_form_trigger(list(
+            type = content_type,
+            item = current_item,
+            page_id = page_id,
+            content_id = content_id,
+            timestamp = as.numeric(Sys.time()) * 1000 + sample(1:1000, 1)
+          ))
+          session$sendCustomMessage("showModal", "modify-content-modal")
+        }
+      }
+    }, ignoreInit = TRUE, ignoreNULL = TRUE)
+
+    # Handle modify content confirmation
+    shiny::observeEvent(input$modify_content_confirm, {
+      content_info <- modify_content_info()
+      
+      if (!is.null(content_info)) {
+        page_id <- content_info$pageId
+        content_id <- content_info$contentId
+        content_type <- content_info$contentType
+        current_content <- input$survey_editor
+        current_content <- r_chunk_separation(current_content)
+        updated_content <- NULL
+        
+        if (content_type == "question") {
+          new_type <- input$modify_question_type
+          new_id <- input$modify_question_id
+          new_label <- input$modify_question_label
+          new_options <- input$modify_question_options  # Get options input
+          
+          if (!is.null(new_type) && !is.null(new_id) && !is.null(new_label) && 
+              new_id != "" && new_label != "") {
+            updated_content <- modify_question_content(
+              page_id, content_id, new_type, new_id, new_label, current_content, new_options
+            )
+          } else {
+            shiny::showNotification("Please fill in all question fields", type = "error")
+            return()
+          }
+        } else if (content_type == "text") {
+          new_text <- input$modify_text_content
+          
+          if (!is.null(new_text) && trimws(new_text) != "") {
+            updated_content <- modify_text_content(
+              page_id, content_id, new_text, current_content
+            )
+          } else {
+            shiny::showNotification("Please enter some text content", type = "error")
+            return()
+          }
+        }
+        
+        if (!is.null(updated_content)) {
+          shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
+          shiny::showNotification(paste0(toupper(substr(content_type, 1, 1)), substr(content_type, 2, nchar(content_type)), 
+                                    " modified successfully!"), type = "message")
+          survey_structure$refresh()
+          session$sendCustomMessage("hideModal", "modify-content-modal")
+        } else {
+          shiny::showNotification(paste("Failed to modify", content_type), type = "error")
+        }
+      }
+    })
+
+    # Handle delete page button
+    shiny::observeEvent(input$delete_page_btn, {
+      page_id <- input$delete_page_btn
+      
+      if (!is.null(page_id) && page_id != "") {
+        current_content <- input$survey_editor
+        current_content <- r_chunk_separation(current_content)
+        updated_content <- delete_page_from_survey(page_id, current_content)
+        
+        if (!is.null(updated_content)) {
+          shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
+          shiny::showNotification(paste0("Page \"", page_id, "\" deleted successfully!"), type = "message")
+          survey_structure$refresh()
+        } else {
+          shiny::showNotification(paste("Failed to delete page", page_id), type = "error")
+        }
+      }
+    }, ignoreInit = TRUE, ignoreNULL = TRUE)
+
+    # Handle delete content button
+    shiny::observeEvent(input$delete_content_btn, {
+      req(input$delete_content_btn, input$survey_editor)
+      content_info <- input$delete_content_btn
+      page_id <- content_info$pageId
+      content_id <- content_info$contentId
+      content_type <- content_info$contentType
+      
+      if (!is.null(page_id) && !is.null(content_id)) {
+        current_content <- input$survey_editor
+        current_content <- r_chunk_separation(current_content)
+        updated_content <- delete_content_from_survey(page_id, content_id, content_type, current_content)
+        
+        if (!is.null(updated_content)) {
+          shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
+          shiny::showNotification(paste0(toupper(substr(content_type, 1, 1)), substr(content_type, 2, nchar(content_type)), 
+                                    " \"", content_id, "\" deleted successfully!"), type = "message")
+          survey_structure$refresh()
+        } else {
+          shiny::showNotification(paste("Failed to delete", content_type, content_id), type = "error")
+        }
+      }
+    }, ignoreInit = TRUE, ignoreNULL = TRUE)
+
+    # Handle Undo button
+    shiny::observeEvent(input$undo_btn, {
+      if (input$code_tabs == "survey.qmd") {
+        session$sendCustomMessage("aceUndo", "survey_editor")
+      } else if (input$code_tabs == "app.R") {
+        session$sendCustomMessage("aceUndo", "app_editor")
+      }
+    })
+
+    # Handle Redo button
+    shiny::observeEvent(input$redo_btn, {
+      if (input$code_tabs == "survey.qmd") {
+        session$sendCustomMessage("aceRedo", "survey_editor")
+      } else if (input$code_tabs == "app.R") {
+        session$sendCustomMessage("aceRedo", "app_editor")
+      }
+    })
+
+    # Handle page drag and drop reordering
+    shiny::observeEvent(input$page_drag_completed, {
+      current_content <- input$survey_editor
+      separated_content <- r_chunk_separation(current_content)
+      
+      if (!identical(current_content, separated_content)) {
+        shinyAce::updateAceEditor(session, "survey_editor", value = separated_content)
+        current_content <- separated_content
+      } else {
+        current_content <- input$survey_editor
+      }
+      
+      if (length(input$page_drag_completed$order) > 0) {
+        updated_content <- reorder_pages(input$page_drag_completed$order, current_content)
+        
+        if (!is.null(updated_content)) {
+          shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
+        } else {
+          shiny::showNotification("Failed to reorder pages", type = "error")
+          survey_structure$refresh()
+        }
+      }
+    }, ignoreInit = TRUE)
+
+    # Handle content drag and drop reordering
+    shiny::observeEvent(input$content_drag_completed, {
+      from_page_id <- input$content_drag_completed$fromPageId
+      to_page_id <- input$content_drag_completed$toPageId
+      flat_order <- input$content_drag_completed$order
+      is_cross_page <- input$content_drag_completed$isCrossPage
+      
+      current_content <- input$survey_editor
+      separated_content <- r_chunk_separation(current_content)
+      
+      if (!identical(current_content, separated_content)) {
+        shinyAce::updateAceEditor(session, "survey_editor", value = separated_content)
+        current_content <- separated_content
+      } else {
+        current_content <- input$survey_editor
+      }
+      
+      content_list <- process_content_order(flat_order)
+      
+      if (length(content_list) == 0) {
+        shiny::showNotification("No valid content items found", type = "error")
+        return(NULL)
+      }
+      
+      tryCatch({
+        if (is_cross_page) {
+          # Handle cross-page move
+          updated_content <- handle_cross_page_content_move(
+            from_page_id, to_page_id, content_list, current_content
+          )
+          
+          if (!is.null(updated_content)) {
+            updated_content <- r_chunk_separation(updated_content)
+            shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
+          } else {
+            shiny::showNotification("Failed to move content between pages", type = "error")
+            survey_structure$refresh()
+          }
+        } else {
+          # Handle within-page reordering
+          check_and_separate_content(to_page_id, content_list, current_content, session)
+          updated_content <- reorder_page_content(to_page_id, content_list, current_content)
+          
+          if (!is.null(updated_content)) {
+            updated_content <- r_chunk_separation(updated_content)
+            shinyAce::updateAceEditor(session, "survey_editor", value = updated_content)
+          } else {
+            shiny::showNotification(paste("Failed to reorder content in page", to_page_id), type = "error")
+            survey_structure$refresh()
+          }
+        }
+      }, error = function(e) {
+        shiny::showNotification(paste("Error:", e$message), type = "error")
+        survey_structure$refresh()
+      })
+    }, ignoreInit = TRUE)
+    
+    # Clean up when session ends
+    session$onSessionEnded(function() {
+      process <- preview_handlers$preview_process()
+      if (!is.null(process)) {
+        try(tools::pskill(process), silent = TRUE)
+      }
+    })
+  }
+}
+
+# Handler for survey structure management
+server_structure_handlers <- function(input, output, session) {
+  structure_trigger <- shiny::reactiveVal(0)
+  
+  # Store page toggle states
+  page_toggle_states <- shiny::reactiveVal(list())
+  
+  output$survey_structure <- shiny::renderUI({
+    structure_trigger()
+    survey_structure <- parse_survey_structure()
+    
+    if (!is.null(survey_structure$error)) {
+      return(shiny::div(
+        style = "color: red;",
+        shiny::h4("Error"),
+        shiny::p(survey_structure$error)
+      ))
+    }
+    
+    # Use isolate() to prevent reactive dependency on page_toggle_states
+    current_states <- shiny::isolate(page_toggle_states())
+    if (length(current_states) == 0 && !is.null(survey_structure$page_ids)) {
+      # Initialize all pages as expanded (TRUE) on first launch
+      initial_states <- setNames(
+        rep(TRUE, length(survey_structure$page_ids)), 
+        survey_structure$page_ids
+      )
+      page_toggle_states(initial_states)
+      current_states <- initial_states
+    }
+    
+    render_survey_structure(survey_structure, current_states)
+  })
+  
+  # Handle page toggle events from JavaScript
+  shiny::observeEvent(input$page_toggled, {
+    if (!is.null(input$page_toggled$pageId)) {
+      current_states <- page_toggle_states()
+      current_states[[input$page_toggled$pageId]] <- input$page_toggled$isExpanded
+      page_toggle_states(current_states)
+    }
+  }, ignoreInit = TRUE)
+  
+  refresh_structure <- function() {
+    structure_trigger(structure_trigger() + 1)
+    shiny::invalidateLater(200)
+  }
+  
+  # Function to get page IDs for dropdowns
+  get_page_ids <- function() {
+    survey_structure <- parse_survey_structure()
+    if (!is.null(survey_structure$error)) {
+      return(NULL)
+    }
+    return(survey_structure$page_ids)
+  }
+  
+  # Monitor editor changes with debounce
+  last_update_time <- shiny::reactiveVal(Sys.time())
+  
+  shiny::observeEvent(input$survey_editor, {
+    current_time <- Sys.time()
+    if (difftime(current_time, last_update_time(), units = "secs") > 1) {
+      refresh_structure()
+      last_update_time(current_time)
+    } else {
+      shiny::invalidateLater(1000)
+    }
+  }, ignoreInit = TRUE)
+  
+  # Return functions for external use
+  list(
+    refresh = refresh_structure,
+    get_page_ids = get_page_ids
+  )
+}
+
+# Handler for survey preview functionality
+server_preview_handlers <- function(input, output, session) {
+  preview_process <- shiny::reactiveVal(NULL)
+  preview_port <- stats::runif(1, 3000, 8000) |> floor()
+  refresh_preview <- function() {
+    # Get current process
+    current_process <- NULL
+    shiny::isolate({
+      current_process <- preview_process()
+    })
+    
+    if (!is.null(current_process)) {
+      try(tools::pskill(current_process), silent = TRUE)
+      preview_process(NULL)
+    }
+    
+    if (!file.exists("survey.qmd") || !file.exists("app.R")) {
+      shiny::showNotification("Error: survey.qmd or app.R file not found!", type = "error")
+      return()
+    }
+    
+    if (exists("input") && !is.null(input$survey_editor)) {
+      writeLines(input$survey_editor, "survey.qmd")
+    }
+    
+    if (exists("input") && !is.null(input$app_editor)) {
+      writeLines(input$app_editor, "app.R")
+    }
+    
+    # Launch preview server
+    new_process <- launch_preview_server(preview_port)
+    
+    preview_process(new_process)
+    preview_url <- paste0("http://127.0.0.1:", preview_port)
+
+    output$preview_frame <- shiny::renderUI({
+      shiny::tags$iframe(
+        src = preview_url,
+        width = "100%",
+        height = "100%",
+        style = "border: 1px solid #ddd; border-radius: 5px; display: block;"
+      )
+    })
+  }
+  
+  # Return the refresh function and process for cleanup
+  list(
+    refresh_preview = refresh_preview,
+    preview_process = preview_process
+  )
+}

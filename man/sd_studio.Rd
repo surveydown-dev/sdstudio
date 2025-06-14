@@ -4,7 +4,7 @@
 \alias{sd_studio}
 \title{Launch surveydown Studio}
 \usage{
-sd_studio(template = "default", path = getwd())
+sd_studio(template = "default", path = getwd(), gssencmode = "prefer")
 }
 \arguments{
 \item{template}{A character string specifying the template to use.
@@ -13,6 +13,10 @@ See \code{surveydown::sd_create_survey()} for other available templates.}
 
 \item{path}{A character string specifying the directory where the survey
 template should be created. Defaults to the current working directory.}
+
+\item{gssencmode}{Character string. The GSS encryption mode for the database
+connection. Defaults to \code{"prefer"}. Set to \code{"disable"} if you're having
+connection issues on a secure connection like a VPN.}
 }
 \value{
 No return value, called for its side effects of creating a survey
@@ -22,7 +26,7 @@ project and launching a Shiny app.
 This function serves two purposes:
 \enumerate{
 \item It generates a new survey project from a template
-\item It launches a Shiny app to preview and edit the survey
+\item It launches a Shiny app with 4 tabs: Construction, Preview, Dashboard, and Settings
 }
 }
 \examples{
@@ -32,5 +36,8 @@ if (interactive()) {
 
   # Launch studio with a specific template and path
   sd_studio(template = "question_types", path = "my_survey")
+  
+  # Launch studio with disabled GSS encryption (for VPN connections)
+  sd_studio(gssencmode = "disable")
 }
 }
