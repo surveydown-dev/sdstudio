@@ -34,9 +34,9 @@ pak::pak("surveydown-dev/sdApps", ask = FALSE)
 
 The **surveydown Studio** is a unified Shiny application that provides both survey creation and data management capabilities. The studio includes four main tabs:
 
-- **Construction**: GUI for creating and editing surveys
+- **Build**: GUI for creating and editing surveys
 - **Preview**: Live preview of your survey
-- **Dashboard**: View and analyze survey response data
+- **Responses**: View and analyze survey response data
 - **Settings**: Database connection configuration
 
 To launch the studio, run the following in the R console:

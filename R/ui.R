@@ -11,10 +11,10 @@ studio_ui <- function() {
   )
 }
 
-# Construction tab UI
+# Build tab UI
 ui_construction_tab <- function() {
   shiny::tabPanel(
-    "Construction",
+    "Build",
 
     shiny::tags$head(
       htmltools::htmlDependency(
@@ -250,10 +250,10 @@ ui_preview_tab <- function() {
   )
 }
 
-# Dashboard tab UI
+# Responses tab UI
 ui_dashboard_tab <- function() {
   shiny::tabPanel(
-    "Dashboard",
+    "Responses",
     
     shiny::tags$head(
       shiny::tags$script("
