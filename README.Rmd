@@ -27,22 +27,19 @@ The `sdApps` package is not yet on CRAN, but the development version can be inst
 #| eval: false
 
 # install.packages("pak")
-pak::pak('surveydown-dev/sdApps)
+pak::pak("surveydown-dev/sdApps", ask = FALSE)
 ```
 
-## Dashboard
+## Launch the Studio
 
-The **surveydown Dashboard** is a Shiny application that provides a user-friendly interface for managing and viewing survey response data from live surveys. To launch the dashboard, run the following in the R console:
+The **surveydown Studio** is a unified Shiny application that provides both survey creation and data management capabilities. The studio includes four main tabs:
 
-```{r}
-#| eval: false
+- **Construction**: GUI for creating and editing surveys
+- **Preview**: Live preview of your survey
+- **Dashboard**: View and analyze survey response data
+- **Settings**: Database connection configuration
 
-sdApps::sd_dashboard()
-```
-
-## Studio
-
-The **surveydown Studio** is a Shiny application that provides a GUI for creating and managing surveys. To launch the dashboard, run the following in the R console:
+To launch the studio, run the following in the R console:
 
 ```{r}
 #| eval: false

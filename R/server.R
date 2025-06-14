@@ -19,11 +19,17 @@ studio_server <- function(gssencmode = "prefer") {
     )
 
     # Dashboard connection management
-    attempt_connection <- function(config = NULL) {
-      tryCatch({
+    attempt_connection <- function(config = NULL, return_details = FALSE) {
+      # Helper function to check if error is GSSAPI-related
+      is_gssapi_error <- function(error_msg) {
+        grepl("invalid response to GSSAPI negotiation", error_msg, ignore.case = TRUE)
+      }
+      
+      # Helper function to try connection with specific gssencmode
+      try_connection <- function(gss_mode) {
         if (is.null(config)) {
           # Use default connection from .env with the specified gssencmode
-          db <- surveydown::sd_db_connect(gssencmode = gssencmode)
+          surveydown::sd_db_connect(gssencmode = gss_mode)
         } else {
           # Use provided config with the specified gssencmode
           pool <- pool::dbPool(
@@ -33,21 +39,79 @@ studio_server <- function(gssencmode = "prefer") {
             port = config$port,
             user = config$user,
             password = config$password,
-            gssencmode = gssencmode
+            gssencmode = gss_mode
           )
-          db <- list(db = pool)
+          list(db = pool)
         }
-
+      }
+      
+      # First attempt with the specified gssencmode
+      tryCatch({
+        db <- try_connection(gssencmode)
+        
         if (!is.null(db)) {
           rv$connection_status <- TRUE
           rv$current_db <- db
-          return(TRUE)
+          if (return_details) {
+            return(list(success = TRUE, fallback_used = FALSE, message = "Connection successful"))
+          } else {
+            return(TRUE)
+          }
         }
-        return(FALSE)
+        if (return_details) {
+          return(list(success = FALSE, fallback_used = FALSE, message = "Connection failed"))
+        } else {
+          return(FALSE)
+        }
       }, error = function(e) {
-        rv$connection_status <- FALSE
-        rv$current_db <- NULL
-        return(FALSE)
+        error_msg <- as.character(e$message)
+        
+        # If this is a GSSAPI error and we're using "prefer", try with "disable"
+        if (is_gssapi_error(error_msg) && gssencmode == "prefer") {
+          message("GSSAPI negotiation failed, retrying with gssencmode='disable'...")
+          
+          tryCatch({
+            db <- try_connection("disable")
+            
+            if (!is.null(db)) {
+              rv$connection_status <- TRUE
+              rv$current_db <- db
+              message("Connection successful with gssencmode='disable'")
+              if (return_details) {
+                return(list(success = TRUE, fallback_used = TRUE, 
+                           message = "Connection successful (GSSAPI disabled due to negotiation error)"))
+              } else {
+                return(TRUE)
+              }
+            }
+            if (return_details) {
+              return(list(success = FALSE, fallback_used = TRUE, 
+                         message = "Connection failed with both GSSAPI modes"))
+            } else {
+              return(FALSE)
+            }
+          }, error = function(e2) {
+            # Both attempts failed
+            rv$connection_status <- FALSE
+            rv$current_db <- NULL
+            warning("Connection failed with both gssencmode='prefer' and 'disable': ", e2$message)
+            if (return_details) {
+              return(list(success = FALSE, fallback_used = TRUE, 
+                         message = paste("Connection failed with both GSSAPI modes:", e2$message)))
+            } else {
+              return(FALSE)
+            }
+          })
+        } else {
+          # Not a GSSAPI error or already using "disable", just fail normally
+          rv$connection_status <- FALSE
+          rv$current_db <- NULL
+          if (return_details) {
+            return(list(success = FALSE, fallback_used = FALSE, message = error_msg))
+          } else {
+            return(FALSE)
+          }
+        }
       })
     }
 
@@ -108,9 +172,9 @@ studio_server <- function(gssencmode = "prefer") {
         password = input$password
       )
 
-      success <- attempt_connection(config)
+      result <- attempt_connection(config, return_details = TRUE)
 
-      if (success) {
+      if (result$success) {
         # Save to .env file
         env_content <- paste(
           "# Database connection settings for surveydown",
@@ -134,12 +198,16 @@ studio_server <- function(gssencmode = "prefer") {
           write(".env", ".gitignore")
         }
 
-        output$connection_status <- shiny::renderText(
-          "Connection successful & Parameters saved to .env file."
-        )
+        # Provide detailed feedback about the connection
+        status_message <- paste("Connection successful & Parameters saved to .env file.")
+        if (result$fallback_used) {
+          status_message <- paste(status_message, "\nNote: GSSAPI was automatically disabled due to negotiation error.")
+        }
+        
+        output$connection_status <- shiny::renderText(status_message)
       } else {
         output$connection_status <- shiny::renderText(
-          "Connection failed. Please check your settings."
+          paste("Connection failed:", result$message)
         )
       }
     }, ignoreInit = TRUE)
