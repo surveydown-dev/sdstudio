@@ -6,8 +6,7 @@ studio_ui <- function() {
     theme = bslib::bs_theme(version = 5),
     ui_construction_tab(),
     ui_preview_tab(),
-    ui_dashboard_tab(),
-    ui_settings_tab()
+    ui_dashboard_tab()
   )
 }
 
@@ -267,7 +266,81 @@ ui_dashboard_tab <- function() {
             document.getElementById('toggle_password').innerText = 'Show';
           }
         }
+        
+        $(document).ready(function() {
+          $('#toggle_db_settings').click(function() {
+            var form = $('#db_settings_form');
+            var button = $(this);
+            if (form.is(':visible')) {
+              form.slideUp();
+              button.find('i').removeClass('fa-times').addClass('fa-cog');
+              button.contents().filter(function() {
+                return this.nodeType === 3;
+              }).remove();
+              button.append(' Settings');
+            } else {
+              form.slideDown();
+              button.find('i').removeClass('fa-cog').addClass('fa-times');
+              button.contents().filter(function() {
+                return this.nodeType === 3;
+              }).remove();
+              button.append(' Close');
+            }
+          });
+        });
       ")
+    ),
+    
+    # Database Connection (full width, collapsible)
+    bslib::card(
+      bslib::card_header(
+        class = "d-flex justify-content-between align-items-center",
+        "Database Connection",
+        shiny::actionButton("toggle_db_settings", "Settings", 
+                            class = "btn-sm btn-outline-primary",
+                            icon = shiny::icon("cog"))
+      ),
+      bslib::card_body(
+        # Update form (collapsible)
+        shiny::div(
+          id = "db_settings_form",
+          style = "display: none;",
+          shiny::textInput("host", "Host:", value = Sys.getenv("SD_HOST", "")),
+          shiny::textInput("port", "Port:", value = Sys.getenv("SD_PORT", "")),
+          shiny::textInput("dbname", "Database Name:", value = Sys.getenv("SD_DBNAME", "")),
+          shiny::textInput("user", "User:", value = Sys.getenv("SD_USER", "")),
+          shiny::div(
+            id = "password-container",
+            style = "position: relative;",
+            shiny::div(
+              style = "display: flex; align-items: center;",
+              shiny::passwordInput(
+                "password",
+                "Password:",
+                value = Sys.getenv("SD_PASSWORD", "")
+              ),
+              shiny::div(
+                style = "margin-left: 10px; margin-top: 1em;",
+                shiny::actionButton(
+                  "toggle_password",
+                  "Show",
+                  class = "btn-sm btn-secondary",
+                  onclick = "myFunction()"
+                )
+              )
+            )
+          ),
+          shiny::textInput("default_table", "Development Table:",
+                           value = Sys.getenv("SD_TABLE", "")),
+          shiny::div(
+            style = "margin-top: 20px;",
+            shiny::actionButton("test_connection", "Test Connection",
+                                class = "btn-primary",
+                                style = "width: 300px;")
+          ),
+          shiny::textOutput("connection_status")
+        )
+      )
     ),
     
     # Table Selection
@@ -329,63 +402,3 @@ ui_dashboard_tab <- function() {
   )
 }
 
-# Settings tab UI
-ui_settings_tab <- function() {
-  shiny::tabPanel(
-    "Settings",
-    
-    bslib::card(
-      bslib::card_header("Current Database Settings"),
-      bslib::card_body(
-        shiny::tags$div(
-          style = "display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center;",
-          shiny::tags$strong("Host:"), shiny::span(Sys.getenv("SD_HOST", "Not set")),
-          shiny::tags$strong("Port:"), shiny::span(Sys.getenv("SD_PORT", "Not set")),
-          shiny::tags$strong("Database:"), shiny::span(Sys.getenv("SD_DBNAME", "Not set")),
-          shiny::tags$strong("User:"), shiny::span(Sys.getenv("SD_USER", "Not set")),
-          shiny::tags$strong("Default Table:"), shiny::span(Sys.getenv("SD_TABLE", "Not set"))
-        )
-      )
-    ),
-    
-    bslib::card(
-      bslib::card_header("Update Database Connection"),
-      bslib::card_body(
-        shiny::textInput("host", "Host:", value = Sys.getenv("SD_HOST", "localhost")),
-        shiny::textInput("port", "Port:", value = Sys.getenv("SD_PORT", "5432")),
-        shiny::textInput("dbname", "Database Name:", value = Sys.getenv("SD_DBNAME", "postgres")),
-        shiny::textInput("user", "User:", value = Sys.getenv("SD_USER", "username")),
-        shiny::div(
-          id = "password-container",
-          style = "position: relative;",
-          shiny::div(
-            style = "display: flex; align-items: center;",
-            shiny::passwordInput(
-              "password",
-              "Password:",
-              value = Sys.getenv("SD_PASSWORD", "")
-            ),
-            shiny::div(
-              style = "margin-left: 10px; margin-top: 1em;",
-              shiny::actionButton(
-                "toggle_password",
-                "Show",
-                class = "btn-sm btn-secondary",
-                onclick = "myFunction()"
-              )
-            )
-          )
-        ),
-        shiny::textInput("default_table", "Development Table:",
-                         value = Sys.getenv("SD_TABLE", "responses")),
-        shiny::div(
-          style = "margin-top: 20px;",
-          shiny::actionButton("test_connection", "Test Connection",
-                              class = "btn-primary",
-                              style = "width: 300px;")
-        ),
-        shiny::textOutput("connection_status")
-      )
-    )
-  )
-}
