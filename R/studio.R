@@ -39,7 +39,7 @@ sd_studio <- function(template = "default", path = getwd(), gssencmode = "prefer
   app_exists <- file.exists(file.path(path, "app.R"))
 
   if (template_explicitly_provided || !survey_exists || !app_exists) {
-    surveydown::sd_create_survey(template = template, path = path)
+    surveydown::sd_create_survey(template = template, path = path, ask = FALSE)
   }
   
   original_dir <- getwd()
