@@ -10,6 +10,79 @@ studio_ui <- function() {
   )
 }
 
+#' Template Selection UI
+#'
+#' Creates the UI for template selection when no survey exists yet.
+#' Provides options to choose from available survey templates and specify
+#' a project directory.
+#'
+#' @return A Shiny UI element containing the template selection interface
+#' @export
+ui_template_selection <- function() {
+  shiny::div(
+    class = "template-selection-container",
+    style = "padding: 40px; text-align: center; height: calc(100vh - 120px); display: flex; flex-direction: column; justify-content: center;",
+    
+    shiny::h2("Create New Survey", style = "margin-bottom: 30px; color: #333;"),
+    shiny::p("Choose a template to get started with your survey:", style = "font-size: 16px; margin-bottom: 40px; color: #666;"),
+    
+    shiny::div(
+      style = "max-width: 600px; margin: 0 auto;",
+      
+      # Template selection
+      shiny::selectInput(
+        "template_select",
+        "Template:",
+        choices = list(
+          "Basic Templates" = list(
+            "Default" = "default",
+            "Question Types" = "question_types",
+            "Questions (YAML)" = "questions_yml"
+          ),
+          "Advanced Features" = list(
+            "Conditional Display" = "conditional_display",
+            "Conditional Navigation" = "conditional_navigation",
+            "Random Options" = "random_options",
+            "Random Options (Predefined)" = "random_options_predefined",
+            "Reactive Drilldown" = "reactive_drilldown",
+            "Reactive Questions" = "reactive_questions"
+          ),
+          "Specialized" = list(
+            "Conjoint (Buttons)" = "conjoint_buttons",
+            "Conjoint (Tables)" = "conjoint_tables",
+            "Custom Leaflet Map" = "custom_leaflet_map",
+            "Custom Plotly Chart" = "custom_plotly_chart",
+            "External Redirect" = "external_redirect",
+            "Live Polling" = "live_polling"
+          )
+        ),
+        selected = "default",
+        width = "100%"
+      ),
+      
+      # Path selection
+      shiny::textInput(
+        "path_input",
+        "Project Directory:",
+        value = getwd(),
+        width = "100%",
+        placeholder = "Enter directory path for your survey project"
+      ),
+      
+      # Create button
+      shiny::div(
+        style = "margin-top: 30px;",
+        shiny::actionButton(
+          "create_survey_btn",
+          "Create Survey",
+          class = "btn-primary btn-lg",
+          style = "padding: 12px 30px; font-size: 16px; font-weight: bold;"
+        )
+      )
+    )
+  )
+}
+
 # Build tab UI
 ui_construction_tab <- function() {
   shiny::tabPanel(
@@ -132,90 +205,102 @@ ui_construction_tab <- function() {
       )
     ),
 
-    shiny::fluidRow(      
-      # Left - Structure Panel
-      shiny::column(
-        width = 5,
-        style = "border-right: 1px solid #ddd;",
-        shiny::div(          
-          # Structure header with undo/redo buttons
-          shiny::div(
-            style = "display: flex; justify-content: space-between; align-items: center; background-color: #cce5ff; padding: 6px; margin-bottom: 10px; border-radius: 4px;",
-            
-            # Undo button (left)
-            shiny::actionButton(
-              "undo_btn",
-              NULL,
-              icon = shiny::icon("undo"),
-              class = "btn-sm",
-              style = "background-color: #cce5ff; border-color: #007bff; color: #007bff; padding: 2px 5px; font-size: 0.8rem;"
-            ),
-            
-            # Structure title (center)
-            shiny::h5("Structure", style = "margin: 0; text-align: center; flex-grow: 1;"),
-            
-            # Redo button (right)
-            shiny::actionButton(
-              "redo_btn",
-              NULL,
-              icon = shiny::icon("redo"),
-              class = "btn-sm",
-              style = "background-color: #cce5ff; border-color: #007bff; color: #007bff; padding: 2px 5px; font-size: 0.8rem;"
-            )
+    # Conditional content based on whether survey exists
+    shiny::uiOutput("build_tab_content")
+  )
+}
+
+#' Normal Build Interface UI
+#'
+#' Creates the main build interface UI with structure panel on the left
+#' and code editor panel on the right. This is shown when a survey already exists.
+#'
+#' @return A Shiny UI element containing the build interface
+#' @export
+ui_normal_build <- function() {
+  shiny::fluidRow(      
+    # Left - Structure Panel
+    shiny::column(
+      width = 5,
+      style = "border-right: 1px solid #ddd;",
+      shiny::div(          
+        # Structure header with undo/redo buttons
+        shiny::div(
+          style = "display: flex; justify-content: space-between; align-items: center; background-color: #cce5ff; padding: 6px; margin-bottom: 10px; border-radius: 4px;",
+          
+          # Undo button (left)
+          shiny::actionButton(
+            "undo_btn",
+            NULL,
+            icon = shiny::icon("undo"),
+            class = "btn-sm",
+            style = "background-color: #cce5ff; border-color: #007bff; color: #007bff; padding: 2px 5px; font-size: 0.8rem;"
           ),
           
-          # Structure content panel
-          shiny::wellPanel(
-            style = "background-color: #ffffff; border-color: #cce5ff; padding: 0.5rem;",
-            
-            shiny::div(
-              style = "overflow-y: auto; height: calc(100vh - 191px);",
-              shiny::uiOutput("survey_structure")
-            ),
-            
-            # Add A New Page button
-            shiny::div(
-              style = "margin-top: 10px;",
-              shiny::actionButton(
-                "add_page_btn",
-                "Add A New Page",
-                class = "btn-success",
-                style = "width: 100%; padding: 8px; font-weight: bold;"
-              )
+          # Structure title (center)
+          shiny::h5("Structure", style = "margin: 0; text-align: center; flex-grow: 1;"),
+          
+          # Redo button (right)
+          shiny::actionButton(
+            "redo_btn",
+            NULL,
+            icon = shiny::icon("redo"),
+            class = "btn-sm",
+            style = "background-color: #cce5ff; border-color: #007bff; color: #007bff; padding: 2px 5px; font-size: 0.8rem;"
+          )
+        ),
+        
+        # Structure content panel
+        shiny::wellPanel(
+          style = "background-color: #ffffff; border-color: #cce5ff; padding: 0.5rem;",
+          
+          shiny::div(
+            style = "overflow-y: auto; height: calc(100vh - 191px);",
+            shiny::uiOutput("survey_structure")
+          ),
+          
+          # Add A New Page button
+          shiny::div(
+            style = "margin-top: 10px;",
+            shiny::actionButton(
+              "add_page_btn",
+              "Add A New Page",
+              class = "btn-success",
+              style = "width: 100%; padding: 8px; font-weight: bold;"
             )
           )
         )
-      ),
-      
-      # Right - Code Panel
-      shiny::column(
-        width = 7,
-        style = "border-right: 1px solid #ddd;",
+      )
+    ),
+    
+    # Right - Code Panel
+    shiny::column(
+      width = 7,
+      style = "border-right: 1px solid #ddd;",
+      shiny::div(
+        # Code header
         shiny::div(
-          # Code header
-          shiny::div(
-            style = "display: flex; justify-content: space-between; align-items: center; background-color: #d4edda; padding: 6px; margin-bottom: 10px; border-radius: 4px;",
-            shiny::h5("Code", style = "margin: 0; text-align: center; flex-grow: 1;")
-          ),
-          
-          # Code panel with tabs
-          shiny::wellPanel(
-            style = "background-color: #f0fff0; border-color: #d4edda; padding: 0.5rem;",
-            shiny::tabsetPanel(
-              id = "code_tabs",
-              shiny::tabPanel(
-                "survey.qmd",
-                shiny::div(
-                  style = "margin-top: 10px",
-                  shiny::uiOutput("survey_editor_ui")
-                )
-              ),
-              shiny::tabPanel(
-                "app.R",
-                shiny::div(
-                  style = "margin-top: 10px",
-                  shiny::uiOutput("app_editor_ui")
-                )
+          style = "display: flex; justify-content: space-between; align-items: center; background-color: #d4edda; padding: 6px; margin-bottom: 10px; border-radius: 4px;",
+          shiny::h5("Code", style = "margin: 0; text-align: center; flex-grow: 1;")
+        ),
+        
+        # Code panel with tabs
+        shiny::wellPanel(
+          style = "background-color: #f0fff0; border-color: #d4edda; padding: 0.5rem;",
+          shiny::tabsetPanel(
+            id = "code_tabs",
+            shiny::tabPanel(
+              "survey.qmd",
+              shiny::div(
+                style = "margin-top: 10px",
+                shiny::uiOutput("survey_editor_ui")
+              )
+            ),
+            shiny::tabPanel(
+              "app.R",
+              shiny::div(
+                style = "margin-top: 10px",
+                shiny::uiOutput("app_editor_ui")
               )
             )
           )
@@ -294,10 +379,10 @@ ui_dashboard_tab <- function() {
     # Database Connection (full width, collapsible)
     bslib::card(
       bslib::card_header(
-        class = "d-flex justify-content-between align-items-center",
+        class = "d-flex align-items-center",
         "Database Connection",
         shiny::actionButton("toggle_db_settings", "Settings", 
-                            class = "btn-sm btn-outline-primary",
+                            class = "btn-sm btn-outline-primary ms-3",
                             icon = shiny::icon("cog"))
       ),
       bslib::card_body(

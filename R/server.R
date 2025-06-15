@@ -398,8 +398,65 @@ studio_server <- function(gssencmode = "prefer") {
       )
     })
 
+    # Reactive value to track if survey exists
+    survey_exists <- shiny::reactiveVal(FALSE)
+    
+    # Check if survey files exist on startup
+    shiny::observe({
+      survey_exists(file.exists("survey.qmd") && file.exists("app.R"))
+    })
+    
+    # Render build tab content conditionally
+    output$build_tab_content <- shiny::renderUI({
+      if (survey_exists()) {
+        ui_normal_build()
+      } else {
+        ui_template_selection()
+      }
+    })
+    
+    # Handle create survey button
+    shiny::observeEvent(input$create_survey_btn, {
+      req(input$template_select, input$path_input)
+      
+      # Validate path
+      if (!dir.exists(dirname(input$path_input))) {
+        shiny::showNotification("Parent directory does not exist!", type = "error")
+        return()
+      }
+      
+      # Create the directory if it doesn't exist
+      if (!dir.exists(input$path_input)) {
+        tryCatch({
+          dir.create(input$path_input, recursive = TRUE)
+        }, error = function(e) {
+          shiny::showNotification(paste("Failed to create directory:", e$message), type = "error")
+          return()
+        })
+      }
+      
+      # Change to the target directory
+      original_dir <- getwd()
+      on.exit(setwd(original_dir), add = TRUE)
+      setwd(input$path_input)
+      
+      # Create the survey
+      tryCatch({
+        surveydown::sd_create_survey(
+          template = input$template_select, 
+          path = ".", 
+          ask = FALSE
+        )
+        survey_exists(TRUE)
+        shiny::showNotification("Survey created successfully!", type = "message")
+      }, error = function(e) {
+        shiny::showNotification(paste("Failed to create survey:", e$message), type = "error")
+      })
+    })
+
     # Setup survey.qmd editor
     output$survey_editor_ui <- shiny::renderUI({
+      if (!survey_exists()) return(NULL)
       survey_content <- paste(readLines("survey.qmd", warn = FALSE), collapse = "\n")
       
       shinyAce::aceEditor(
@@ -415,6 +472,7 @@ studio_server <- function(gssencmode = "prefer") {
 
     # Setup app.R editor
     output$app_editor_ui <- shiny::renderUI({
+      if (!survey_exists()) return(NULL)
       app_content <- paste(readLines("app.R", warn = FALSE), collapse = "\n")
       
       shinyAce::aceEditor(
@@ -577,8 +635,8 @@ studio_server <- function(gssencmode = "prefer") {
     })
 
     # Initialize structure and preview handlers
-    survey_structure <- server_structure_handlers(input, output, session)
-    preview_handlers <- server_preview_handlers(input, output, session)
+    survey_structure <- server_structure_handlers(input, output, session, survey_exists)
+    preview_handlers <- server_preview_handlers(input, output, session, survey_exists)
     
     # Connect refresh button to preview function
     shiny::observeEvent(input$refresh_preview_btn, {
@@ -1031,13 +1089,14 @@ studio_server <- function(gssencmode = "prefer") {
 }
 
 # Handler for survey structure management
-server_structure_handlers <- function(input, output, session) {
+server_structure_handlers <- function(input, output, session, survey_exists) {
   structure_trigger <- shiny::reactiveVal(0)
   
   # Store page toggle states
   page_toggle_states <- shiny::reactiveVal(list())
   
   output$survey_structure <- shiny::renderUI({
+    if (!survey_exists()) return(NULL)
     structure_trigger()
     survey_structure <- parse_survey_structure()
     
@@ -1108,10 +1167,15 @@ server_structure_handlers <- function(input, output, session) {
 }
 
 # Handler for survey preview functionality
-server_preview_handlers <- function(input, output, session) {
+server_preview_handlers <- function(input, output, session, survey_exists) {
   preview_process <- shiny::reactiveVal(NULL)
   preview_port <- stats::runif(1, 3000, 8000) |> floor()
   refresh_preview <- function() {
+    # Check if survey exists first
+    if (!survey_exists()) {
+      return()
+    }
+    
     # Get current process
     current_process <- NULL
     shiny::isolate({
@@ -1151,6 +1215,28 @@ server_preview_handlers <- function(input, output, session) {
       )
     })
   }
+  
+  # Initial preview frame output
+  output$preview_frame <- shiny::renderUI({
+    if (!survey_exists()) {
+      shiny::div(
+        style = "display: flex; align-items: center; justify-content: center; height: 100%; text-align: center; background-color: #f8f9fa; border: 1px solid #ddd; border-radius: 5px;",
+        shiny::div(
+          shiny::h4("No Survey Available", style = "color: #666; margin-bottom: 15px;"),
+          shiny::p("Create a survey from the Build tab to see the preview here.", style = "color: #888;")
+        )
+      )
+    } else {
+      # This will be updated by refresh_preview when called
+      shiny::div(
+        style = "display: flex; align-items: center; justify-content: center; height: 100%; text-align: center; background-color: #f8f9fa; border: 1px solid #ddd; border-radius: 5px;",
+        shiny::div(
+          shiny::h4("Preview", style = "color: #666; margin-bottom: 15px;"),
+          shiny::p("Click 'Refresh Preview' to view your survey.", style = "color: #888;")
+        )
+      )
+    }
+  })
   
   # Return the refresh function and process for cleanup
   list(
