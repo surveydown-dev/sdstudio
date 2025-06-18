@@ -1,5 +1,5 @@
 # Main server function
-studio_server <- function(gssencmode = "prefer") {
+studio_server <- function() {
   function(input, output, session) {
     # Reactive values for modify content state
     modify_form_trigger <- shiny::reactiveVal(NULL)
@@ -19,19 +19,19 @@ studio_server <- function(gssencmode = "prefer") {
     )
 
     # Dashboard connection management
-    attempt_connection <- function(config = NULL, return_details = FALSE, gss_mode = gssencmode) {
+    attempt_connection <- function(config = NULL, return_details = FALSE, gss_mode = "prefer") {
       # Helper function to check if error is GSSAPI-related
       is_gssapi_error <- function(error_msg) {
         grepl("invalid response to GSSAPI negotiation", error_msg, ignore.case = TRUE)
       }
       
-      # Helper function to try connection with specific gssencmode
+      # Helper function to try connection with specific GSS encryption mode
       try_connection <- function(gss_mode) {
         if (is.null(config)) {
-          # Use default connection from .env with the specified gssencmode
+          # Use default connection from .env with the specified GSS encryption mode
           surveydown::sd_db_connect(gssencmode = gss_mode)
         } else {
-          # Use provided config with the specified gssencmode
+          # Use provided config with the specified GSS encryption mode
           pool <- pool::dbPool(
             RPostgres::Postgres(),
             host = config$host,
@@ -45,7 +45,7 @@ studio_server <- function(gssencmode = "prefer") {
         }
       }
       
-      # First attempt with the specified gssencmode
+      # First attempt with the specified GSS encryption mode
       tryCatch({
         db <- try_connection(gss_mode)
         
@@ -68,7 +68,7 @@ studio_server <- function(gssencmode = "prefer") {
         
         # If this is a GSSAPI error and we're using "prefer", try with "disable"
         if (is_gssapi_error(error_msg) && gss_mode == "prefer") {
-          message("GSSAPI negotiation failed, retrying with gssencmode='disable'...")
+          message("GSSAPI negotiation failed, retrying without GSSAPI...")
           
           tryCatch({
             db <- try_connection("disable")
@@ -76,7 +76,7 @@ studio_server <- function(gssencmode = "prefer") {
             if (!is.null(db)) {
               rv$connection_status <- TRUE
               rv$current_db <- db
-              message("Connection successful with gssencmode='disable'")
+              message("Connection successful without GSSAPI")
               if (return_details) {
                 return(list(success = TRUE, fallback_used = TRUE, 
                            message = "Connection successful (GSSAPI disabled due to negotiation error)"))
@@ -94,7 +94,7 @@ studio_server <- function(gssencmode = "prefer") {
             # Both attempts failed
             rv$connection_status <- FALSE
             rv$current_db <- NULL
-            warning("Connection failed with both gssencmode='prefer' and 'disable': ", e2$message)
+            warning("Connection failed with both GSSAPI and non-GSSAPI modes: ", e2$message)
             if (return_details) {
               return(list(success = FALSE, fallback_used = TRUE, 
                          message = paste("Connection failed with both GSSAPI modes:", e2$message)))
@@ -115,16 +115,9 @@ studio_server <- function(gssencmode = "prefer") {
       })
     }
 
-    # Initial connection attempt with explicit fallback
+    # Initial connection attempt with automatic fallback
     shiny::observe({
-      # First try with prefer mode
-      message("Attempting initial database connection with gssencmode='prefer'...")
-      success <- attempt_connection(config = NULL, return_details = FALSE, gss_mode = "prefer")
-      
-      if (!success) {
-        message("Initial connection failed with 'prefer', trying 'disable'...")
-        attempt_connection(config = NULL, return_details = FALSE, gss_mode = "disable")
-      }
+      attempt_connection()
     })
 
     # Update table selection dropdown
