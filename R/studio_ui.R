@@ -10,14 +10,7 @@ studio_ui <- function() {
   )
 }
 
-#' Template Selection UI
-#'
-#' Creates the UI for template selection when no survey exists yet.
-#' Provides options to choose from available survey templates and specify
-#' a project directory.
-#'
-#' @return A Shiny UI element containing the template selection interface
-#' @export
+# Template Selection UI
 ui_template_selection <- function() {
   shiny::div(
     class = "template-selection-container",
@@ -210,13 +203,7 @@ ui_construction_tab <- function() {
   )
 }
 
-#' Normal Build Interface UI
-#'
-#' Creates the main build interface UI with structure panel on the left
-#' and code editor panel on the right. This is shown when a survey already exists.
-#'
-#' @return A Shiny UI element containing the build interface
-#' @export
+# Normal Build Interface UI
 ui_normal_build <- function() {
   shiny::fluidRow(      
     # Left - Structure Panel

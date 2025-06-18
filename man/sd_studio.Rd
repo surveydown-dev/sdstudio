@@ -15,7 +15,7 @@ connection issues on a secure connection like a VPN.}
 No return value, called for its side effects of launching a Shiny app.
 }
 \description{
-This function launches a Shiny app with 4 tabs: Build, Preview, Responses, and Settings.
+This function launches a Shiny app with 3 tabs: Build, Preview, and Responses.
 The Build tab includes a template selection interface for creating new surveys.
 }
 \examples{

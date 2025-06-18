@@ -1,6 +1,6 @@
 #' Launch surveydown Studio
 #'
-#' This function launches a Shiny app with 4 tabs: Build, Preview, Responses, and Settings.
+#' This function launches a Shiny app with 3 tabs: Build, Preview, and Responses.
 #' The Build tab includes a template selection interface for creating new surveys.
 #'
 #' @param gssencmode Character string. The GSS encryption mode for the database
