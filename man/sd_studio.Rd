@@ -4,12 +4,16 @@
 \alias{sd_studio}
 \title{Launch surveydown Studio}
 \usage{
-sd_studio(gssencmode = "prefer")
+sd_studio(gssencmode = "auto")
 }
 \arguments{
 \item{gssencmode}{Character string. The GSS encryption mode for the database
-connection. Defaults to \code{"prefer"}. Set to \code{"disable"} if you're having
-connection issues on a secure connection like a VPN.}
+connection. Defaults to \code{"auto"}. Options include:
+\itemize{
+\item \code{"auto"}: Tries \code{"prefer"} first, then falls back to \code{"disable"} if GSSAPI fails (recommended)
+\item \code{"prefer"}: Uses GSSAPI encryption if available, plain connection if not
+\item \code{"disable"}: Forces plain connection without GSSAPI encryption
+}}
 }
 \value{
 No return value, called for its side effects of launching a Shiny app.
@@ -20,10 +24,13 @@ The Build tab includes a template selection interface for creating new surveys.
 }
 \examples{
 if (interactive()) {
-  # Launch studio
+  # Launch studio (uses "auto" mode by default)
   sd_studio()
   
   # Launch studio with disabled GSS encryption (for VPN connections)
   sd_studio(gssencmode = "disable")
+  
+  # Launch studio with prefer mode (no fallback)
+  sd_studio(gssencmode = "prefer")
 }
 }

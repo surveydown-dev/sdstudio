@@ -4,8 +4,12 @@
 #' The Build tab includes a template selection interface for creating new surveys.
 #'
 #' @param gssencmode Character string. The GSS encryption mode for the database
-#'   connection. Defaults to `"prefer"`. Set to `"disable"` if you're having
-#'   connection issues on a secure connection like a VPN.
+#'   connection. Defaults to `"auto"`. Options include:
+#'   \itemize{
+#'     \item `"auto"`: Tries `"prefer"` first, then falls back to `"disable"` if GSSAPI fails (recommended)
+#'     \item `"prefer"`: Uses GSSAPI encryption if available, plain connection if not
+#'     \item `"disable"`: Forces plain connection without GSSAPI encryption
+#'   }
 #'
 #' @return No return value, called for its side effects of launching a Shiny app.
 #' @importFrom stats runif setNames
@@ -17,12 +21,15 @@
 #'
 #' @examples
 #' if (interactive()) {
-#'   # Launch studio
+#'   # Launch studio (uses "auto" mode by default)
 #'   sd_studio()
 #'   
 #'   # Launch studio with disabled GSS encryption (for VPN connections)
 #'   sd_studio(gssencmode = "disable")
+#'   
+#'   # Launch studio with prefer mode (no fallback)
+#'   sd_studio(gssencmode = "prefer")
 #' }
-sd_studio <- function(gssencmode = "prefer") {
+sd_studio <- function(gssencmode = "auto") {
   shiny::shinyApp(ui = studio_ui(), server = studio_server(gssencmode = gssencmode))
 }
