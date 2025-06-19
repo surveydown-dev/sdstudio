@@ -2,8 +2,10 @@
 #'
 #' This function launches a Shiny app with 3 tabs: Build, Preview, and Responses.
 #' The Build tab includes a template selection interface for creating new surveys.
-#' Database connections automatically attempt GSS encryption first, falling back to
-#' disabled encryption if needed.
+#'
+#' @param gssencmode Character string. The GSS encryption mode for the database
+#'   connection. Defaults to `"prefer"`. Set to `"disable"` if you're having
+#'   connection issues on a secure connection like a VPN.
 #'
 #' @return No return value, called for its side effects of launching a Shiny app.
 #' @importFrom stats runif setNames
@@ -17,7 +19,10 @@
 #' if (interactive()) {
 #'   # Launch studio
 #'   sd_studio()
+#'   
+#'   # Launch studio with disabled GSS encryption (for VPN connections)
+#'   sd_studio(gssencmode = "disable")
 #' }
-sd_studio <- function() {
-  shiny::shinyApp(ui = studio_ui(), server = studio_server())
+sd_studio <- function(gssencmode = "prefer") {
+  shiny::shinyApp(ui = studio_ui(), server = studio_server(gssencmode = gssencmode))
 }
