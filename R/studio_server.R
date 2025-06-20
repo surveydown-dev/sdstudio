@@ -12,17 +12,32 @@ studio_server <- function(gssencmode = "prefer") {
       dotenv::load_dot_env(".env")
     }
     
+    # Initialize database connection inputs with .env values on startup
+    shiny::observeEvent(shiny::reactiveVal(TRUE)(), {
+      # Only run this once on startup
+      if (file.exists(".env")) {
+        # Update input values with current environment variables
+        shiny::updateTextInput(session, "host", value = Sys.getenv("SD_HOST", ""))
+        shiny::updateTextInput(session, "port", value = Sys.getenv("SD_PORT", ""))
+        shiny::updateTextInput(session, "dbname", value = Sys.getenv("SD_DBNAME", ""))
+        shiny::updateTextInput(session, "user", value = Sys.getenv("SD_USER", ""))
+        shiny::updateTextInput(session, "password", value = Sys.getenv("SD_PASSWORD", ""))
+        shiny::updateTextInput(session, "default_table", value = Sys.getenv("SD_TABLE", ""))
+      }
+    }, once = TRUE)
+    
     # Reactive values for dashboard connection status and database
     rv <- shiny::reactiveValues(
       connection_status = FALSE,
-      current_db = NULL
+      current_db = NULL,
+      initial_connection = TRUE  # Track if this is initial connection vs test connection
     )
 
     # Dashboard connection management
     attempt_connection <- function(config = NULL, return_details = FALSE, gss_mode = gssencmode) {
-      # Helper function to check if error is GSSAPI-related
+      # Helper function to check if error is GSSAPI-related or connection failure
       is_gssapi_error <- function(error_msg) {
-        grepl("invalid response to GSSAPI negotiation", error_msg, ignore.case = TRUE)
+        grepl("invalid response to GSSAPI negotiation|gssapi|authentication failed|connection failed", error_msg, ignore.case = TRUE)
       }
       
       # Helper function to try connection with specific gssencmode
@@ -45,31 +60,25 @@ studio_server <- function(gssencmode = "prefer") {
         }
       }
       
-      # First attempt with the specified gssencmode
-      tryCatch({
-        db <- try_connection(gss_mode)
-        
-        if (!is.null(db)) {
-          rv$connection_status <- TRUE
-          rv$current_db <- db
-          if (return_details) {
-            return(list(success = TRUE, fallback_used = FALSE, message = "Connection successful"))
-          } else {
-            return(TRUE)
-          }
-        }
-        if (return_details) {
-          return(list(success = FALSE, fallback_used = FALSE, message = "Connection failed"))
-        } else {
-          return(FALSE)
-        }
-      }, error = function(e) {
-        error_msg <- as.character(e$message)
-        
-        # If this is a GSSAPI error and we're using "prefer", try with "disable"
-        if (is_gssapi_error(error_msg) && gss_mode == "prefer") {
-          message("GSSAPI negotiation failed, retrying with gssencmode='disable'...")
+      # Handle auto mode by trying prefer first, then disable
+      if (gss_mode == "auto") {
+        # Try prefer first
+        tryCatch({
+          db <- try_connection("prefer")
           
+          if (!is.null(db)) {
+            rv$connection_status <- TRUE
+            rv$current_db <- db
+            if (return_details) {
+              return(list(success = TRUE, fallback_used = FALSE, message = "Connection successful"))
+            } else {
+              return(TRUE)
+            }
+          }
+        }, error = function(e) {
+          message("Connection failed with gssencmode='prefer', trying 'disable'...")
+          
+          # Try disable as fallback
           tryCatch({
             db <- try_connection("disable")
             
@@ -79,16 +88,10 @@ studio_server <- function(gssencmode = "prefer") {
               message("Connection successful with gssencmode='disable'")
               if (return_details) {
                 return(list(success = TRUE, fallback_used = TRUE, 
-                           message = "Connection successful (GSSAPI disabled due to negotiation error)"))
+                           message = "Connection successful (GSSAPI disabled due to connection error)"))
               } else {
                 return(TRUE)
               }
-            }
-            if (return_details) {
-              return(list(success = FALSE, fallback_used = TRUE, 
-                         message = "Connection failed with both GSSAPI modes"))
-            } else {
-              return(FALSE)
             }
           }, error = function(e2) {
             # Both attempts failed
@@ -102,33 +105,102 @@ studio_server <- function(gssencmode = "prefer") {
               return(FALSE)
             }
           })
+        })
+        
+        # If we reach here, both attempts failed
+        rv$connection_status <- FALSE
+        rv$current_db <- NULL
+        if (return_details) {
+          return(list(success = FALSE, fallback_used = TRUE, 
+                     message = "Connection failed with both prefer and disable modes"))
         } else {
-          # Not a GSSAPI error or already using "disable", just fail normally
-          rv$connection_status <- FALSE
-          rv$current_db <- NULL
+          return(FALSE)
+        }
+      } else {
+        # For non-auto modes, use original logic
+        tryCatch({
+          db <- try_connection(gss_mode)
+          
+          if (!is.null(db)) {
+            rv$connection_status <- TRUE
+            rv$current_db <- db
+            if (return_details) {
+              return(list(success = TRUE, fallback_used = FALSE, message = "Connection successful"))
+            } else {
+              return(TRUE)
+            }
+          }
           if (return_details) {
-            return(list(success = FALSE, fallback_used = FALSE, message = error_msg))
+            return(list(success = FALSE, fallback_used = FALSE, message = "Connection failed"))
           } else {
             return(FALSE)
           }
-        }
-      })
+        }, error = function(e) {
+          error_msg <- as.character(e$message)
+          
+          # If this is a GSSAPI error and we're using "prefer", try with "disable"
+          if (is_gssapi_error(error_msg) && gss_mode == "prefer") {
+            message("GSSAPI negotiation failed, retrying with gssencmode='disable'...")
+            
+            tryCatch({
+              db <- try_connection("disable")
+              
+              if (!is.null(db)) {
+                rv$connection_status <- TRUE
+                rv$current_db <- db
+                message("Connection successful with gssencmode='disable'")
+                if (return_details) {
+                  return(list(success = TRUE, fallback_used = TRUE, 
+                             message = "Connection successful (GSSAPI disabled due to negotiation error)"))
+                } else {
+                  return(TRUE)
+                }
+              }
+              if (return_details) {
+                return(list(success = FALSE, fallback_used = TRUE, 
+                           message = "Connection failed with both GSSAPI modes"))
+              } else {
+                return(FALSE)
+              }
+            }, error = function(e2) {
+              # Both attempts failed
+              rv$connection_status <- FALSE
+              rv$current_db <- NULL
+              warning("Connection failed with both gssencmode='prefer' and 'disable': ", e2$message)
+              if (return_details) {
+                return(list(success = FALSE, fallback_used = TRUE, 
+                           message = paste("Connection failed with both GSSAPI modes:", e2$message)))
+              } else {
+                return(FALSE)
+              }
+            })
+          } else {
+            # Not a GSSAPI error or already using "disable", just fail normally
+            rv$connection_status <- FALSE
+            rv$current_db <- NULL
+            if (return_details) {
+              return(list(success = FALSE, fallback_used = FALSE, message = error_msg))
+            } else {
+              return(FALSE)
+            }
+          }
+        })
+      }
     }
 
-    # Initial connection attempt with explicit fallback
+    # Initial connection attempt
     shiny::observe({
-      # First try with prefer mode
-      message("Attempting initial database connection with gssencmode='prefer'...")
-      success <- attempt_connection(config = NULL, return_details = FALSE, gss_mode = "prefer")
-      
-      if (!success) {
-        message("Initial connection failed with 'prefer', trying 'disable'...")
-        attempt_connection(config = NULL, return_details = FALSE, gss_mode = "disable")
-      }
+      message(paste("Attempting initial database connection with gssencmode=", gssencmode, "..."))
+      attempt_connection(config = NULL, return_details = FALSE, gss_mode = gssencmode)
     })
 
-    # Update table selection dropdown
+    # Update table selection dropdown (only for initial connection, not test connection)
     shiny::observe({
+      # Only run for initial connection
+      if (!rv$initial_connection) {
+        return()
+      }
+      
       if (rv$connection_status && !is.null(rv$current_db)) {
         tryCatch({
           tables <- pool::poolWithTransaction(rv$current_db$db, function(conn) {
@@ -136,15 +208,22 @@ studio_server <- function(gssencmode = "prefer") {
             all_tables[!grepl("^pg_", all_tables)]
           })
 
-          # Set default table as first choice if available
+          # Only use environment variable for initial table selection
           default_table <- Sys.getenv("SD_TABLE", "")
+          
+          # Set default table as first choice and selected if available
+          selected_table <- NULL
           if (default_table %in% tables) {
             tables <- c(default_table, setdiff(tables, default_table))
+            selected_table <- default_table
           }
 
           shiny::updateSelectInput(session, "table_select",
-                                   choices = if (length(tables) > 0) tables else c("No tables found" = "")
+                                   choices = if (length(tables) > 0) tables else c("No tables found" = ""),
+                                   selected = selected_table
           )
+          # After initial connection, mark as no longer initial
+          rv$initial_connection <- FALSE
         }, error = function(e) {
           shiny::updateSelectInput(session, "table_select",
                                    choices = c("Connection error" = "")
@@ -205,6 +284,38 @@ studio_server <- function(gssencmode = "prefer") {
           write(".env", ".gitignore")
         }
 
+        # Update table selection based on the Development Table input
+        if (rv$connection_status && !is.null(rv$current_db)) {
+          tryCatch({
+            tables <- pool::poolWithTransaction(rv$current_db$db, function(conn) {
+              all_tables <- DBI::dbListTables(conn)
+              all_tables[!grepl("^pg_", all_tables)]
+            })
+
+            # Use input value if available, otherwise fall back to environment variable
+            default_table <- if (!is.null(input$default_table) && input$default_table != "") {
+              input$default_table
+            } else {
+              Sys.getenv("SD_TABLE", "")
+            }
+            
+            # Set default table as first choice and selected if available
+            selected_table <- NULL
+            if (default_table != "" && default_table %in% tables) {
+              tables <- c(default_table, setdiff(tables, default_table))
+              selected_table <- default_table
+            }
+
+            shiny::updateSelectInput(session, "table_select",
+                                     choices = if (length(tables) > 0) tables else c("No tables found" = ""),
+                                     selected = selected_table
+            )
+          }, error = function(e) {
+            # Table update failed, but connection was successful
+            warning("Error updating table selection: ", e$message)
+          })
+        }
+        
         # Provide detailed feedback about the connection
         status_message <- paste("Connection successful & Parameters saved to .env file.")
         if (result$fallback_used) {
