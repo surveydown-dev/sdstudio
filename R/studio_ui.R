@@ -402,7 +402,7 @@ ui_dashboard_tab <- function() {
               )
             )
           ),
-          shiny::textInput("default_table", "Development Table:",
+          shiny::textInput("default_table", "Table:",
                            value = Sys.getenv("SD_TABLE", "")),
           shiny::div(
             style = "margin-top: 20px;",
@@ -418,7 +418,7 @@ ui_dashboard_tab <- function() {
     # Table Selection
     shiny::selectInput(
       "table_select",
-      "Choose a database table to view:",
+      "Choose a table to view:",
       choices = c("Loading..." = ""),
       width = "20%",
       selectize = FALSE
