@@ -245,9 +245,3 @@
   border: 1px dashed #ccc;
   margin: 5px 0;
 }
-
-/* ===== TEMPLATE SELECTION FORM STYLING ===== */
-/* Override default form-group margin for better alignment in template selection */
-.template-selection-container .form-group {
-  margin: 0.5rem;
-}

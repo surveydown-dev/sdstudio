@@ -30,7 +30,7 @@ ui_template_selection <- function() {
             "Template:"
           ),
           shiny::tags$td(
-            style = "vertical-align: middle;",
+            style = "vertical-align: middle; margin: 0.5rem;",
             shiny::selectInput(
               "template_select",
               NULL,
@@ -70,7 +70,7 @@ ui_template_selection <- function() {
           shiny::tags$td(
             style = "vertical-align: middle;",
             shiny::div(
-              style = "display: flex; align-items: center; gap: 10px;",
+              style = "display: flex; align-items: center; gap: 10px; margin: 0.5rem;",
               shiny::div(
                 style = "flex: 1; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; background-color: #f9f9f9; font-family: monospace; font-size: 0.9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
                 id = "path_display",
