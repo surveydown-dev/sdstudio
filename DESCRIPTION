@@ -20,11 +20,13 @@ Imports:
     DBI,
     dotenv,
     DT,
+    fs,
     htmltools,
     pool,
     RPostgres,
     shiny,
     shinyAce,
+    shinyFiles,
     surveydown
 Suggests:
     testthat

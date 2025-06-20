@@ -33,6 +33,11 @@ $(document).ready(function() {
     $('#' + data.modalId).text(data.title);
   });
 
+  // Path display update handler
+  Shiny.addCustomMessageHandler('updatePathDisplay', function(data) {
+    $('#path_display').text(data.display).attr('title', data.path);
+  });
+
   /* ===== MODAL MANAGEMENT ===== */
   // Function to reset modal content
   function resetModifyModal() {
