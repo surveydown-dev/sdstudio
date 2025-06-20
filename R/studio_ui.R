@@ -17,49 +17,67 @@ ui_template_selection <- function() {
     style = "padding: 40px; text-align: center; height: calc(100vh - 120px); display: flex; flex-direction: column; justify-content: center;",
     
     shiny::h2("Create New Survey", style = "margin-bottom: 30px; color: #333;"),
-    shiny::p("Choose a template to get started with your survey:", style = "font-size: 16px; margin-bottom: 40px; color: #666;"),
     
     shiny::div(
-      style = "max-width: 600px; margin: 0 auto;",
+      style = "width: 500px; margin: 0 auto;",
       
-      # Template selection
-      shiny::selectInput(
-        "template_select",
-        "Template:",
-        choices = list(
-          "Basic Templates" = list(
-            "Default" = "default",
-            "Question Types" = "question_types",
-            "Questions (YAML)" = "questions_yml"
+      # Form table layout
+      shiny::tags$table(
+        style = "width: 100%; border-collapse: separate; border-spacing: 0 15px;",
+        shiny::tags$tr(
+          shiny::tags$td(
+            style = "width: 120px; font-weight: bold; vertical-align: middle; padding-right: 15px;",
+            "Template:"
           ),
-          "Advanced Features" = list(
-            "Conditional Display" = "conditional_display",
-            "Conditional Navigation" = "conditional_navigation",
-            "Random Options" = "random_options",
-            "Random Options (Predefined)" = "random_options_predefined",
-            "Reactive Drilldown" = "reactive_drilldown",
-            "Reactive Questions" = "reactive_questions"
-          ),
-          "Specialized" = list(
-            "Conjoint (Buttons)" = "conjoint_buttons",
-            "Conjoint (Tables)" = "conjoint_tables",
-            "Custom Leaflet Map" = "custom_leaflet_map",
-            "Custom Plotly Chart" = "custom_plotly_chart",
-            "External Redirect" = "external_redirect",
-            "Live Polling" = "live_polling"
+          shiny::tags$td(
+            style = "vertical-align: middle;",
+            shiny::selectInput(
+              "template_select",
+              NULL,
+              choices = list(
+                "Basic Templates" = list(
+                  "Default" = "default",
+                  "Question Types" = "question_types",
+                  "Questions (YAML)" = "questions_yml"
+                ),
+                "Advanced Features" = list(
+                  "Conditional Display" = "conditional_display",
+                  "Conditional Navigation" = "conditional_navigation",
+                  "Random Options" = "random_options",
+                  "Random Options (Predefined)" = "random_options_predefined",
+                  "Reactive Drilldown" = "reactive_drilldown",
+                  "Reactive Questions" = "reactive_questions"
+                ),
+                "Specialized" = list(
+                  "Conjoint (Buttons)" = "conjoint_buttons",
+                  "Conjoint (Tables)" = "conjoint_tables",
+                  "Custom Leaflet Map" = "custom_leaflet_map",
+                  "Custom Plotly Chart" = "custom_plotly_chart",
+                  "External Redirect" = "external_redirect",
+                  "Live Polling" = "live_polling"
+                )
+              ),
+              selected = "default",
+              width = "100%"
+            )
           )
         ),
-        selected = "default",
-        width = "100%"
-      ),
-      
-      # Path selection
-      shiny::textInput(
-        "path_input",
-        "Project Directory:",
-        value = getwd(),
-        width = "100%",
-        placeholder = "Enter directory path for your survey project"
+        shiny::tags$tr(
+          shiny::tags$td(
+            style = "width: 120px; font-weight: bold; vertical-align: middle; padding-right: 15px;",
+            "Directory:"
+          ),
+          shiny::tags$td(
+            style = "vertical-align: middle;",
+            shiny::textInput(
+              "path_input",
+              NULL,
+              value = getwd(),
+              width = "100%",
+              placeholder = "Enter directory path for your survey project"
+            )
+          )
+        )
       ),
       
       # Create button

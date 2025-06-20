@@ -14,6 +14,12 @@
   margin: 5px 0;
 }
 
+/* ===== TEMPLATE SELECTION FORM STYLING ===== */
+/* Override default form-group margin for better alignment in template selection */
+.template-selection-container .form-group {
+  margin: 0.5rem;
+}
+
 /* Visual feedback during content dragging */
 .content-dragging .page-header {
   transition: background-color 0.2s ease;
@@ -238,4 +244,10 @@
   background-color: #f9f9f9;
   border: 1px dashed #ccc;
   margin: 5px 0;
+}
+
+/* ===== TEMPLATE SELECTION FORM STYLING ===== */
+/* Override default form-group margin for better alignment in template selection */
+.template-selection-container .form-group {
+  margin: 0.5rem;
 }
