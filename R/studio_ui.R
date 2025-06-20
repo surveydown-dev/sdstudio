@@ -16,10 +16,10 @@ ui_template_selection <- function() {
     class = "template-selection-container",
     style = "padding: 40px; text-align: center; height: calc(100vh - 120px); display: flex; flex-direction: column; justify-content: center;",
     
-    shiny::h2("Create New Survey", style = "margin-bottom: 30px; color: #333;"),
-    
     shiny::div(
       style = "width: 500px; margin: 0 auto;",
+      
+      shiny::h2("Create New Survey", style = "margin-bottom: 30px; color: #333; text-align: center; margin-left: 115px;"),
       
       # Form table layout
       shiny::tags$table(
