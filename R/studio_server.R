@@ -798,7 +798,7 @@ studio_server <- function(gssencmode = "prefer") {
     
     # Handle direct auto-refresh trigger
     shiny::observeEvent(input$auto_refresh_trigger, {
-      preview_handlers$refresh_preview()
+      preview_handlers$refresh_preview_only()
     })
 
     # Launch preview on startup
@@ -1445,9 +1445,49 @@ server_preview_handlers <- function(input, output, session, survey_exists) {
     }
   })
   
-  # Return the refresh function and process for cleanup
+  # Refresh only function - saves files and refreshes iframe without server restart
+  refresh_preview_only <- function() {
+    # Check if survey exists and preview process is running
+    if (!survey_exists()) {
+      return()
+    }
+    
+    current_process <- NULL
+    shiny::isolate({
+      current_process <- preview_process()
+    })
+    
+    # Only refresh if preview process is already running
+    if (!is.null(current_process)) {
+      # Save current editor content to files (like refresh_preview does)
+      if (exists("input") && !is.null(input$survey_editor)) {
+        writeLines(input$survey_editor, "survey.qmd")
+      }
+      
+      if (exists("input") && !is.null(input$app_editor)) {
+        writeLines(input$app_editor, "app.R")
+      }
+      
+      preview_url <- paste0("http://127.0.0.1:", preview_port)
+      
+      # Update iframe to refresh the preview without restarting server
+      output$preview_frame <- shiny::renderUI({
+        # Force iframe refresh by adding timestamp parameter
+        refresh_url <- paste0(preview_url, "?refresh=", as.numeric(Sys.time()))
+        shiny::tags$iframe(
+          src = refresh_url,
+          width = "100%",
+          height = "100%",
+          style = "border: 1px solid #ddd; border-radius: 5px; display: block;"
+        )
+      })
+    }
+  }
+  
+  # Return the refresh functions and process for cleanup
   list(
     refresh_preview = refresh_preview,
+    refresh_preview_only = refresh_preview_only,
     preview_process = preview_process
   )
 }
