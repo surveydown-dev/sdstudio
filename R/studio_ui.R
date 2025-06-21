@@ -366,37 +366,37 @@ ui_preview_tab <- function() {
   shiny::tabPanel(
     "Preview",
     shiny::div(
-      style = "display: flex; flex-direction: column; height: calc(100vh - 79px); padding: 10px;",
+      style = "display: flex; flex-direction: column; height: calc(100vh - 79px); padding: 10px; position: relative;",
       
-      # View controls header
-      shiny::div(
-        style = "display: flex; justify-content: center; align-items: center; margin-bottom: 10px;",
-        
-        # View mode buttons
-        shiny::div(
-          style = "display: flex; gap: 3px;",
-          shiny::actionButton(
-            "preview_widescreen_btn",
-            shiny::HTML('<i class="fas fa-desktop" style="margin-right: 4px;"></i>Widescreen'),
-            class = "btn-outline-primary active",
-            style = "padding: 5px 12px; font-size: 0.875rem;"
-          ),
-          shiny::actionButton(
-            "preview_mobile_btn", 
-            shiny::HTML('<i class="fas fa-mobile-alt" style="margin-right: 4px;"></i>Mobile'),
-            class = "btn-outline-primary",
-            style = "padding: 5px 12px; font-size: 0.875rem;"
-          )
-        )
-      ),
-      
-      # Preview container
+      # Preview container (now takes full height)
       shiny::div(
         style = "flex: 1; display: flex; justify-content: center; align-items: flex-start;",
         shiny::div(
           id = "preview_container",
           style = "width: 100%; height: 100%; max-width: 100%; border: 1px solid #ddd; border-radius: 5px; transition: all 0.3s ease;",
           shiny::uiOutput("preview_frame")
+        )
+      ),
+      
+      # Floating view control buttons (bottom-right)
+      shiny::div(
+        style = "position: absolute; bottom: 20px; right: 20px; z-index: 1000;",
+        shiny::div(
+          style = "display: flex; gap: 5px; background: rgba(255, 255, 255, 0.95); padding: 5px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); backdrop-filter: blur(10px);",
+          shiny::actionButton(
+            "preview_widescreen_btn",
+            shiny::HTML('<i class="fas fa-desktop"></i>'),
+            class = "btn-outline-primary active",
+            style = "padding: 8px 12px; font-size: 0.875rem; border-radius: 6px;",
+            title = "Widescreen View"
+          ),
+          shiny::actionButton(
+            "preview_mobile_btn", 
+            shiny::HTML('<i class="fas fa-mobile-alt"></i>'),
+            class = "btn-outline-primary",
+            style = "padding: 8px 12px; font-size: 0.875rem; border-radius: 6px;",
+            title = "Mobile View (375px)"
+          )
         )
       )
     )
