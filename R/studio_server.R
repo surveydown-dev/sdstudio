@@ -813,13 +813,15 @@ studio_server <- function(gssencmode = "prefer") {
     # Start monitoring when user visits Preview tab AND survey is rendering
     shiny::observeEvent(input$tabset, {
       if (input$tabset == "Preview" && survey_exists()) {
-        current_html_exists <- file.exists("survey.html")
-        if (!monitoring_active() && current_html_exists) {
-          cat("Starting file monitoring for auto-refresh (survey.html detected)...\n")
+        current_lua_exists <- file.exists("surveydown.lua")
+        if (!monitoring_active() && current_lua_exists) {
+          cat("Starting file monitoring for auto-refresh (surveydown.lua detected)...\n")
           monitoring_active(TRUE)
-          survey_html_exists(current_html_exists)
-        } else if (!monitoring_active() && !current_html_exists) {
-          cat("Preview tab active, but no rendering in progress (no survey.html found)\n")
+          survey_html_exists(current_lua_exists)
+          # Show loading message while rendering
+          session$sendCustomMessage("showRenderingMessage", list())
+        } else if (!monitoring_active() && !current_lua_exists) {
+          cat("Preview tab active, but no rendering in progress (no surveydown.lua found)\n")
         }
       } else {
         if (monitoring_active()) {
@@ -829,16 +831,16 @@ studio_server <- function(gssencmode = "prefer") {
       }
     })
     
-    # Monitor survey.html file only when actively monitoring
+    # Monitor surveydown.lua file only when actively monitoring
     shiny::observe({
       if (monitoring_active() && survey_exists()) {
-        current_exists <- file.exists("survey.html")
+        current_exists <- file.exists("surveydown.lua")
         previous_exists <- survey_html_exists()
         
         # Update the reactive value
         survey_html_exists(current_exists)
         
-        # If survey.html just disappeared (rendering finished), auto-refresh and stop monitoring
+        # If surveydown.lua just disappeared (rendering finished), auto-refresh and stop monitoring
         if (!is.null(previous_exists) && previous_exists && !current_exists) {
           cat("Survey rendering completed! Auto-refreshing in 500ms...\n")
           session$sendCustomMessage("triggerAutoRefresh", list(delay = 500))
