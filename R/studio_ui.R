@@ -77,10 +77,13 @@ ui_template_selection <- function() {
                 style = "width: 100%; text-align: center; font-family: monospace; padding: 8px 12px; margin: 0.5rem;",
                 title = paste("Click to edit:", getwd())
               ),
-              shiny::tags$input(
-                type = "hidden",
-                id = "path_input",
-                value = getwd()
+              shiny::div(
+                style = "display: none;",
+                shiny::textInput(
+                  "path_input",
+                  NULL,
+                  value = getwd()
+                )
               )
             )
           )

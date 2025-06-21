@@ -526,6 +526,12 @@ studio_server <- function(gssencmode = "prefer") {
       }
     })
     
+    # Initialize path input on startup
+    shiny::observe({
+      current_dir <- getwd()
+      shiny::updateTextInput(session, "path_input", value = current_dir)
+    }, priority = 1000)
+    
     # Handle directory button click
     shiny::observeEvent(input$path_display_btn, {
       # Update the modal input with current path
