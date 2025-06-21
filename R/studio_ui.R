@@ -366,12 +366,32 @@ ui_preview_tab <- function() {
   shiny::tabPanel(
     "Preview",
     shiny::div(
-      style = "display: flex; flex-direction: column; align-items: center; height: calc(100vh - 79px);",
+      style = "display: flex; flex-direction: row; height: calc(100vh - 79px); gap: 10px; padding: 10px;",
       
-      # Preview iframe with full height
+      # Left side - Widescreen preview
       shiny::div(
-        style = "width: 100%; height: calc(100vh - 79px); border: none;",
-        shiny::uiOutput("preview_frame")
+        style = "flex: 1; display: flex; flex-direction: column;",
+        shiny::div(
+          style = "background-color: #f8f9fa; padding: 5px 10px; border-radius: 3px; margin-bottom: 5px; text-align: center; font-weight: bold; color: #495057;",
+          shiny::HTML('<i class="fas fa-desktop" style="margin-right: 8px;"></i>Widescreen Preview')
+        ),
+        shiny::div(
+          style = "flex: 1; border: 1px solid #ddd; border-radius: 5px;",
+          shiny::uiOutput("preview_frame_widescreen")
+        )
+      ),
+      
+      # Right side - Mobile preview
+      shiny::div(
+        style = "width: 375px; display: flex; flex-direction: column;",
+        shiny::div(
+          style = "background-color: #f8f9fa; padding: 5px 10px; border-radius: 3px; margin-bottom: 5px; text-align: center; font-weight: bold; color: #495057;",
+          shiny::HTML('<i class="fas fa-mobile-alt" style="margin-right: 8px;"></i>Mobile Preview')
+        ),
+        shiny::div(
+          style = "flex: 1; border: 1px solid #ddd; border-radius: 5px;",
+          shiny::uiOutput("preview_frame_mobile")
+        )
       )
     )
   )

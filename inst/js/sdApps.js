@@ -60,28 +60,28 @@ $(document).ready(function() {
 
   // Show rendering message handler
   Shiny.addCustomMessageHandler('showRenderingMessage', function(data) {
-    var previewFrame = $('#preview_frame');
-    var previewContainer = previewFrame.parent();
-    
-    // Make sure the container has relative positioning for the overlay
-    previewContainer.css('position', 'relative');
-    
-    // Don't hide the iframe - just overlay the loading message
-    // previewFrame.hide(); // REMOVED
-    
-    // Add loading overlay (remove if already exists)
-    previewContainer.find('.rendering-overlay').remove();
-    previewContainer.append(
-      '<div class="rendering-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background-color: rgba(248, 249, 250, 0.95); border: 1px solid #ddd; border-radius: 5px; z-index: 10;">' +
-        '<div style="margin-bottom: 20px;">' +
-          '<div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">' +
-            '<span class="visually-hidden">Loading...</span>' +
+    // Handle both preview frames
+    $('#preview_frame_widescreen, #preview_frame_mobile').each(function() {
+      var previewFrame = $(this);
+      var previewContainer = previewFrame.parent();
+      
+      // Make sure the container has relative positioning for the overlay
+      previewContainer.css('position', 'relative');
+      
+      // Add loading overlay (remove if already exists)
+      previewContainer.find('.rendering-overlay').remove();
+      previewContainer.append(
+        '<div class="rendering-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background-color: rgba(248, 249, 250, 0.95); border: 1px solid #ddd; border-radius: 5px; z-index: 10;">' +
+          '<div style="margin-bottom: 20px;">' +
+            '<div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">' +
+              '<span class="visually-hidden">Loading...</span>' +
+            '</div>' +
           '</div>' +
-        '</div>' +
-        '<h4 style="color: #495057; margin-bottom: 10px;">Updating Survey</h4>' +
-        '<p style="color: #6c757d; font-size: 1.1em;">Please wait while the survey is being rendered...</p>' +
-      '</div>'
-    );
+          '<h4 style="color: #495057; margin-bottom: 10px;">Updating Survey</h4>' +
+          '<p style="color: #6c757d; font-size: 1.1em;">Please wait while the survey is being rendered...</p>' +
+        '</div>'
+      );
+    });
   });
 
   /* ===== MODAL MANAGEMENT ===== */
