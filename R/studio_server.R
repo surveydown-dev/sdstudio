@@ -526,29 +526,6 @@ studio_server <- function(gssencmode = "prefer") {
       }
     })
     
-    # Initialize directory chooser - only Home volume
-    volumes <- c(Home = fs::path_home())
-    shinyFiles::shinyDirChoose(input, "browse_path_btn", roots = volumes, session = session)
-    
-    # Handle directory selection
-    shiny::observeEvent(input$browse_path_btn, {
-      if (!is.null(input$browse_path_btn) && !is.integer(input$browse_path_btn)) {
-        # Get the selected path
-        selected_path <- shinyFiles::parseDirPath(volumes, input$browse_path_btn)
-        
-        if (length(selected_path) > 0 && dir.exists(selected_path)) {
-          # Update the hidden input and display
-          shiny::updateTextInput(session, "path_input", value = selected_path)
-          session$sendCustomMessage("updatePathDisplay", list(
-            path = selected_path,
-            display = basename(selected_path)
-          ))
-          
-          # Show success notification
-          shiny::showNotification("Directory selected successfully", type = "message")
-        }
-      }
-    })
 
     # Handle create survey button
     shiny::observeEvent(input$create_survey_btn, {

@@ -69,26 +69,12 @@ ui_template_selection <- function() {
           ),
           shiny::tags$td(
             style = "vertical-align: middle;",
-            shiny::div(
-              style = "display: flex; align-items: center; gap: 10px; margin: 0.5rem;",
-              shiny::div(
-                style = "flex: 1; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; background-color: #f9f9f9; font-family: monospace; font-size: 0.9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
-                id = "path_display",
-                title = getwd(),
-                basename(getwd())
-              ),
-              shinyFiles::shinyDirButton(
-                "browse_path_btn",
-                "Browse",
-                "Select directory for your survey project",
-                class = "btn-outline-secondary btn-sm",
-                style = "padding: 6px 12px;"
-              )
-            ),
-            shiny::tags$input(
-              type = "hidden",
-              id = "path_input",
-              value = getwd()
+            shiny::textInput(
+              "path_input",
+              NULL,
+              value = getwd(),
+              width = "100%",
+              placeholder = "Enter directory path for your survey project"
             )
           )
         )
