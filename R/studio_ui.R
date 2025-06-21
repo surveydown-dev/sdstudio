@@ -19,7 +19,7 @@ ui_template_selection <- function() {
     shiny::div(
       style = "width: 500px; margin: 0 auto;",
       
-      shiny::h2("Create New Survey", style = "margin-bottom: 30px; color: #333; text-align: center; margin-left: 115px;"),
+      shiny::h2("Create New Survey", style = "margin-bottom: 30px; color: #333; text-align: center; margin-left: 135px;"),
       
       # Form table layout
       shiny::tags$table(
@@ -92,7 +92,7 @@ ui_template_selection <- function() {
       
       # Create button
       shiny::div(
-        style = "margin-top: 30px;",
+        style = "margin-top: 30px; margin-left: 135px;",
         shiny::actionButton(
           "create_survey_btn",
           "Create Survey",
