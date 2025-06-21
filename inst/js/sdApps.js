@@ -43,6 +43,47 @@ $(document).ready(function() {
     $('#path_display_btn').text(data.display + '/').attr('title', 'Click to edit: ' + data.path);
   });
 
+  // Preview view switching functionality
+  function switchPreviewView(viewMode) {
+    var container = $('#preview_container');
+    var widescreenBtn = $('#preview_widescreen_btn');
+    var mobileBtn = $('#preview_mobile_btn');
+    
+    if (viewMode === 'mobile') {
+      // Switch to mobile view (375px width)
+      container.css({
+        'width': '375px',
+        'max-width': '375px',
+        'margin': '0 auto'
+      });
+      
+      // Update button states
+      widescreenBtn.removeClass('active');
+      mobileBtn.addClass('active');
+      
+    } else {
+      // Switch to widescreen view (full width)
+      container.css({
+        'width': '100%',
+        'max-width': '100%',
+        'margin': '0'
+      });
+      
+      // Update button states
+      mobileBtn.removeClass('active');
+      widescreenBtn.addClass('active');
+    }
+  }
+  
+  // Preview button click handlers
+  $(document).on('click', '#preview_widescreen_btn', function() {
+    switchPreviewView('widescreen');
+  });
+  
+  $(document).on('click', '#preview_mobile_btn', function() {
+    switchPreviewView('mobile');
+  });
+
   // Auto-refresh preview handler
   Shiny.addCustomMessageHandler('triggerAutoRefresh', function(data) {
     setTimeout(function() {
@@ -58,30 +99,28 @@ $(document).ready(function() {
     }, data.delay);
   });
 
+
   // Show rendering message handler
   Shiny.addCustomMessageHandler('showRenderingMessage', function(data) {
-    // Handle both preview frames
-    $('#preview_frame_widescreen, #preview_frame_mobile').each(function() {
-      var previewFrame = $(this);
-      var previewContainer = previewFrame.parent();
-      
-      // Make sure the container has relative positioning for the overlay
-      previewContainer.css('position', 'relative');
-      
-      // Add loading overlay (remove if already exists)
-      previewContainer.find('.rendering-overlay').remove();
-      previewContainer.append(
-        '<div class="rendering-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background-color: rgba(248, 249, 250, 0.95); border: 1px solid #ddd; border-radius: 5px; z-index: 10;">' +
-          '<div style="margin-bottom: 20px;">' +
-            '<div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">' +
-              '<span class="visually-hidden">Loading...</span>' +
-            '</div>' +
+    // Handle single preview frame
+    var previewContainer = $('#preview_container');
+    
+    // Make sure the container has relative positioning for the overlay
+    previewContainer.css('position', 'relative');
+    
+    // Add loading overlay (remove if already exists)
+    previewContainer.find('.rendering-overlay').remove();
+    previewContainer.append(
+      '<div class="rendering-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background-color: rgba(248, 249, 250, 0.95); border: 1px solid #ddd; border-radius: 5px; z-index: 10;">' +
+        '<div style="margin-bottom: 20px;">' +
+          '<div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">' +
+            '<span class="visually-hidden">Loading...</span>' +
           '</div>' +
-          '<h4 style="color: #495057; margin-bottom: 10px;">Updating Survey</h4>' +
-          '<p style="color: #6c757d; font-size: 1.1em;">Please wait while the survey is being rendered...</p>' +
-        '</div>'
-      );
-    });
+        '</div>' +
+        '<h4 style="color: #495057; margin-bottom: 10px;">Updating Survey</h4>' +
+        '<p style="color: #6c757d; font-size: 1.1em;">Please wait while the survey is being rendered...</p>' +
+      '</div>'
+    );
   });
 
   /* ===== MODAL MANAGEMENT ===== */

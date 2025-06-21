@@ -1408,17 +1408,8 @@ server_preview_handlers <- function(input, output, session, survey_exists) {
     preview_process(new_process)
     preview_url <- paste0("http://127.0.0.1:", preview_port)
 
-    # Update both preview frames with the same URL (shared session)
-    output$preview_frame_widescreen <- shiny::renderUI({
-      shiny::tags$iframe(
-        src = preview_url,
-        width = "100%",
-        height = "100%",
-        style = "border: none; display: block;"
-      )
-    })
-    
-    output$preview_frame_mobile <- shiny::renderUI({
+    # Update single preview frame
+    output$preview_frame <- shiny::renderUI({
       shiny::tags$iframe(
         src = preview_url,
         width = "100%",
@@ -1428,8 +1419,8 @@ server_preview_handlers <- function(input, output, session, survey_exists) {
     })
   }
   
-  # Initial preview frame outputs
-  output$preview_frame_widescreen <- shiny::renderUI({
+  # Initial preview frame output
+  output$preview_frame <- shiny::renderUI({
     if (!survey_exists()) {
       shiny::div(
         style = "display: flex; align-items: center; justify-content: center; height: 100%; text-align: center; background-color: #f8f9fa;",
@@ -1443,28 +1434,7 @@ server_preview_handlers <- function(input, output, session, survey_exists) {
       shiny::div(
         style = "display: flex; align-items: center; justify-content: center; height: 100%; text-align: center; background-color: #f8f9fa;",
         shiny::div(
-          shiny::h4("Widescreen Preview", style = "color: #666; margin-bottom: 15px;"),
-          shiny::p("Preview will load when survey is rendered.", style = "color: #888;")
-        )
-      )
-    }
-  })
-  
-  output$preview_frame_mobile <- shiny::renderUI({
-    if (!survey_exists()) {
-      shiny::div(
-        style = "display: flex; align-items: center; justify-content: center; height: 100%; text-align: center; background-color: #f8f9fa;",
-        shiny::div(
-          shiny::h4("No Survey Available", style = "color: #666; margin-bottom: 15px;"),
-          shiny::p("Create a survey from the Build tab to see the preview here.", style = "color: #888;")
-        )
-      )
-    } else {
-      # This will be updated by refresh_preview when called
-      shiny::div(
-        style = "display: flex; align-items: center; justify-content: center; height: 100%; text-align: center; background-color: #f8f9fa;",
-        shiny::div(
-          shiny::h4("Mobile Preview", style = "color: #666; margin-bottom: 15px;"),
+          shiny::h4("Survey Preview", style = "color: #666; margin-bottom: 15px;"),
           shiny::p("Preview will load when survey is rendered.", style = "color: #888;")
         )
       )
@@ -1496,25 +1466,16 @@ server_preview_handlers <- function(input, output, session, survey_exists) {
       
       preview_url <- paste0("http://127.0.0.1:", preview_port)
       
-      # Update both iframes to refresh the preview without restarting server
-      # Both iframes use the same URL to maintain shared session
-      output$preview_frame_widescreen <- shiny::renderUI({
-        shiny::tags$iframe(
-          src = preview_url,
-          width = "100%",
-          height = "100%",
-          style = "border: none; display: block;",
-          key = paste0("widescreen_", as.numeric(Sys.time())) # Force re-render with key
-        )
-      })
+      # Update single iframe to refresh the preview without restarting server
+      # Force iframe refresh by adding timestamp parameter
+      refresh_url <- paste0(preview_url, "?refresh=", as.numeric(Sys.time()))
       
-      output$preview_frame_mobile <- shiny::renderUI({
+      output$preview_frame <- shiny::renderUI({
         shiny::tags$iframe(
-          src = preview_url,
+          src = refresh_url,
           width = "100%",
           height = "100%",
-          style = "border: none; display: block;",
-          key = paste0("mobile_", as.numeric(Sys.time())) # Force re-render with key
+          style = "border: none; display: block;"
         )
       })
     }

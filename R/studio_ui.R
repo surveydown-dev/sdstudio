@@ -366,31 +366,37 @@ ui_preview_tab <- function() {
   shiny::tabPanel(
     "Preview",
     shiny::div(
-      style = "display: flex; flex-direction: row; height: calc(100vh - 79px); gap: 10px; padding: 10px;",
+      style = "display: flex; flex-direction: column; height: calc(100vh - 79px); padding: 10px;",
       
-      # Left side - Widescreen preview
+      # View controls header
       shiny::div(
-        style = "flex: 1; display: flex; flex-direction: column;",
+        style = "display: flex; justify-content: center; align-items: center; margin-bottom: 10px;",
+        
+        # View mode buttons
         shiny::div(
-          style = "background-color: #f8f9fa; padding: 5px 10px; border-radius: 3px; margin-bottom: 5px; text-align: center; font-weight: bold; color: #495057;",
-          shiny::HTML('<i class="fas fa-desktop" style="margin-right: 8px;"></i>Widescreen Preview')
-        ),
-        shiny::div(
-          style = "flex: 1; border: 1px solid #ddd; border-radius: 5px;",
-          shiny::uiOutput("preview_frame_widescreen")
+          style = "display: flex; gap: 3px;",
+          shiny::actionButton(
+            "preview_widescreen_btn",
+            shiny::HTML('<i class="fas fa-desktop" style="margin-right: 4px;"></i>Widescreen'),
+            class = "btn-outline-primary active",
+            style = "padding: 5px 12px; font-size: 0.875rem;"
+          ),
+          shiny::actionButton(
+            "preview_mobile_btn", 
+            shiny::HTML('<i class="fas fa-mobile-alt" style="margin-right: 4px;"></i>Mobile'),
+            class = "btn-outline-primary",
+            style = "padding: 5px 12px; font-size: 0.875rem;"
+          )
         )
       ),
       
-      # Right side - Mobile preview
+      # Preview container
       shiny::div(
-        style = "width: 375px; display: flex; flex-direction: column;",
+        style = "flex: 1; display: flex; justify-content: center; align-items: flex-start;",
         shiny::div(
-          style = "background-color: #f8f9fa; padding: 5px 10px; border-radius: 3px; margin-bottom: 5px; text-align: center; font-weight: bold; color: #495057;",
-          shiny::HTML('<i class="fas fa-mobile-alt" style="margin-right: 8px;"></i>Mobile Preview')
-        ),
-        shiny::div(
-          style = "flex: 1; border: 1px solid #ddd; border-radius: 5px;",
-          shiny::uiOutput("preview_frame_mobile")
+          id = "preview_container",
+          style = "width: 100%; height: 100%; max-width: 100%; border: 1px solid #ddd; border-radius: 5px; transition: all 0.3s ease;",
+          shiny::uiOutput("preview_frame")
         )
       )
     )
