@@ -526,6 +526,48 @@ studio_server <- function(gssencmode = "prefer") {
       }
     })
     
+    # Handle directory button click
+    shiny::observeEvent(input$path_display_btn, {
+      # Update the modal input with current path
+      shiny::updateTextInput(session, "path_edit_input", value = input$path_input)
+      # Show the modal
+      session$sendCustomMessage("showModal", "edit-directory-modal")
+    })
+    
+    # Handle directory path confirmation
+    shiny::observeEvent(input$confirm_path_edit, {
+      new_path <- input$path_edit_input
+      
+      # Validate the path
+      if (is.null(new_path) || trimws(new_path) == "") {
+        shiny::showNotification("Please enter a valid directory path", type = "error")
+        return()
+      }
+      
+      # Expand tilde and normalize path
+      expanded_path <- path.expand(trimws(new_path))
+      normalized_path <- normalizePath(expanded_path, mustWork = FALSE)
+      
+      # Check if parent directory exists
+      parent_dir <- dirname(normalized_path)
+      if (!dir.exists(parent_dir)) {
+        shiny::showNotification("Parent directory does not exist!", type = "error")
+        return()
+      }
+      
+      # Update the hidden input and button display
+      shiny::updateTextInput(session, "path_input", value = normalized_path)
+      session$sendCustomMessage("updatePathButton", list(
+        path = normalized_path,
+        display = basename(normalized_path)
+      ))
+      
+      # Hide the modal
+      session$sendCustomMessage("hideModal", "edit-directory-modal")
+      
+      # Show success notification
+      shiny::showNotification("Directory path updated successfully", type = "message")
+    })
 
     # Handle create survey button
     shiny::observeEvent(input$create_survey_btn, {
@@ -547,18 +589,16 @@ studio_server <- function(gssencmode = "prefer") {
         })
       }
       
-      # Change to the target directory
-      original_dir <- getwd()
-      on.exit(setwd(original_dir), add = TRUE)
-      setwd(input$path_input)
-      
-      # Create the survey
+      # Create the survey with full path first
       tryCatch({
         surveydown::sd_create_survey(
           template = input$template_select, 
-          path = ".", 
+          path = input$path_input, 
           ask = FALSE
         )
+        
+        # Change to the target directory after creation
+        setwd(input$path_input)
         survey_exists(TRUE)
         shiny::showNotification("Survey created successfully!", type = "message")
       }, error = function(e) {

@@ -38,6 +38,11 @@ $(document).ready(function() {
     $('#path_display').text(data.display).attr('title', data.path);
   });
 
+  // Path button update handler
+  Shiny.addCustomMessageHandler('updatePathButton', function(data) {
+    $('#path_display_btn').text(data.display + '/').attr('title', 'Click to edit: ' + data.path);
+  });
+
   /* ===== MODAL MANAGEMENT ===== */
   // Function to reset modal content
   function resetModifyModal() {

@@ -69,12 +69,19 @@ ui_template_selection <- function() {
           ),
           shiny::tags$td(
             style = "vertical-align: middle;",
-            shiny::textInput(
-              "path_input",
-              NULL,
-              value = getwd(),
-              width = "100%",
-              placeholder = "Enter directory path for your survey project"
+            shiny::div(
+              shiny::actionButton(
+                "path_display_btn",
+                paste0(basename(getwd()), "/"),
+                class = "btn-outline-secondary",
+                style = "width: 100%; text-align: center; font-family: monospace; padding: 8px 12px; margin: 0.5rem;",
+                title = paste("Click to edit:", getwd())
+              ),
+              shiny::tags$input(
+                type = "hidden",
+                id = "path_input",
+                value = getwd()
+              )
             )
           )
         )
@@ -88,6 +95,42 @@ ui_template_selection <- function() {
           "Create Survey",
           class = "btn-primary btn-lg",
           style = "padding: 12px 30px; font-size: 16px; font-weight: bold;"
+        )
+      )
+    ),
+    
+    # Directory edit modal
+    shiny::div(
+      id = "edit-directory-modal",
+      class = "modal fade",
+      tabindex = "-1",
+      shiny::div(
+        class = "modal-dialog modal-lg",
+        shiny::div(
+          class = "modal-content",
+          shiny::div(
+            class = "modal-header",
+            shiny::h5("Edit Directory Path", class = "modal-title"),
+            shiny::tags$button(type = "button", class = "btn-close", `data-bs-dismiss` = "modal")
+          ),
+          shiny::div(
+            class = "modal-body",
+            shiny::textInput(
+              "path_edit_input",
+              "Directory Path:",
+              value = getwd(),
+              width = "100%",
+              placeholder = "Enter full directory path"
+            ),
+            shiny::p(
+              style = "font-size: 0.9em; color: #666; margin-top: 10px;"
+            )
+          ),
+          shiny::div(
+            class = "modal-footer",
+            shiny::actionButton("confirm_path_edit", "Confirm", class = "btn btn-primary"),
+            shiny::tags$button("Cancel", type = "button", class = "btn btn-secondary", `data-bs-dismiss` = "modal")
+          )
         )
       )
     )
