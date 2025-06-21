@@ -810,13 +810,16 @@ studio_server <- function(gssencmode = "prefer") {
     survey_html_exists <- shiny::reactiveVal(NULL)
     monitoring_active <- shiny::reactiveVal(FALSE)
     
-    # Start monitoring when user visits Preview tab
+    # Start monitoring when user visits Preview tab AND survey is rendering
     shiny::observeEvent(input$tabset, {
       if (input$tabset == "Preview" && survey_exists()) {
-        if (!monitoring_active()) {
-          cat("Starting file monitoring for auto-refresh...\n")
+        current_html_exists <- file.exists("survey.html")
+        if (!monitoring_active() && current_html_exists) {
+          cat("Starting file monitoring for auto-refresh (survey.html detected)...\n")
           monitoring_active(TRUE)
-          survey_html_exists(file.exists("survey.html"))
+          survey_html_exists(current_html_exists)
+        } else if (!monitoring_active() && !current_html_exists) {
+          cat("Preview tab active, but no rendering in progress (no survey.html found)\n")
         }
       } else {
         if (monitoring_active()) {
