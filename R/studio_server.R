@@ -807,34 +807,47 @@ studio_server <- function(gssencmode = "prefer") {
     }, priority = 1000)
     
     # Auto-refresh preview when survey rendering is complete
-    survey_html_exists <- shiny::reactiveVal(NULL)  # NULL = uninitialized
+    survey_html_exists <- shiny::reactiveVal(NULL)
+    monitoring_active <- shiny::reactiveVal(FALSE)
     
-    # Monitor survey.html file every 500ms
+    # Start monitoring when user visits Preview tab
+    shiny::observeEvent(input$tabset, {
+      if (input$tabset == "Preview" && survey_exists()) {
+        if (!monitoring_active()) {
+          cat("Starting file monitoring for auto-refresh...\n")
+          monitoring_active(TRUE)
+          survey_html_exists(file.exists("survey.html"))
+        }
+      } else {
+        if (monitoring_active()) {
+          cat("Stopping file monitoring to save resources...\n")
+          monitoring_active(FALSE)
+        }
+      }
+    })
+    
+    # Monitor survey.html file only when actively monitoring
     shiny::observe({
-      if (survey_exists()) {
+      if (monitoring_active() && survey_exists()) {
         current_exists <- file.exists("survey.html")
         previous_exists <- survey_html_exists()
         
-        # Debug output
-        cat("Survey HTML exists:", current_exists, "| Previous:", previous_exists, "\n")
+        # Update the reactive value
+        survey_html_exists(current_exists)
         
-        # Initialize if this is the first check
-        if (is.null(previous_exists)) {
-          survey_html_exists(current_exists)
-        } else {
-          # Update the reactive value
-          survey_html_exists(current_exists)
-          
-          # If survey.html just disappeared (rendering finished), auto-refresh after delay
-          if (previous_exists && !current_exists) {
-            cat("Survey rendering completed! Auto-refreshing in 500ms...\n")
-            session$sendCustomMessage("triggerAutoRefresh", list(delay = 500))
-          }
+        # If survey.html just disappeared (rendering finished), auto-refresh and stop monitoring
+        if (!is.null(previous_exists) && previous_exists && !current_exists) {
+          cat("Survey rendering completed! Auto-refreshing in 500ms...\n")
+          session$sendCustomMessage("triggerAutoRefresh", list(delay = 500))
+          # Stop monitoring after successful completion
+          monitoring_active(FALSE)
+        }
+        
+        # Only continue monitoring if still active
+        if (monitoring_active()) {
+          shiny::invalidateLater(500)
         }
       }
-      
-      # Check again in 500ms (less frequent to reduce load)
-      shiny::invalidateLater(500)
     })
     
     # Handle format conversion and R chunk separation for manual edits
