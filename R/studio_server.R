@@ -806,6 +806,37 @@ studio_server <- function(gssencmode = "prefer") {
       preview_handlers$refresh_preview()
     }, priority = 1000)
     
+    # Auto-refresh preview when survey rendering is complete
+    survey_html_exists <- shiny::reactiveVal(NULL)  # NULL = uninitialized
+    
+    # Monitor survey.html file every 500ms
+    shiny::observe({
+      if (survey_exists()) {
+        current_exists <- file.exists("survey.html")
+        previous_exists <- survey_html_exists()
+        
+        # Debug output
+        cat("Survey HTML exists:", current_exists, "| Previous:", previous_exists, "\n")
+        
+        # Initialize if this is the first check
+        if (is.null(previous_exists)) {
+          survey_html_exists(current_exists)
+        } else {
+          # Update the reactive value
+          survey_html_exists(current_exists)
+          
+          # If survey.html just disappeared (rendering finished), auto-refresh after delay
+          if (previous_exists && !current_exists) {
+            cat("Survey rendering completed! Auto-refreshing in 500ms...\n")
+            session$sendCustomMessage("triggerAutoRefresh", list(delay = 500))
+          }
+        }
+      }
+      
+      # Check again in 500ms (less frequent to reduce load)
+      shiny::invalidateLater(500)
+    })
+    
     # Handle format conversion and R chunk separation for manual edits
     shiny::observeEvent(input$survey_editor, {
       shiny::invalidateLater(1000)

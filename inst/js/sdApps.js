@@ -43,6 +43,15 @@ $(document).ready(function() {
     $('#path_display_btn').text(data.display + '/').attr('title', 'Click to edit: ' + data.path);
   });
 
+  // Auto-refresh preview handler
+  Shiny.addCustomMessageHandler('triggerAutoRefresh', function(data) {
+    setTimeout(function() {
+      console.log('Auto-refreshing preview now!');
+      // Trigger the refresh preview button click
+      $('#refresh_preview_btn').click();
+    }, data.delay);
+  });
+
   /* ===== MODAL MANAGEMENT ===== */
   // Function to reset modal content
   function resetModifyModal() {
