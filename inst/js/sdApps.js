@@ -52,14 +52,9 @@ $(document).ready(function() {
       $('.rendering-overlay').remove();
       console.log('Loading overlay removed');
       
-      // No need to show iframe since we didn't hide it
-      // var previewFrame = $('#preview_frame');
-      // previewFrame.show();
-      // console.log('Preview frame shown, visibility:', previewFrame.is(':visible'));
-      
-      // Trigger the refresh preview button click
-      $('#refresh_preview_btn').click();
-      console.log('Refresh button clicked');
+      // Directly trigger preview refresh via custom message
+      Shiny.setInputValue('auto_refresh_trigger', {timestamp: new Date().getTime()});
+      console.log('Direct refresh triggered');
     }, data.delay);
   });
 

@@ -368,17 +368,9 @@ ui_preview_tab <- function() {
     shiny::div(
       style = "display: flex; flex-direction: column; align-items: center; height: calc(100vh - 79px);",
       
-      # Refresh button container
+      # Preview iframe with full height
       shiny::div(
-        style = "margin-bottom: 10px; text-align: center;",
-        shiny::actionButton("refresh_preview_btn", "Refresh Preview", 
-                           class = "btn-success btn-sm",
-                           icon = shiny::icon("sync"))
-      ),
-      
-      # Preview iframe with adjusted height
-      shiny::div(
-        style = "width: 100%; height: calc(100vh - 115px); border: none;",
+        style = "width: 100%; height: calc(100vh - 79px); border: none;",
         shiny::uiOutput("preview_frame")
       )
     )

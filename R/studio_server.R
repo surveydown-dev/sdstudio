@@ -796,8 +796,8 @@ studio_server <- function(gssencmode = "prefer") {
     survey_structure <- server_structure_handlers(input, output, session, survey_exists)
     preview_handlers <- server_preview_handlers(input, output, session, survey_exists)
     
-    # Connect refresh button to preview function
-    shiny::observeEvent(input$refresh_preview_btn, {
+    # Handle direct auto-refresh trigger
+    shiny::observeEvent(input$auto_refresh_trigger, {
       preview_handlers$refresh_preview()
     })
 
