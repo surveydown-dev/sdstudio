@@ -411,12 +411,30 @@ $(document).ready(function() {
     initializeAll();
   });
   
-  // Start observing changes to the survey structure
-  var target = document.getElementById('survey_structure');
-  if (target) {
-    observer.observe(target, { childList: true, subtree: true });
+  // Function to start observing when survey structure becomes available
+  function startObservingSurveyStructure() {
+    var target = document.getElementById('survey_structure');
+    if (target) {
+      observer.observe(target, { childList: true, subtree: true });
+      return true;
+    }
+    return false;
+  }
+  
+  // Try to start observing immediately, and if not successful, retry periodically
+  if (!startObservingSurveyStructure()) {
+    var retryInterval = setInterval(function() {
+      if (startObservingSurveyStructure()) {
+        clearInterval(retryInterval);
+      }
+    }, 500);
   }
   
   // Initialize everything on document ready
   initializeAll();
+  
+  // Also initialize after a short delay to catch any late-loading content
+  setTimeout(function() {
+    initializeAll();
+  }, 1000);
 });
