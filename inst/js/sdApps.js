@@ -43,6 +43,12 @@ $(document).ready(function() {
     $('#path_display_btn').text(data.display + '/').attr('title', 'Click to edit: ' + data.path);
   });
 
+  // Connection state indicator update handler
+  Shiny.addCustomMessageHandler('updateConnectionIndicator', function(data) {
+    $('#connection_icon').html(data.icon);
+    $('#connection_text').text(data.text).attr('class', data.textClass);
+  });
+
   // Preview view switching functionality
   function switchPreviewView(viewMode) {
     var container = $('#preview_container');

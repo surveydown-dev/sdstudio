@@ -448,11 +448,31 @@ ui_dashboard_tab <- function() {
     # Database Connection (full width, collapsible)
     bslib::card(
       bslib::card_header(
-        class = "d-flex align-items-center",
-        "Database Connection",
-        shiny::actionButton("toggle_db_settings", "Settings", 
-                            class = "btn-sm btn-outline-primary ms-3",
-                            icon = shiny::icon("cog"))
+        class = "d-flex align-items-center justify-content-between",
+        shiny::div(
+          class = "d-flex align-items-center",
+          "Database Connection",
+          shiny::actionButton("toggle_db_settings", "Settings", 
+                              class = "btn-sm btn-outline-primary ms-3",
+                              style = "width: 90px;",
+                              icon = shiny::icon("cog"))
+        ),
+        # Connection state indicator
+        shiny::div(
+          id = "connection_state_indicator",
+          class = "d-flex align-items-center",
+          shiny::span(
+            id = "connection_icon",
+            class = "me-2",
+            style = "font-size: 1.2em;",
+            shiny::icon("circle", class = "text-secondary") # Default gray state
+          ),
+          shiny::span(
+            id = "connection_text",
+            class = "text-muted small",
+            "Not connected"
+          )
+        )
       ),
       bslib::card_body(
         # Update form (collapsible)

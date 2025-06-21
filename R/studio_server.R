@@ -30,8 +30,44 @@ studio_server <- function(gssencmode = "prefer") {
     rv <- shiny::reactiveValues(
       connection_status = FALSE,
       current_db = NULL,
-      initial_connection = TRUE  # Track if this is initial connection vs test connection
+      initial_connection = TRUE,  # Track if this is initial connection vs test connection
+      gssapi_enabled = FALSE,     # Track if GSSAPI is currently enabled
+      connection_attempted = FALSE # Track if connection has been attempted
     )
+
+    # Function to update connection state indicator
+    update_connection_indicator <- function(status, gssapi_enabled = FALSE, attempted = TRUE) {
+      rv$connection_attempted <- attempted
+      
+      if (status && gssapi_enabled) {
+        # Green: successful connection with GSSAPI on
+        icon_html <- '<i class="fas fa-circle fa-xs text-success"></i>'
+        text <- "Connected (GSSAPI enabled)"
+        text_class <- "text-success small"
+      } else if (status && !gssapi_enabled) {
+        # Yellow: successful connection with GSSAPI off
+        icon_html <- '<i class="fas fa-circle fa-xs text-warning"></i>'
+        text <- "Connected (GSSAPI disabled)"
+        text_class <- "text-warning small"
+      } else if (attempted && !status) {
+        # Red: connection attempted and failed
+        icon_html <- '<i class="fas fa-circle fa-xs text-danger"></i>'
+        text <- "Connection failed"
+        text_class <- "text-danger small"
+      } else {
+        # Gray: connection not started
+        icon_html <- '<i class="fas fa-circle fa-xs text-secondary"></i>'
+        text <- "Not connected"
+        text_class <- "text-muted small"
+      }
+      
+      # Update the UI elements
+      session$sendCustomMessage("updateConnectionIndicator", list(
+        icon = icon_html,
+        text = text,
+        textClass = text_class
+      ))
+    }
 
     # Dashboard connection management
     attempt_connection <- function(config = NULL, return_details = FALSE, gss_mode = gssencmode) {
@@ -69,6 +105,8 @@ studio_server <- function(gssencmode = "prefer") {
           if (!is.null(db)) {
             rv$connection_status <- TRUE
             rv$current_db <- db
+            rv$gssapi_enabled <- TRUE
+            update_connection_indicator(TRUE, gssapi_enabled = TRUE)
             if (return_details) {
               return(list(success = TRUE, fallback_used = FALSE, message = "Connection successful"))
             } else {
@@ -85,6 +123,8 @@ studio_server <- function(gssencmode = "prefer") {
             if (!is.null(db)) {
               rv$connection_status <- TRUE
               rv$current_db <- db
+              rv$gssapi_enabled <- FALSE
+              update_connection_indicator(TRUE, gssapi_enabled = FALSE)
               message("Connection successful with gssencmode='disable'")
               if (return_details) {
                 return(list(success = TRUE, fallback_used = TRUE, 
@@ -97,6 +137,8 @@ studio_server <- function(gssencmode = "prefer") {
             # Both attempts failed
             rv$connection_status <- FALSE
             rv$current_db <- NULL
+            rv$gssapi_enabled <- FALSE
+            update_connection_indicator(FALSE, gssapi_enabled = FALSE)
             warning("Connection failed with both gssencmode='prefer' and 'disable': ", e2$message)
             if (return_details) {
               return(list(success = FALSE, fallback_used = TRUE, 
@@ -110,6 +152,8 @@ studio_server <- function(gssencmode = "prefer") {
         # If we reach here, both attempts failed
         rv$connection_status <- FALSE
         rv$current_db <- NULL
+        rv$gssapi_enabled <- FALSE
+        update_connection_indicator(FALSE, gssapi_enabled = FALSE)
         if (return_details) {
           return(list(success = FALSE, fallback_used = TRUE, 
                      message = "Connection failed with both prefer and disable modes"))
@@ -124,12 +168,18 @@ studio_server <- function(gssencmode = "prefer") {
           if (!is.null(db)) {
             rv$connection_status <- TRUE
             rv$current_db <- db
+            rv$gssapi_enabled <- (gss_mode == "prefer")
+            update_connection_indicator(TRUE, gssapi_enabled = (gss_mode == "prefer"))
             if (return_details) {
               return(list(success = TRUE, fallback_used = FALSE, message = "Connection successful"))
             } else {
               return(TRUE)
             }
           }
+          rv$connection_status <- FALSE
+          rv$current_db <- NULL
+          rv$gssapi_enabled <- FALSE
+          update_connection_indicator(FALSE, gssapi_enabled = FALSE)
           if (return_details) {
             return(list(success = FALSE, fallback_used = FALSE, message = "Connection failed"))
           } else {
@@ -148,6 +198,8 @@ studio_server <- function(gssencmode = "prefer") {
               if (!is.null(db)) {
                 rv$connection_status <- TRUE
                 rv$current_db <- db
+                rv$gssapi_enabled <- FALSE
+                update_connection_indicator(TRUE, gssapi_enabled = FALSE)
                 message("Connection successful with gssencmode='disable'")
                 if (return_details) {
                   return(list(success = TRUE, fallback_used = TRUE, 
@@ -156,6 +208,10 @@ studio_server <- function(gssencmode = "prefer") {
                   return(TRUE)
                 }
               }
+              rv$connection_status <- FALSE
+              rv$current_db <- NULL
+              rv$gssapi_enabled <- FALSE
+              update_connection_indicator(FALSE, gssapi_enabled = FALSE)
               if (return_details) {
                 return(list(success = FALSE, fallback_used = TRUE, 
                            message = "Connection failed with both GSSAPI modes"))
@@ -166,6 +222,8 @@ studio_server <- function(gssencmode = "prefer") {
               # Both attempts failed
               rv$connection_status <- FALSE
               rv$current_db <- NULL
+              rv$gssapi_enabled <- FALSE
+              update_connection_indicator(FALSE, gssapi_enabled = FALSE)
               warning("Connection failed with both gssencmode='prefer' and 'disable': ", e2$message)
               if (return_details) {
                 return(list(success = FALSE, fallback_used = TRUE, 
@@ -178,6 +236,8 @@ studio_server <- function(gssencmode = "prefer") {
             # Not a GSSAPI error or already using "disable", just fail normally
             rv$connection_status <- FALSE
             rv$current_db <- NULL
+            rv$gssapi_enabled <- FALSE
+            update_connection_indicator(FALSE, gssapi_enabled = FALSE)
             if (return_details) {
               return(list(success = FALSE, fallback_used = FALSE, message = error_msg))
             } else {
@@ -187,6 +247,11 @@ studio_server <- function(gssencmode = "prefer") {
         })
       }
     }
+
+    # Initialize connection indicator to gray state
+    shiny::observe({
+      update_connection_indicator(FALSE, gssapi_enabled = FALSE, attempted = FALSE)
+    }, priority = 1000)
 
     # Initial connection attempt
     shiny::observe({
