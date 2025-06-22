@@ -466,7 +466,6 @@ studio_server <- function(gssencmode = "prefer") {
         })
         return(data)
       }, error = function(e) {
-        warning("Error fetching survey data: ", e$message)
         return(NULL)
       })
     })
