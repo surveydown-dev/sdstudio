@@ -517,6 +517,22 @@ $(document).ready(function() {
   }
   
   // Initialize everything on document ready
+  // Handler for survey mode toggle (local/live)
+  Shiny.addCustomMessageHandler('toggleSurveyMode', function(mode) {
+    var localBtn = $('#survey_local_btn');
+    var liveBtn = $('#survey_live_btn');
+    
+    if (mode === 'local') {
+      // Local mode active
+      localBtn.addClass('active');
+      liveBtn.removeClass('active');
+    } else {
+      // Live mode active
+      liveBtn.addClass('active');
+      localBtn.removeClass('active');
+    }
+  });
+
   initializeAll();
   
   // Also initialize after a short delay to catch any late-loading content

@@ -337,7 +337,30 @@ ui_normal_build <- function() {
         
         # Code panel with tabs
         shiny::wellPanel(
-          style = "background-color: #f0fff0; border-color: #d4edda; padding: 0.5rem;",
+          style = "background-color: #f0fff0; border-color: #d4edda; padding: 0.5rem; position: relative;",
+          
+          # Floating local/live mode toggle buttons (top-right)
+          shiny::div(
+            style = "position: absolute; top: 0px; right: 10px; z-index: 1000;",
+            shiny::div(
+              style = "display: flex; align-items: center; gap: 5px; background: rgba(255, 255, 255, 0.95); padding: 5px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); backdrop-filter: blur(10px);",
+              shiny::actionButton(
+                "survey_local_btn",
+                shiny::HTML('<i class="fas fa-home"></i>'),
+                class = "btn-outline-success active",
+                style = "padding: 8px 12px; font-size: 0.875rem; border-radius: 6px;",
+                title = "Local Mode (ignore database)"
+              ),
+              shiny::actionButton(
+                "survey_live_btn", 
+                shiny::HTML('<i class="fas fa-cloud"></i>'),
+                class = "btn-outline-primary",
+                style = "padding: 8px 12px; font-size: 0.875rem; border-radius: 6px;",
+                title = "Live Mode (connect to database)"
+              )
+            )
+          ),
+          
           shiny::tabsetPanel(
             id = "code_tabs",
             shiny::tabPanel(
