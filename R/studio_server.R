@@ -867,7 +867,7 @@ studio_server <- function(gssencmode = "prefer") {
 
     # Handle manual refresh button
     shiny::observeEvent(input$preview_refresh_btn, {
-      preview_handlers$refresh_preview()
+      preview_handlers$refresh_preview_only()
     })
 
     # Launch preview on startup
