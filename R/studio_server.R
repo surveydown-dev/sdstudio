@@ -671,7 +671,6 @@ studio_server <- function(gssencmode = "prefer") {
         # Change to the target directory after creation
         setwd(input$path_input)
         survey_exists(TRUE)
-        shiny::showNotification("Survey created successfully!", type = "message")
       }, error = function(e) {
         shiny::showNotification(paste("Failed to create survey:", e$message), type = "error")
       })
@@ -864,6 +863,11 @@ studio_server <- function(gssencmode = "prefer") {
     # Handle direct auto-refresh trigger
     shiny::observeEvent(input$auto_refresh_trigger, {
       preview_handlers$refresh_preview_only()
+    })
+
+    # Handle manual refresh button
+    shiny::observeEvent(input$preview_refresh_btn, {
+      preview_handlers$refresh_preview()
     })
 
     # Launch preview on startup

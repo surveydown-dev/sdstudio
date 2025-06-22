@@ -378,11 +378,21 @@ ui_preview_tab <- function() {
         )
       ),
       
-      # Floating view control buttons (bottom-right)
+      # Floating view control buttons (top-right)
       shiny::div(
-        style = "position: absolute; bottom: 20px; right: 20px; z-index: 1000;",
+        style = "position: absolute; top: 20px; right: 20px; z-index: 1000;",
         shiny::div(
-          style = "display: flex; gap: 5px; background: rgba(255, 255, 255, 0.95); padding: 5px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); backdrop-filter: blur(10px);",
+          style = "display: flex; align-items: center; gap: 5px; background: rgba(255, 255, 255, 0.95); padding: 5px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); backdrop-filter: blur(10px);",
+          shiny::actionButton(
+            "preview_refresh_btn",
+            shiny::HTML('<i class="fas fa-sync-alt"></i>'),
+            class = "btn-outline-success",
+            style = "padding: 8px 12px; font-size: 0.875rem; border-radius: 6px;",
+            title = "Refresh Preview"
+          ),
+          shiny::div(
+            style = "height: 24px; width: 1px; background-color: #dee2e6; margin: 0 5px;"
+          ),
           shiny::actionButton(
             "preview_widescreen_btn",
             shiny::HTML('<i class="fas fa-desktop"></i>'),
