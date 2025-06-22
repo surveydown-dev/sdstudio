@@ -454,53 +454,6 @@ studio_server <- function(gssencmode = "prefer") {
       }
     }, ignoreInit = TRUE)
 
-    # Handle local/live mode toggle buttons
-    shiny::observeEvent(input$survey_local_btn, {
-      if (file.exists("app.R")) {
-        app_content <- readLines("app.R", warn = FALSE)
-        
-        # Find and modify sd_db_connect() or add it
-        connect_idx <- grep("sd_db_connect", app_content)
-        if (length(connect_idx) > 0) {
-          app_content[connect_idx[1]] <- gsub("sd_db_connect\\([^)]*\\)", "sd_db_connect(ignore = TRUE)", app_content[connect_idx[1]])
-        } else {
-          library_idx <- max(grep("library\\(", app_content))
-          app_content <- append(app_content, c("", "db <- sd_db_connect(ignore = TRUE)", ""), after = library_idx)
-        }
-        
-        writeLines(app_content, "app.R")
-        if (!is.null(input$app_editor)) {
-          shinyAce::updateAceEditor(session, "app_editor", value = paste(app_content, collapse = "\n"))
-        }
-        
-        # Toggle button states with JavaScript
-        session$sendCustomMessage("toggleSurveyMode", "local")
-      }
-    }, ignoreInit = TRUE)
-    
-    shiny::observeEvent(input$survey_live_btn, {
-      if (file.exists("app.R")) {
-        app_content <- readLines("app.R", warn = FALSE)
-        
-        # Find and modify sd_db_connect() or add it
-        connect_idx <- grep("sd_db_connect", app_content)
-        if (length(connect_idx) > 0) {
-          app_content[connect_idx[1]] <- gsub("sd_db_connect\\([^)]*\\)", "sd_db_connect()", app_content[connect_idx[1]])
-        } else {
-          library_idx <- max(grep("library\\(", app_content))
-          app_content <- append(app_content, c("", "db <- sd_db_connect()", ""), after = library_idx)
-        }
-        
-        writeLines(app_content, "app.R")
-        if (!is.null(input$app_editor)) {
-          shinyAce::updateAceEditor(session, "app_editor", value = paste(app_content, collapse = "\n"))
-        }
-        
-        # Toggle button states with JavaScript
-        session$sendCustomMessage("toggleSurveyMode", "live")
-      }
-    }, ignoreInit = TRUE)
-
     # Reactive survey data with error handling
     survey_data <- shiny::reactive({
       shiny::req(rv$connection_status)
