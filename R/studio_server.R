@@ -276,15 +276,23 @@ studio_server <- function(gssencmode = "prefer") {
           # Only use environment variable for initial table selection
           default_table <- Sys.getenv("SD_TABLE", "")
           
-          # Set default table as first choice and selected if available
+          # Include default table in choices even if it doesn't exist yet
+          all_choices <- tables
           selected_table <- NULL
-          if (default_table %in% tables) {
-            tables <- c(default_table, setdiff(tables, default_table))
+          
+          if (default_table != "") {
+            if (default_table %in% tables) {
+              # Table exists - move to front
+              all_choices <- c(default_table, setdiff(tables, default_table))
+            } else {
+              # Table doesn't exist yet - add it to the front with indicator
+              all_choices <- c(default_table, tables)
+            }
             selected_table <- default_table
           }
 
           shiny::updateSelectInput(session, "table_select",
-                                   choices = if (length(tables) > 0) tables else c("No tables found" = ""),
+                                   choices = if (length(all_choices) > 0) all_choices else c("No tables found" = ""),
                                    selected = selected_table
           )
           # After initial connection, mark as no longer initial
@@ -364,15 +372,23 @@ studio_server <- function(gssencmode = "prefer") {
               Sys.getenv("SD_TABLE", "")
             }
             
-            # Set default table as first choice and selected if available
+            # Include default table in choices even if it doesn't exist yet
+            all_choices <- tables
             selected_table <- NULL
-            if (default_table != "" && default_table %in% tables) {
-              tables <- c(default_table, setdiff(tables, default_table))
+            
+            if (default_table != "") {
+              if (default_table %in% tables) {
+                # Table exists - move to front
+                all_choices <- c(default_table, setdiff(tables, default_table))
+              } else {
+                # Table doesn't exist yet - add it to the front
+                all_choices <- c(default_table, tables)
+              }
               selected_table <- default_table
             }
 
             shiny::updateSelectInput(session, "table_select",
-                                     choices = if (length(tables) > 0) tables else c("No tables found" = ""),
+                                     choices = if (length(all_choices) > 0) all_choices else c("No tables found" = ""),
                                      selected = selected_table
             )
           }, error = function(e) {
@@ -392,6 +408,49 @@ studio_server <- function(gssencmode = "prefer") {
         output$connection_status <- shiny::renderText(
           paste("Connection failed:", result$message)
         )
+      }
+    }, ignoreInit = TRUE)
+
+    # Update table dropdown when table input changes
+    shiny::observeEvent(input$default_table, {
+      # Only update if connected to database
+      if (rv$connection_status && !is.null(rv$current_db)) {
+        tryCatch({
+          # Get existing tables from database
+          tables <- pool::poolWithTransaction(rv$current_db$db, function(conn) {
+            all_tables <- DBI::dbListTables(conn)
+            all_tables[!grepl("^pg_", all_tables)]
+          })
+          
+          # Get the current table input value
+          current_table <- input$default_table
+          
+          # Include current table in choices even if it doesn't exist yet
+          all_choices <- tables
+          selected_table <- input$table_select  # Preserve current selection
+          
+          if (!is.null(current_table) && current_table != "") {
+            if (current_table %in% tables) {
+              # Table exists - move to front
+              all_choices <- c(current_table, setdiff(tables, current_table))
+            } else {
+              # Table doesn't exist yet - add it to the front
+              all_choices <- c(current_table, tables)
+            }
+            # Only auto-select if no current selection or if current selection matches input
+            if (is.null(selected_table) || selected_table == "" || selected_table == current_table) {
+              selected_table <- current_table
+            }
+          }
+          
+          shiny::updateSelectInput(session, "table_select",
+                                   choices = if (length(all_choices) > 0) all_choices else c("No tables found" = ""),
+                                   selected = selected_table
+          )
+        }, error = function(e) {
+          # Error updating dropdown, but don't disrupt user experience
+          warning("Error updating table dropdown: ", e$message)
+        })
       }
     }, ignoreInit = TRUE)
 
