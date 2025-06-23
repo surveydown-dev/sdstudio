@@ -1138,7 +1138,7 @@ studio_server <- function(gssencmode = "prefer") {
         
         # If surveydown.lua just disappeared (rendering finished), auto-refresh and stop monitoring
         if (!is.null(previous_exists) && previous_exists && !current_exists) {
-          session$sendCustomMessage("triggerAutoRefresh", list(delay = 200))
+          session$sendCustomMessage("triggerAutoRefresh", list(delay = 500))
           # Stop monitoring after successful completion
           monitoring_active(FALSE)
         }
