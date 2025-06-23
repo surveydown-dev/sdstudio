@@ -1722,35 +1722,18 @@ server_preview_handlers <- function(input, output, session, survey_exists) {
     }
   })
   
-  # Refresh only function - saves files and refreshes iframe without server restart
+  # Refresh only function - refreshes iframe with cache-busting timestamp
   refresh_preview <- function() {
-    # Check if survey exists and preview process is running
-    if (!survey_exists()) {
-      return()
-    }
+    preview_url <- paste0("http://127.0.0.1:", preview_port, "?refresh=", as.numeric(Sys.time()))
     
-    current_process <- NULL
-    shiny::isolate({
-      current_process <- preview_process()
+    output$preview_frame <- shiny::renderUI({
+      shiny::tags$iframe(
+        src = preview_url,
+        width = "100%",
+        height = "100%",
+        style = "border: none; display: block;"
+      )
     })
-    
-    # Only refresh if preview process is already running
-    if (!is.null(current_process)) {
-      preview_url <- paste0("http://127.0.0.1:", preview_port)
-      
-      # Update iframe to refresh the preview without restarting server or saving files
-      # Force iframe refresh by adding timestamp parameter
-      refresh_url <- paste0(preview_url, "?refresh=", as.numeric(Sys.time()))
-      
-      output$preview_frame <- shiny::renderUI({
-        shiny::tags$iframe(
-          src = refresh_url,
-          width = "100%",
-          height = "100%",
-          style = "border: none; display: block;"
-        )
-      })
-    }
   }
   
   # Return the refresh functions and process for cleanup
