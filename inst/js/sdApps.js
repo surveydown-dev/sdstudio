@@ -96,6 +96,26 @@ $(document).ready(function() {
     }
   });
 
+  // Mode UI update handler (hide/show database connection section)
+  Shiny.addCustomMessageHandler('updateModeUI', function(data) {
+    var dbConnectionCard = $('#database_connection_card');
+    var tableSelectLabel = $('label[for="table_select"]');
+    
+    if (data.mode === 'local') {
+      // Local mode: hide database connection, update table select label
+      dbConnectionCard.hide();
+      if (tableSelectLabel.length) {
+        tableSelectLabel.text('Choose a CSV file to view:');
+      }
+    } else {
+      // Live mode: show database connection, restore original label
+      dbConnectionCard.show();
+      if (tableSelectLabel.length) {
+        tableSelectLabel.text('Choose a table to view:');
+      }
+    }
+  });
+
   // Function to update button states based on current app.R content
   function updateCodeModeFromContent() {
     // Only run this if we're on the app.R tab and the editor exists

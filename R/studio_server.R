@@ -35,7 +35,10 @@ studio_server <- function(gssencmode = "prefer") {
       current_db = NULL,
       initial_connection = TRUE,  # Track if this is initial connection vs test connection
       gssapi_enabled = FALSE,     # Track if GSSAPI is currently enabled
-      connection_attempted = FALSE # Track if connection has been attempted
+      connection_attempted = FALSE, # Track if connection has been attempted
+      current_mode = "live",      # Track current mode: "live" or "local"
+      database_tables = c(),      # Store database tables
+      csv_files = c()             # Store CSV files
     )
 
     # Function to update connection state indicator
@@ -251,24 +254,75 @@ studio_server <- function(gssencmode = "prefer") {
       }
     }
 
-    # Initialize connection indicator to gray state
-    shiny::observe({
-      update_connection_indicator(FALSE, gssapi_enabled = FALSE, attempted = FALSE)
-    }, priority = 1000)
-
-    # Initial connection attempt
-    shiny::observe({
-      message(paste("Attempting initial database connection with gssencmode=", gssencmode, "..."))
-      attempt_connection(config = NULL, return_details = FALSE, gss_mode = gssencmode)
-    })
-
-    # Update table selection dropdown (only for initial connection, not test connection)
-    shiny::observe({
-      # Only run for initial connection
-      if (!rv$initial_connection) {
-        return()
+    # Functions for local CSV file handling
+    update_csv_files <- function() {
+      csv_files <- list.files(pattern = "\\.csv$", full.names = FALSE)
+      if (length(csv_files) == 0) {
+        rv$csv_files <- c("No CSV files found" = "")
+      } else {
+        # Put preview_data.csv first if it exists
+        if ("preview_data.csv" %in% csv_files) {
+          csv_files <- c("preview_data.csv", setdiff(csv_files, "preview_data.csv"))
+        }
+        rv$csv_files <- csv_files
+      }
+    }
+    
+    read_local_csv <- function(filename) {
+      if (is.null(filename) || filename == "" || filename == "No CSV files found") {
+        return(NULL)
       }
       
+      tryCatch({
+        utils::read.csv(filename, stringsAsFactors = FALSE)
+      }, error = function(e) {
+        return(NULL)
+      })
+    }
+    
+    # Initialize connection indicator to gray state and ensure proper mode UI
+    shiny::observe({
+      update_connection_indicator(FALSE, gssapi_enabled = FALSE, attempted = FALSE)
+      
+      # Ensure UI is in the correct state on startup (live mode by default)
+      session$sendCustomMessage("updateModeUI", list(mode = rv$current_mode))
+    }, priority = 1000)
+    
+    # Periodic mode detection to catch changes from direct app.R modifications
+    shiny::observe({
+      if (survey_exists() && file.exists("app.R")) {
+        detected_mode <- detect_app_mode()
+        
+        # Update internal mode state if it differs from detected mode
+        if (rv$current_mode != detected_mode) {
+          message(paste("Mode change detected:", rv$current_mode, "->", detected_mode))
+          rv$current_mode <- detected_mode
+          
+          # Update button states via JavaScript
+          session$sendCustomMessage("updateCodeModeButtons", list(
+            mode = detected_mode
+          ))
+        }
+      }
+      
+      # Check every 2 seconds
+      shiny::invalidateLater(2000)
+    })
+
+    # Initial connection attempt (only if in live mode)
+    shiny::observe({
+      if (rv$current_mode == "live") {
+        message(paste("Attempting initial database connection with gssencmode=", gssencmode, "..."))
+        result <- attempt_connection(config = NULL, return_details = TRUE, gss_mode = gssencmode)
+        if (result$success) {
+          update_database_tables()
+          update_table_dropdown()
+        }
+      }
+    })
+
+    # Update database tables when connection is established  
+    update_database_tables <- function() {
       if (rv$connection_status && !is.null(rv$current_db)) {
         tryCatch({
           tables <- pool::poolWithTransaction(rv$current_db$db, function(conn) {
@@ -281,34 +335,80 @@ studio_server <- function(gssencmode = "prefer") {
           
           # Include default table in choices even if it doesn't exist yet
           all_choices <- tables
-          selected_table <- NULL
           
-          if (default_table != "") {
-            if (default_table %in% tables) {
-              # Table exists - move to front
-              all_choices <- c(default_table, setdiff(tables, default_table))
-            } else {
-              # Table doesn't exist yet - add it to the front with indicator
-              all_choices <- c(default_table, tables)
-            }
-            selected_table <- default_table
+          if (default_table != "" && !default_table %in% tables) {
+            # Table doesn't exist yet - add it to the front
+            all_choices <- c(default_table, tables)
+          } else if (default_table != "") {
+            # Table exists - move to front
+            all_choices <- c(default_table, setdiff(tables, default_table))
           }
 
-          shiny::updateSelectInput(session, "table_select",
-                                   choices = if (length(all_choices) > 0) all_choices else c("No tables found" = ""),
-                                   selected = selected_table
-          )
-          # After initial connection, mark as no longer initial
-          rv$initial_connection <- FALSE
+          rv$database_tables <- if (length(all_choices) > 0) all_choices else c("No tables found" = "")
         }, error = function(e) {
-          shiny::updateSelectInput(session, "table_select",
-                                   choices = c("Connection error" = "")
-          )
+          rv$database_tables <- c("Connection error" = "")
         })
       } else {
+        rv$database_tables <- c("No connection" = "")
+      }
+    }
+    
+    # Update table selection dropdown based on current mode
+    update_table_dropdown <- function() {
+      if (rv$current_mode == "local") {
+        # Local mode: show CSV files
+        selected_file <- if ("preview_data.csv" %in% rv$csv_files) {
+          "preview_data.csv"
+        } else if (length(rv$csv_files) > 0 && names(rv$csv_files)[1] != "No CSV files found") {
+          rv$csv_files[1]
+        } else {
+          NULL
+        }
+        
         shiny::updateSelectInput(session, "table_select",
-                                 choices = c("No connection" = "")
+                                 choices = rv$csv_files,
+                                 selected = selected_file
         )
+      } else {
+        # Live mode: show database tables
+        default_table <- Sys.getenv("SD_TABLE", "")
+        selected_table <- if (default_table != "" && default_table %in% rv$database_tables) {
+          default_table
+        } else if (length(rv$database_tables) > 0 && names(rv$database_tables)[1] != "No tables found") {
+          rv$database_tables[1]
+        } else {
+          NULL
+        }
+        
+        shiny::updateSelectInput(session, "table_select",
+                                 choices = rv$database_tables,
+                                 selected = selected_table
+        )
+      }
+    }
+    
+    # Observer to update CSV files and refresh dropdown
+    shiny::observe({
+      update_csv_files()
+      if (rv$current_mode == "local") {
+        update_table_dropdown()
+      }
+    })
+    
+    # Observer to update database tables when connection changes (only for initial connection)
+    shiny::observe({
+      if (!rv$initial_connection) {
+        return()
+      }
+      
+      update_database_tables()
+      if (rv$current_mode == "live") {
+        update_table_dropdown()
+      }
+      
+      # After initial connection, mark as no longer initial
+      if (rv$connection_status && !is.null(rv$current_db)) {
+        rv$initial_connection <- FALSE
       }
     })
 
@@ -360,44 +460,12 @@ studio_server <- function(gssencmode = "prefer") {
           write(".env", ".gitignore")
         }
 
-        # Update table selection based on the Development Table input
+        # Update database tables after successful test connection
         if (rv$connection_status && !is.null(rv$current_db)) {
-          tryCatch({
-            tables <- pool::poolWithTransaction(rv$current_db$db, function(conn) {
-              all_tables <- DBI::dbListTables(conn)
-              all_tables[!grepl("^pg_", all_tables)]
-            })
-
-            # Use input value if available, otherwise fall back to environment variable
-            default_table <- if (!is.null(input$default_table) && input$default_table != "") {
-              input$default_table
-            } else {
-              Sys.getenv("SD_TABLE", "")
-            }
-            
-            # Include default table in choices even if it doesn't exist yet
-            all_choices <- tables
-            selected_table <- NULL
-            
-            if (default_table != "") {
-              if (default_table %in% tables) {
-                # Table exists - move to front
-                all_choices <- c(default_table, setdiff(tables, default_table))
-              } else {
-                # Table doesn't exist yet - add it to the front
-                all_choices <- c(default_table, tables)
-              }
-              selected_table <- default_table
-            }
-
-            shiny::updateSelectInput(session, "table_select",
-                                     choices = if (length(all_choices) > 0) all_choices else c("No tables found" = ""),
-                                     selected = selected_table
-            )
-          }, error = function(e) {
-            # Table update failed, but connection was successful
-            warning("Error updating table selection: ", e$message)
-          })
+          update_database_tables()
+          if (rv$current_mode == "live") {
+            update_table_dropdown()
+          }
         }
         
         # Provide detailed feedback about the connection
@@ -414,63 +482,31 @@ studio_server <- function(gssencmode = "prefer") {
       }
     }, ignoreInit = TRUE)
 
-    # Update table dropdown when table input changes
-    shiny::observeEvent(input$default_table, {
-      # Only update if connected to database
-      if (rv$connection_status && !is.null(rv$current_db)) {
+
+    # Reactive survey data with error handling for both local and live modes
+    survey_data <- shiny::reactive({
+      shiny::req(input$table_select)
+      
+      if (rv$current_mode == "local") {
+        # Local mode: read CSV file
+        if (input$table_select == "" || input$table_select == "No CSV files found") {
+          return(NULL)
+        }
+        return(read_local_csv(input$table_select))
+      } else {
+        # Live mode: read from database
+        shiny::req(rv$connection_status)
+        shiny::req(rv$current_db)
+
         tryCatch({
-          # Get existing tables from database
-          tables <- pool::poolWithTransaction(rv$current_db$db, function(conn) {
-            all_tables <- DBI::dbListTables(conn)
-            all_tables[!grepl("^pg_", all_tables)]
+          data <- pool::poolWithTransaction(rv$current_db$db, function(conn) {
+            DBI::dbGetQuery(conn, sprintf('SELECT * FROM "%s"', input$table_select))
           })
-          
-          # Get the current table input value
-          current_table <- input$default_table
-          
-          # Include current table in choices even if it doesn't exist yet
-          all_choices <- tables
-          selected_table <- input$table_select  # Preserve current selection
-          
-          if (!is.null(current_table) && current_table != "") {
-            if (current_table %in% tables) {
-              # Table exists - move to front
-              all_choices <- c(current_table, setdiff(tables, current_table))
-            } else {
-              # Table doesn't exist yet - add it to the front
-              all_choices <- c(current_table, tables)
-            }
-            # Only auto-select if no current selection or if current selection matches input
-            if (is.null(selected_table) || selected_table == "" || selected_table == current_table) {
-              selected_table <- current_table
-            }
-          }
-          
-          shiny::updateSelectInput(session, "table_select",
-                                   choices = if (length(all_choices) > 0) all_choices else c("No tables found" = ""),
-                                   selected = selected_table
-          )
+          return(data)
         }, error = function(e) {
-          # Error updating dropdown, but don't disrupt user experience
-          warning("Error updating table dropdown: ", e$message)
+          return(NULL)
         })
       }
-    }, ignoreInit = TRUE)
-
-    # Reactive survey data with error handling
-    survey_data <- shiny::reactive({
-      shiny::req(rv$connection_status)
-      shiny::req(input$table_select)
-      shiny::req(rv$current_db)
-
-      tryCatch({
-        data <- pool::poolWithTransaction(rv$current_db$db, function(conn) {
-          DBI::dbGetQuery(conn, sprintf('SELECT * FROM "%s"', input$table_select))
-        })
-        return(data)
-      }, error = function(e) {
-        return(NULL)
-      })
     })
 
     # Dashboard outputs
@@ -864,12 +900,17 @@ studio_server <- function(gssencmode = "prefer") {
       }
     }
     
-    # Initialize button states when app.R editor is loaded
+    # Initialize button states when app.R editor is loaded and detect mode changes
     shiny::observe({
       if (survey_exists() && file.exists("app.R") && !suppress_auto_button_update()) {
         # Delay to ensure the UI is fully rendered
         shiny::invalidateLater(500)
         current_mode <- detect_app_mode()
+        
+        # Update internal mode state if it differs from detected mode
+        if (rv$current_mode != current_mode) {
+          rv$current_mode <- current_mode
+        }
         
         # Update button states via JavaScript
         session$sendCustomMessage("updateCodeModeButtons", list(
@@ -882,6 +923,11 @@ studio_server <- function(gssencmode = "prefer") {
     shiny::observeEvent(input$app_editor, {
       if (survey_exists() && !is.null(input$app_editor) && !suppress_auto_button_update()) {
         current_mode <- detect_app_mode(input$app_editor)
+        
+        # Update internal mode state if it differs from detected mode
+        if (rv$current_mode != current_mode) {
+          rv$current_mode <- current_mode
+        }
         
         # Update button states via JavaScript
         session$sendCustomMessage("updateCodeModeButtons", list(
@@ -897,6 +943,11 @@ studio_server <- function(gssencmode = "prefer") {
         shiny::invalidateLater(200)
         current_mode <- detect_app_mode()
         
+        # Update internal mode state if it differs from detected mode
+        if (rv$current_mode != current_mode) {
+          rv$current_mode <- current_mode
+        }
+        
         # Update button states via JavaScript
         session$sendCustomMessage("updateCodeModeButtons", list(
           mode = current_mode
@@ -904,11 +955,75 @@ studio_server <- function(gssencmode = "prefer") {
       }
     })
     
+    # Observer to handle mode-dependent UI changes and auto-connection
+    shiny::observe({
+      current_mode <- rv$current_mode
+      
+      # Send message to JavaScript to show/hide database connection section
+      session$sendCustomMessage("updateModeUI", list(mode = current_mode))
+      
+      # Auto-establish database connection when switching to live mode
+      if (current_mode == "live" && !rv$connection_status) {
+        # Load .env if it exists to ensure environment variables are available
+        if (file.exists(".env")) {
+          dotenv::load_dot_env(".env")
+          message("Loaded .env file for auto-connection")
+        }
+        
+        # Check if we have connection parameters
+        host <- Sys.getenv("SD_HOST", "")
+        dbname <- Sys.getenv("SD_DBNAME", "")
+        user <- Sys.getenv("SD_USER", "")
+        
+        message("Connection params - Host: '", host, "', DB: '", dbname, "', User: '", user, "'")
+        
+        has_connection_params <- (host != "" && dbname != "" && user != "")
+        
+        if (has_connection_params) {
+          message("Auto-connecting to database in Live Mode...")
+          tryCatch({
+            result <- attempt_connection(config = NULL, return_details = TRUE, gss_mode = "auto")
+            if (result$success) {
+              message("Auto-connection successful!")
+              # Force update of database tables and dropdown
+              update_database_tables()
+              update_table_dropdown()
+            } else {
+              message("Auto-connection failed: ", result$message)
+              # Even if connection fails, update the connection indicator to show it was attempted
+              update_connection_indicator(FALSE, gssapi_enabled = FALSE, attempted = TRUE)
+            }
+          }, error = function(e) {
+            message("Auto-connection error: ", e$message)
+            # Update connection indicator to show failed attempt
+            update_connection_indicator(FALSE, gssapi_enabled = FALSE, attempted = TRUE)
+          })
+        } else {
+          message("Auto-connection skipped: missing connection parameters")
+          message("Available env vars: HOST=", Sys.getenv("SD_HOST", ""), 
+                  ", DBNAME=", Sys.getenv("SD_DBNAME", ""), 
+                  ", USER=", Sys.getenv("SD_USER", ""))
+          # Update connection indicator to show no connection attempt
+          update_connection_indicator(FALSE, gssapi_enabled = FALSE, attempted = FALSE)
+        }
+      }
+      
+      # Update table dropdown when mode changes
+      update_table_dropdown()
+    })
+    
     # Handle code mode switching
     shiny::observeEvent(input$code_mode_switch, {
-      if (!survey_exists() || !file.exists("app.R")) return()
-      
       target_mode <- input$code_mode_switch$mode
+      
+      # Update current mode tracking
+      rv$current_mode <- target_mode
+      
+      if (!survey_exists() || !file.exists("app.R")) {
+        # Even if no survey exists, update mode for Responses tab
+        return()
+      }
+      
       current_content <- input$app_editor
       
       # Suppress automatic button updates for 3 seconds to prevent bouncing

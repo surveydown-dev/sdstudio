@@ -509,6 +509,7 @@ ui_dashboard_tab <- function() {
     
     # Database Connection (full width, collapsible)
     bslib::card(
+      id = "database_connection_card",
       bslib::card_header(
         class = "d-flex align-items-center justify-content-between",
         shiny::div(
