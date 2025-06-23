@@ -268,6 +268,25 @@ studio_server <- function(gssencmode = "prefer") {
       }
     }
     
+    # Function to refresh response data based on current mode
+    refresh_response_data <- function() {
+      if (rv$current_mode == "local") {
+        # Refresh CSV files
+        message("Refreshing local CSV files...")
+        update_csv_files()
+        update_table_dropdown()
+      } else {
+        # Refresh database tables
+        message("Refreshing database tables...")
+        if (rv$connection_status && !is.null(rv$current_db)) {
+          update_database_tables()
+          update_table_dropdown()
+        } else {
+          message("No database connection available for refresh")
+        }
+      }
+    }
+    
     read_local_csv <- function(filename) {
       if (is.null(filename) || filename == "" || filename == "No CSV files found") {
         return(NULL)
@@ -1160,6 +1179,11 @@ studio_server <- function(gssencmode = "prefer") {
     # Handle manual refresh button
     shiny::observeEvent(input$preview_refresh_btn, {
       preview_handlers$refresh_preview()
+    })
+    
+    # Handle responses refresh button
+    shiny::observeEvent(input$responses_refresh_btn, {
+      refresh_response_data()
     })
 
     # Launch preview on startup

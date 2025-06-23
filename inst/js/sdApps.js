@@ -12,8 +12,25 @@ $(document).ready(function() {
       $('#code-group').css('display', 'flex');
       $('#separator-1').css('display', 'block');
       $('#separator-2').css('display', 'block');
+      
+      // Show preview refresh button, hide responses refresh button
+      $('#preview_refresh_btn').css('display', 'inline-block');
+      $('#responses_refresh_btn').css('display', 'none');
+      
+    } else if (activeTab === 'Responses') {
+      // Show refresh and code groups on Responses tab
+      $('#refresh-group').css('display', 'flex');
+      $('#view-group').css('display', 'none');
+      $('#code-group').css('display', 'flex');
+      $('#separator-1').css('display', 'block');
+      $('#separator-2').css('display', 'none');
+      
+      // Show responses refresh button, hide preview refresh button
+      $('#preview_refresh_btn').css('display', 'none');
+      $('#responses_refresh_btn').css('display', 'inline-block');
+      
     } else {
-      // Show only code group on Build and Responses tabs
+      // Show only code group on Build tab
       $('#refresh-group').css('display', 'none');
       $('#view-group').css('display', 'none');
       $('#code-group').css('display', 'flex');
