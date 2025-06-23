@@ -749,6 +749,9 @@ studio_server <- function(gssencmode = "prefer") {
         wordWrap = TRUE
       )
     })
+    
+    # Force this output to render even when tab is hidden (eliminates lazy loading)
+    outputOptions(output, "survey_editor_ui", suspendWhenHidden = FALSE)
 
     # Setup app.R editor
     output$app_editor_ui <- shiny::renderUI({
@@ -765,6 +768,9 @@ studio_server <- function(gssencmode = "prefer") {
         wordWrap = TRUE
       )
     })
+    
+    # Force this output to render even when tab is hidden (eliminates lazy loading)
+    outputOptions(output, "app_editor_ui", suspendWhenHidden = FALSE)
 
     # Setup modify content form modal
     output$modify_content_form <- shiny::renderUI({
