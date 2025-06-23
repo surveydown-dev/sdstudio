@@ -341,7 +341,7 @@ ui_normal_build <- function() {
           
           # Floating Local/Live buttons (positioned similar to Preview tab)
           shiny::div(
-            style = "position: absolute; top: 10px; right: 10px; z-index: 1000;",
+            style = "position: absolute; top: 0px; right: 10px; z-index: 1000;",
             shiny::div(
               style = "display: flex; align-items: center; gap: 5px; background: rgba(255, 255, 255, 0.95); padding: 5px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); backdrop-filter: blur(10px);",
               shiny::actionButton(

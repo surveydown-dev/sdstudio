@@ -917,7 +917,6 @@ studio_server <- function(gssencmode = "prefer") {
         
         # Show notification
         mode_text <- if (target_mode == "local") "Local" else "Live"
-        shiny::showNotification(paste("Switched to", mode_text, "mode"), type = "message")
       }
     })
 
