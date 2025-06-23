@@ -434,7 +434,7 @@ ui_preview_tab <- function() {
             shiny::HTML('<i class="fas fa-mobile-alt"></i>'),
             class = "btn-outline-primary",
             style = "padding: 8px 12px; font-size: 0.875rem; border-radius: 6px;",
-            title = "Mobile View (375px)"
+            title = "Mobile View"
           )
         )
       )

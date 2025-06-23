@@ -141,28 +141,20 @@ $(document).ready(function() {
     var localBtn = $('#code_local_btn');
     var liveBtn = $('#code_live_btn');
     
+    // Update button highlights IMMEDIATELY
     if (mode === 'local') {
-      // Switch to local mode
       localBtn.addClass('active');
       liveBtn.removeClass('active');
-      
-      // Send message to Shiny to update app.R content
-      Shiny.setInputValue('code_mode_switch', {
-        mode: 'local',
-        timestamp: new Date().getTime()
-      });
-      
     } else {
-      // Switch to live mode
       liveBtn.addClass('active');
       localBtn.removeClass('active');
-      
-      // Send message to Shiny to update app.R content
-      Shiny.setInputValue('code_mode_switch', {
-        mode: 'live',
-        timestamp: new Date().getTime()
-      });
     }
+    
+    // Send message to Shiny to update app.R content (this happens in background)
+    Shiny.setInputValue('code_mode_switch', {
+      mode: mode,
+      timestamp: new Date().getTime()
+    });
   }
   
   // Preview button click handlers

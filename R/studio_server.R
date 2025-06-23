@@ -6,6 +6,9 @@ studio_server <- function(gssencmode = "prefer") {
     modify_content_info <- shiny::reactiveVal(NULL)
     add_content_page_id <- shiny::reactiveVal(NULL)
     add_form_trigger <- shiny::reactiveVal(NULL)
+    
+    # Flag to prevent automatic button updates during user-initiated mode switch
+    suppress_auto_button_update <- shiny::reactiveVal(FALSE)
 
     # Dashboard reactive values - Load .env if exists
     if (file.exists(".env")) {
@@ -863,7 +866,7 @@ studio_server <- function(gssencmode = "prefer") {
     
     # Initialize button states when app.R editor is loaded
     shiny::observe({
-      if (survey_exists() && file.exists("app.R")) {
+      if (survey_exists() && file.exists("app.R") && !suppress_auto_button_update()) {
         # Delay to ensure the UI is fully rendered
         shiny::invalidateLater(500)
         current_mode <- detect_app_mode()
@@ -877,7 +880,7 @@ studio_server <- function(gssencmode = "prefer") {
     
     # Monitor app.R editor changes for real-time mode detection
     shiny::observeEvent(input$app_editor, {
-      if (survey_exists() && !is.null(input$app_editor)) {
+      if (survey_exists() && !is.null(input$app_editor) && !suppress_auto_button_update()) {
         current_mode <- detect_app_mode(input$app_editor)
         
         # Update button states via JavaScript
@@ -889,7 +892,7 @@ studio_server <- function(gssencmode = "prefer") {
     
     # Also update when user switches to app.R tab
     shiny::observeEvent(input$code_tabs, {
-      if (input$code_tabs == "app.R" && survey_exists() && file.exists("app.R")) {
+      if (input$code_tabs == "app.R" && survey_exists() && file.exists("app.R") && !suppress_auto_button_update()) {
         # Small delay to ensure editor is ready
         shiny::invalidateLater(200)
         current_mode <- detect_app_mode()
@@ -907,6 +910,22 @@ studio_server <- function(gssencmode = "prefer") {
       
       target_mode <- input$code_mode_switch$mode
       current_content <- input$app_editor
+      
+      # Suppress automatic button updates for 3 seconds to prevent bouncing
+      suppress_auto_button_update(TRUE)
+      later::later(function() {
+        suppress_auto_button_update(FALSE)
+      }, 3)
+      
+      # Show overlay and start monitoring if user is on Preview tab
+      if (!is.null(input$tabset) && input$tabset == "Preview") {
+        session$sendCustomMessage("showRenderingMessage", list())
+        # Activate monitoring to detect when rendering is complete
+        if (!monitoring_active()) {
+          monitoring_active(TRUE)
+          survey_html_exists(file.exists("surveydown.lua"))
+        }
+      }
       
       # Update the content
       updated_content <- update_app_mode(target_mode, current_content)
@@ -1119,7 +1138,7 @@ studio_server <- function(gssencmode = "prefer") {
         
         # If surveydown.lua just disappeared (rendering finished), auto-refresh and stop monitoring
         if (!is.null(previous_exists) && previous_exists && !current_exists) {
-          session$sendCustomMessage("triggerAutoRefresh", list(delay = 1000))
+          session$sendCustomMessage("triggerAutoRefresh", list(delay = 200))
           # Stop monitoring after successful completion
           monitoring_active(FALSE)
         }
