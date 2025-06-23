@@ -751,7 +751,7 @@ studio_server <- function(gssencmode = "prefer") {
     })
     
     # Force this output to render even when tab is hidden (eliminates lazy loading)
-    outputOptions(output, "survey_editor_ui", suspendWhenHidden = FALSE)
+    shiny::outputOptions(output, "survey_editor_ui", suspendWhenHidden = FALSE)
 
     # Setup app.R editor
     output$app_editor_ui <- shiny::renderUI({
@@ -770,7 +770,7 @@ studio_server <- function(gssencmode = "prefer") {
     })
     
     # Force this output to render even when tab is hidden (eliminates lazy loading)
-    outputOptions(output, "app_editor_ui", suspendWhenHidden = FALSE)
+    shiny::outputOptions(output, "app_editor_ui", suspendWhenHidden = FALSE)
     
     # Function to detect current mode from app.R content
     detect_app_mode <- function(content = NULL) {
