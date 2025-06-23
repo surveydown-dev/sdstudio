@@ -1588,18 +1588,9 @@ server_preview_handlers <- function(input, output, session, survey_exists) {
     
     # Only refresh if preview process is already running
     if (!is.null(current_process)) {
-      # Save current editor content to files (like refresh_preview does)
-      if (exists("input") && !is.null(input$survey_editor)) {
-        writeLines(input$survey_editor, "survey.qmd")
-      }
-      
-      if (exists("input") && !is.null(input$app_editor)) {
-        writeLines(input$app_editor, "app.R")
-      }
-      
       preview_url <- paste0("http://127.0.0.1:", preview_port)
       
-      # Update single iframe to refresh the preview without restarting server
+      # Update iframe to refresh the preview without restarting server or saving files
       # Force iframe refresh by adding timestamp parameter
       refresh_url <- paste0(preview_url, "?refresh=", as.numeric(Sys.time()))
       
