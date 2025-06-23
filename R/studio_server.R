@@ -926,17 +926,17 @@ studio_server <- function(gssencmode = "prefer") {
     
     # Handle direct auto-refresh trigger
     shiny::observeEvent(input$auto_refresh_trigger, {
-      preview_handlers$refresh_preview_only()
+      preview_handlers$refresh_preview()
     })
 
     # Handle manual refresh button
     shiny::observeEvent(input$preview_refresh_btn, {
-      preview_handlers$refresh_preview_only()
+      preview_handlers$refresh_preview()
     })
 
     # Launch preview on startup
     shiny::observe({
-      preview_handlers$refresh_preview()
+      preview_handlers$render_preview()
     }, priority = 1000)
     
     # Auto-refresh preview when survey rendering is complete
@@ -1505,7 +1505,7 @@ server_structure_handlers <- function(input, output, session, survey_exists) {
 server_preview_handlers <- function(input, output, session, survey_exists) {
   preview_process <- shiny::reactiveVal(NULL)
   preview_port <- stats::runif(1, 3000, 8000) |> floor()
-  refresh_preview <- function() {
+  render_preview <- function() {
     # Check if survey exists first
     if (!survey_exists()) {
       return()
@@ -1575,7 +1575,7 @@ server_preview_handlers <- function(input, output, session, survey_exists) {
   })
   
   # Refresh only function - saves files and refreshes iframe without server restart
-  refresh_preview_only <- function() {
+  refresh_preview <- function() {
     # Check if survey exists and preview process is running
     if (!survey_exists()) {
       return()
@@ -1616,8 +1616,8 @@ server_preview_handlers <- function(input, output, session, survey_exists) {
   
   # Return the refresh functions and process for cleanup
   list(
+    render_preview = render_preview,
     refresh_preview = refresh_preview,
-    refresh_preview_only = refresh_preview_only,
     preview_process = preview_process
   )
 }
