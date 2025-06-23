@@ -49,6 +49,61 @@ $(document).ready(function() {
     $('#connection_text').text(data.text).attr('class', data.textClass);
   });
 
+  // Code mode buttons update handler
+  Shiny.addCustomMessageHandler('updateCodeModeButtons', function(data) {
+    var localBtn = $('#code_local_btn');
+    var liveBtn = $('#code_live_btn');
+    
+    // Only update if buttons exist
+    if (localBtn.length && liveBtn.length) {
+      if (data.mode === 'local') {
+        localBtn.addClass('active');
+        liveBtn.removeClass('active');
+      } else {
+        liveBtn.addClass('active');
+        localBtn.removeClass('active');
+      }
+    }
+  });
+
+  // Function to update button states based on current app.R content
+  function updateCodeModeFromContent() {
+    // Only run this if we're on the app.R tab and the editor exists
+    if ($('#code_tabs .nav-link.active').text().trim() === 'app.R' && typeof ace !== 'undefined') {
+      try {
+        var editor = ace.edit('app_editor');
+        if (editor) {
+          var content = editor.getValue();
+          var isLocal = /sd_db_connect\s*\(\s*ignore\s*=\s*TRUE/.test(content);
+          var hasConnect = /sd_db_connect\s*\(/.test(content);
+          
+          var mode = 'live'; // default
+          if (hasConnect && isLocal) {
+            mode = 'local';
+          } else if (hasConnect) {
+            mode = 'live';
+          }
+          
+          // Update buttons directly
+          var localBtn = $('#code_local_btn');
+          var liveBtn = $('#code_live_btn');
+          
+          if (localBtn.length && liveBtn.length) {
+            if (mode === 'local') {
+              localBtn.addClass('active');
+              liveBtn.removeClass('active');
+            } else {
+              liveBtn.addClass('active');
+              localBtn.removeClass('active');
+            }
+          }
+        }
+      } catch (e) {
+        // Silently handle errors
+      }
+    }
+  }
+
   // Preview view switching functionality
   function switchPreviewView(viewMode) {
     var container = $('#preview_container');
@@ -81,6 +136,35 @@ $(document).ready(function() {
     }
   }
   
+  // Code mode switching functionality
+  function switchCodeMode(mode) {
+    var localBtn = $('#code_local_btn');
+    var liveBtn = $('#code_live_btn');
+    
+    if (mode === 'local') {
+      // Switch to local mode
+      localBtn.addClass('active');
+      liveBtn.removeClass('active');
+      
+      // Send message to Shiny to update app.R content
+      Shiny.setInputValue('code_mode_switch', {
+        mode: 'local',
+        timestamp: new Date().getTime()
+      });
+      
+    } else {
+      // Switch to live mode
+      liveBtn.addClass('active');
+      localBtn.removeClass('active');
+      
+      // Send message to Shiny to update app.R content
+      Shiny.setInputValue('code_mode_switch', {
+        mode: 'live',
+        timestamp: new Date().getTime()
+      });
+    }
+  }
+  
   // Preview button click handlers
   $(document).on('click', '#preview_widescreen_btn', function() {
     switchPreviewView('widescreen');
@@ -88,6 +172,15 @@ $(document).ready(function() {
   
   $(document).on('click', '#preview_mobile_btn', function() {
     switchPreviewView('mobile');
+  });
+  
+  // Code mode button click handlers
+  $(document).on('click', '#code_local_btn', function() {
+    switchCodeMode('local');
+  });
+  
+  $(document).on('click', '#code_live_btn', function() {
+    switchCodeMode('live');
   });
 
   // Auto-refresh preview handler
@@ -519,8 +612,43 @@ $(document).ready(function() {
   // Initialize everything on document ready
   initializeAll();
   
+  // Monitor tab changes to update button states
+  $(document).on('shown.bs.tab', '#code_tabs a[data-bs-toggle="tab"]', function(e) {
+    if ($(e.target).text().trim() === 'app.R') {
+      // Delay to ensure ACE editor is ready
+      setTimeout(updateCodeModeFromContent, 300);
+    }
+  });
+  
+  // Monitor ACE editor changes for real-time updates
+  $(document).on('shiny:idle', function() {
+    // Set up ACE editor change listener if not already set
+    if (typeof ace !== 'undefined' && $('#app_editor').length) {
+      try {
+        var editor = ace.edit('app_editor');
+        if (editor && !editor._codeModeListerSet) {
+          editor.on('change', function() {
+            // Debounce the update
+            clearTimeout(window.codeModeUpdateTimeout);
+            window.codeModeUpdateTimeout = setTimeout(updateCodeModeFromContent, 500);
+          });
+          editor._codeModeListerSet = true;
+        }
+      } catch (e) {
+        // Silently handle errors
+      }
+    }
+    
+    // Also update button states when idle
+    updateCodeModeFromContent();
+  });
+  
   // Also initialize after a short delay to catch any late-loading content
   setTimeout(function() {
     initializeAll();
+    updateCodeModeFromContent();
   }, 1000);
+  
+  // Update button states periodically to catch any missed changes
+  setInterval(updateCodeModeFromContent, 2000);
 });

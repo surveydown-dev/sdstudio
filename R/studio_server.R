@@ -771,6 +771,155 @@ studio_server <- function(gssencmode = "prefer") {
     
     # Force this output to render even when tab is hidden (eliminates lazy loading)
     outputOptions(output, "app_editor_ui", suspendWhenHidden = FALSE)
+    
+    # Function to detect current mode from app.R content
+    detect_app_mode <- function(content = NULL) {
+      if (is.null(content)) {
+        if (!file.exists("app.R")) return("live")
+        content <- paste(readLines("app.R", warn = FALSE), collapse = "\n")
+      }
+      
+      # Look for sd_db_connect patterns
+      if (grepl("sd_db_connect\\s*\\(\\s*ignore\\s*=\\s*TRUE", content)) {
+        return("local")
+      } else if (grepl("sd_db_connect\\s*\\(", content)) {
+        return("live")
+      }
+      
+      # No sd_db_connect found - default to live mode (will be added)
+      return("live")
+    }
+    
+    # Function to update app.R content based on mode
+    update_app_mode <- function(target_mode, current_content = NULL) {
+      if (!file.exists("app.R")) return(NULL)
+      
+      if (is.null(current_content)) {
+        current_content <- paste(readLines("app.R", warn = FALSE), collapse = "\n")
+      }
+      
+      # Check if sd_db_connect exists
+      has_sd_db_connect <- grepl("sd_db_connect\\s*\\(", current_content)
+      
+      if (!has_sd_db_connect) {
+        # Add sd_db_connect after the last library() call
+        lines <- strsplit(current_content, "\n")[[1]]
+        
+        # Find the last library() call
+        library_indices <- grep("^\\s*library\\s*\\(", lines)
+        
+        if (length(library_indices) > 0) {
+          last_library_index <- max(library_indices)
+          
+          # Prepare the db connection line based on target mode
+          if (target_mode == "local") {
+            db_line <- "db <- sd_db_connect(ignore = TRUE)"
+          } else {
+            db_line <- "db <- sd_db_connect()"
+          }
+          
+          # Insert the db connection after the last library call
+          new_lines <- c(
+            lines[1:last_library_index],
+            "",
+            db_line,
+            "",
+            lines[(last_library_index + 1):length(lines)]
+          )
+          
+          return(paste(new_lines, collapse = "\n"))
+        } else {
+          # No library calls found, add at the beginning
+          if (target_mode == "local") {
+            db_line <- "db <- sd_db_connect(ignore = TRUE)"
+          } else {
+            db_line <- "db <- sd_db_connect()"
+          }
+          
+          new_lines <- c(db_line, "", lines)
+          return(paste(new_lines, collapse = "\n"))
+        }
+      } else {
+        # sd_db_connect exists, modify it
+        if (target_mode == "local") {
+          # Change to local mode
+          updated_content <- gsub(
+            "sd_db_connect\\s*\\([^)]*\\)",
+            "sd_db_connect(ignore = TRUE)",
+            current_content
+          )
+        } else {
+          # Change to live mode
+          updated_content <- gsub(
+            "sd_db_connect\\s*\\([^)]*\\)",
+            "sd_db_connect()",
+            current_content
+          )
+        }
+        
+        return(updated_content)
+      }
+    }
+    
+    # Initialize button states when app.R editor is loaded
+    shiny::observe({
+      if (survey_exists() && file.exists("app.R")) {
+        # Delay to ensure the UI is fully rendered
+        shiny::invalidateLater(500)
+        current_mode <- detect_app_mode()
+        
+        # Update button states via JavaScript
+        session$sendCustomMessage("updateCodeModeButtons", list(
+          mode = current_mode
+        ))
+      }
+    })
+    
+    # Monitor app.R editor changes for real-time mode detection
+    shiny::observeEvent(input$app_editor, {
+      if (survey_exists() && !is.null(input$app_editor)) {
+        current_mode <- detect_app_mode(input$app_editor)
+        
+        # Update button states via JavaScript
+        session$sendCustomMessage("updateCodeModeButtons", list(
+          mode = current_mode
+        ))
+      }
+    }, ignoreInit = TRUE)
+    
+    # Also update when user switches to app.R tab
+    shiny::observeEvent(input$code_tabs, {
+      if (input$code_tabs == "app.R" && survey_exists() && file.exists("app.R")) {
+        # Small delay to ensure editor is ready
+        shiny::invalidateLater(200)
+        current_mode <- detect_app_mode()
+        
+        # Update button states via JavaScript
+        session$sendCustomMessage("updateCodeModeButtons", list(
+          mode = current_mode
+        ))
+      }
+    })
+    
+    # Handle code mode switching
+    shiny::observeEvent(input$code_mode_switch, {
+      if (!survey_exists() || !file.exists("app.R")) return()
+      
+      target_mode <- input$code_mode_switch$mode
+      current_content <- input$app_editor
+      
+      # Update the content
+      updated_content <- update_app_mode(target_mode, current_content)
+      
+      if (!is.null(updated_content) && updated_content != current_content) {
+        # Update the ACE editor
+        shinyAce::updateAceEditor(session, "app_editor", value = updated_content)
+        
+        # Show notification
+        mode_text <- if (target_mode == "local") "Local" else "Live"
+        shiny::showNotification(paste("Switched to", mode_text, "mode"), type = "message")
+      }
+    })
 
     # Setup modify content form modal
     output$modify_content_form <- shiny::renderUI({
