@@ -1,5 +1,35 @@
 $(document).ready(function() {
   
+  /* ===== FLOATING BUTTON VISIBILITY MANAGEMENT ===== */
+  // Function to update floating button groups based on active tab
+  function updateFloatingButtonVisibility() {
+    var activeTab = $('#tabset .nav-link.active').text().trim();
+    
+    if (activeTab === 'Preview') {
+      // Show all groups on Preview tab
+      $('#refresh-group').css('display', 'flex');
+      $('#view-group').css('display', 'flex');
+      $('#code-group').css('display', 'flex');
+      $('#separator-1').css('display', 'block');
+      $('#separator-2').css('display', 'block');
+    } else {
+      // Show only code group on Build and Responses tabs
+      $('#refresh-group').css('display', 'none');
+      $('#view-group').css('display', 'none');
+      $('#code-group').css('display', 'flex');
+      $('#separator-1').css('display', 'none');
+      $('#separator-2').css('display', 'none');
+    }
+  }
+  
+  // Update visibility on tab change
+  $(document).on('shown.bs.tab', '#tabset a[data-bs-toggle="tab"]', function(e) {
+    updateFloatingButtonVisibility();
+  });
+  
+  // Initial visibility update (with delay to ensure UI is loaded)
+  setTimeout(updateFloatingButtonVisibility, 500);
+  
   /* ===== SHINY MESSAGE HANDLERS ===== */
   // Ace editor undo/redo commands
   Shiny.addCustomMessageHandler('aceUndo', function(editorId) {

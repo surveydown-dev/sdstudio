@@ -3,24 +3,79 @@ studio_ui <- function() {
   shiny::div(
     style = "position: relative;",
     
-    # Floating Local/Live Mode buttons (top-right)
+    # Unified floating button container (top-right)
     shiny::div(
+      id = "unified-floating-buttons",
       style = "position: fixed; top: 20px; right: 20px; z-index: 2000;",
       shiny::div(
-        style = "display: flex; align-items: center; gap: 5px; background: rgba(255, 255, 255, 0.95); padding: 5px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); backdrop-filter: blur(10px);",
-        shiny::actionButton(
-          "code_local_btn",
-          shiny::HTML('<i class="fas fa-laptop"></i>'),
-          class = "btn-outline-warning",
-          style = "padding: 8px 12px; font-size: 0.875rem; border-radius: 6px;",
-          title = "Local Mode"
+        style = "display: flex; align-items: center; gap: 10px; background: rgba(255, 255, 255, 0.95); padding: 5px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); backdrop-filter: blur(10px);",
+        
+        # Group 1: Refresh Preview (leftmost, only on Preview tab)
+        shiny::div(
+          id = "refresh-group",
+          class = "button-group",
+          style = "display: none; align-items: center;",
+          shiny::actionButton(
+            "preview_refresh_btn",
+            shiny::HTML('<i class="fas fa-sync-alt"></i>'),
+            class = "btn-outline-success",
+            style = "padding: 8px 12px; font-size: 0.875rem; border-radius: 6px;",
+            title = "Refresh Preview"
+          )
         ),
-        shiny::actionButton(
-          "code_live_btn", 
-          shiny::HTML('<i class="fas fa-cloud"></i>'),
-          class = "btn-outline-primary active",
-          style = "padding: 8px 12px; font-size: 0.875rem; border-radius: 6px;",
-          title = "Live Mode"
+        
+        # Separator 1 (only visible when refresh group is visible)
+        shiny::div(
+          id = "separator-1",
+          style = "display: none; height: 24px; width: 1px; background-color: #dee2e6;"
+        ),
+        
+        # Group 2: View Mode (Desktop/Mobile, only on Preview tab)
+        shiny::div(
+          id = "view-group",
+          class = "button-group",
+          style = "display: none; align-items: center; gap: 5px;",
+          shiny::actionButton(
+            "preview_widescreen_btn",
+            shiny::HTML('<i class="fas fa-desktop"></i>'),
+            class = "btn-outline-primary active",
+            style = "padding: 8px 12px; font-size: 0.875rem; border-radius: 6px;",
+            title = "Desktop View"
+          ),
+          shiny::actionButton(
+            "preview_mobile_btn", 
+            shiny::HTML('<i class="fas fa-mobile-alt"></i>'),
+            class = "btn-outline-primary",
+            style = "padding: 8px 12px; font-size: 0.875rem; border-radius: 6px;",
+            title = "Mobile View"
+          )
+        ),
+        
+        # Separator 2 (only visible when both view and code groups are visible)
+        shiny::div(
+          id = "separator-2",
+          style = "display: none; height: 24px; width: 1px; background-color: #dee2e6;"
+        ),
+        
+        # Group 3: Code Mode (Local/Live, visible on all tabs)
+        shiny::div(
+          id = "code-group",
+          class = "button-group",
+          style = "display: flex; align-items: center; gap: 5px;",
+          shiny::actionButton(
+            "code_local_btn",
+            shiny::HTML('<i class="fas fa-laptop"></i>'),
+            class = "btn-outline-warning",
+            style = "padding: 8px 12px; font-size: 0.875rem; border-radius: 6px;",
+            title = "Local Mode"
+          ),
+          shiny::actionButton(
+            "code_live_btn", 
+            shiny::HTML('<i class="fas fa-cloud"></i>'),
+            class = "btn-outline-primary active",
+            style = "padding: 8px 12px; font-size: 0.875rem; border-radius: 6px;",
+            title = "Live Mode"
+          )
         )
       )
     ),
@@ -404,38 +459,6 @@ ui_preview_tab <- function() {
           id = "preview_container",
           style = "width: 100%; height: 100%; max-width: 100%; border: 1px solid #ddd; border-radius: 5px; transition: all 0.3s ease;",
           shiny::uiOutput("preview_frame")
-        )
-      ),
-      
-      # Floating view control buttons (top-right)
-      shiny::div(
-        style = "position: absolute; top: 20px; right: 20px; z-index: 1000;",
-        shiny::div(
-          style = "display: flex; align-items: center; gap: 5px; background: rgba(255, 255, 255, 0.95); padding: 5px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); backdrop-filter: blur(10px);",
-          shiny::actionButton(
-            "preview_refresh_btn",
-            shiny::HTML('<i class="fas fa-sync-alt"></i>'),
-            class = "btn-outline-success",
-            style = "padding: 8px 12px; font-size: 0.875rem; border-radius: 6px;",
-            title = "Refresh Preview"
-          ),
-          shiny::div(
-            style = "height: 24px; width: 1px; background-color: #dee2e6; margin: 0 5px;"
-          ),
-          shiny::actionButton(
-            "preview_widescreen_btn",
-            shiny::HTML('<i class="fas fa-desktop"></i>'),
-            class = "btn-outline-primary active",
-            style = "padding: 8px 12px; font-size: 0.875rem; border-radius: 6px;",
-            title = "Widescreen View"
-          ),
-          shiny::actionButton(
-            "preview_mobile_btn", 
-            shiny::HTML('<i class="fas fa-mobile-alt"></i>'),
-            class = "btn-outline-primary",
-            style = "padding: 8px 12px; font-size: 0.875rem; border-radius: 6px;",
-            title = "Mobile View"
-          )
         )
       )
     )
