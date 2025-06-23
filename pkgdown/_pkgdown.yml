@@ -25,5 +25,4 @@ template:
 reference:
 - title: Shiny Apps
   contents:
-  - sd_dashboard
   - sd_studio
