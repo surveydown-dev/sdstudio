@@ -309,16 +309,10 @@ studio_server <- function(gssencmode = "prefer") {
       shiny::invalidateLater(2000)
     })
 
-    # Initial connection attempt (only if in live mode)
+    # Initial connection attempt
     shiny::observe({
-      if (rv$current_mode == "live") {
-        message(paste("Attempting initial database connection with gssencmode=", gssencmode, "..."))
-        result <- attempt_connection(config = NULL, return_details = TRUE, gss_mode = gssencmode)
-        if (result$success) {
-          update_database_tables()
-          update_table_dropdown()
-        }
-      }
+      message(paste("Attempting initial database connection with gssencmode=", gssencmode, "..."))
+      attempt_connection(config = NULL, return_details = FALSE, gss_mode = gssencmode)
     })
 
     # Update database tables when connection is established  
@@ -955,59 +949,11 @@ studio_server <- function(gssencmode = "prefer") {
       }
     })
     
-    # Observer to handle mode-dependent UI changes and auto-connection
+    # Observer to handle mode-dependent UI changes
     shiny::observe({
       current_mode <- rv$current_mode
-      
       # Send message to JavaScript to show/hide database connection section
       session$sendCustomMessage("updateModeUI", list(mode = current_mode))
-      
-      # Auto-establish database connection when switching to live mode
-      if (current_mode == "live" && !rv$connection_status) {
-        # Load .env if it exists to ensure environment variables are available
-        if (file.exists(".env")) {
-          dotenv::load_dot_env(".env")
-          message("Loaded .env file for auto-connection")
-        }
-        
-        # Check if we have connection parameters
-        host <- Sys.getenv("SD_HOST", "")
-        dbname <- Sys.getenv("SD_DBNAME", "")
-        user <- Sys.getenv("SD_USER", "")
-        
-        message("Connection params - Host: '", host, "', DB: '", dbname, "', User: '", user, "'")
-        
-        has_connection_params <- (host != "" && dbname != "" && user != "")
-        
-        if (has_connection_params) {
-          message("Auto-connecting to database in Live Mode...")
-          tryCatch({
-            result <- attempt_connection(config = NULL, return_details = TRUE, gss_mode = "auto")
-            if (result$success) {
-              message("Auto-connection successful!")
-              # Force update of database tables and dropdown
-              update_database_tables()
-              update_table_dropdown()
-            } else {
-              message("Auto-connection failed: ", result$message)
-              # Even if connection fails, update the connection indicator to show it was attempted
-              update_connection_indicator(FALSE, gssapi_enabled = FALSE, attempted = TRUE)
-            }
-          }, error = function(e) {
-            message("Auto-connection error: ", e$message)
-            # Update connection indicator to show failed attempt
-            update_connection_indicator(FALSE, gssapi_enabled = FALSE, attempted = TRUE)
-          })
-        } else {
-          message("Auto-connection skipped: missing connection parameters")
-          message("Available env vars: HOST=", Sys.getenv("SD_HOST", ""), 
-                  ", DBNAME=", Sys.getenv("SD_DBNAME", ""), 
-                  ", USER=", Sys.getenv("SD_USER", ""))
-          # Update connection indicator to show no connection attempt
-          update_connection_indicator(FALSE, gssapi_enabled = FALSE, attempted = FALSE)
-        }
-      }
-      
       # Update table dropdown when mode changes
       update_table_dropdown()
     })
