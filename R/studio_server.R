@@ -294,6 +294,9 @@ studio_server <- function(gssencmode = "prefer") {
           update_database_tables()
           update_table_dropdown()
           
+          # Update connection indicator to show current status
+          update_connection_indicator(rv$connection_status, rv$gssapi_enabled, TRUE)
+          
           # Also invalidate the survey_data reactive to force data reload
           # This is done by briefly changing the table selection to trigger data refresh
           current_selection <- input$table_select
@@ -322,7 +325,15 @@ studio_server <- function(gssencmode = "prefer") {
               message("Reconnection successful, updating data...")
               update_database_tables()
               update_table_dropdown()
+              # Update connection indicator after successful reconnection
+              update_connection_indicator(rv$connection_status, rv$gssapi_enabled, TRUE)
+            } else {
+              # Update connection indicator to show failed status
+              update_connection_indicator(FALSE, FALSE, TRUE)
             }
+          } else {
+            # Update connection indicator to show not connected status
+            update_connection_indicator(FALSE, FALSE, TRUE)
           }
         }
       }
@@ -344,6 +355,7 @@ studio_server <- function(gssencmode = "prefer") {
         return(NULL)
       })
     }
+    
     
     # Initialize connection indicator to gray state and ensure proper mode UI
     shiny::observe({
@@ -1231,14 +1243,15 @@ studio_server <- function(gssencmode = "prefer") {
     shiny::observeEvent(input$responses_refresh_btn, {
       refresh_response_data()
       
-      # Show appropriate notification based on mode
+      # Show appropriate notification based on mode and actual connection status
       if (rv$current_mode == "local") {
         shiny::showNotification("Local CSV files refreshed", type = "message", duration = 2)
       } else {
+        # Check connection status after refresh attempt
         if (rv$connection_status && !is.null(rv$current_db)) {
-          shiny::showNotification("Database tables and data refreshed", type = "message", duration = 2)
+          shiny::showNotification("Database connection verified and data refreshed", type = "message", duration = 2)
         } else {
-          shiny::showNotification("Attempted database reconnection", type = "warning", duration = 3)
+          shiny::showNotification("Database connection failed - check connection settings", type = "error", duration = 3)
         }
       }
     })
@@ -1266,14 +1279,15 @@ studio_server <- function(gssencmode = "prefer") {
         # Auto-refresh data when switching to Responses tab
         refresh_response_data()
         
-        # Show appropriate notification based on mode
+        # Show appropriate notification based on mode and actual connection status
         if (rv$current_mode == "local") {
           shiny::showNotification("Local CSV files refreshed", type = "message", duration = 2)
         } else {
+          # Check connection status after refresh attempt
           if (rv$connection_status && !is.null(rv$current_db)) {
-            shiny::showNotification("Database tables and data refreshed", type = "message", duration = 2)
+            shiny::showNotification("Database connection verified and data refreshed", type = "message", duration = 2)
           } else {
-            shiny::showNotification("Database not connected", type = "warning", duration = 2)
+            shiny::showNotification("Database connection failed - check connection settings", type = "warning", duration = 2)
           }
         }
       } else {
