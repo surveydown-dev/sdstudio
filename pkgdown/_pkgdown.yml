@@ -1,4 +1,4 @@
-url: https://sdapps.surveydown.org/
+url: https://sdstudio.surveydown.org/
 navbar:
   structure:
     left: [docs, reference, articles, tutorials, news]
@@ -9,7 +9,7 @@ navbar:
       href: https://www.surveydown.org/
 
 home:
-  title: Supportive Shiny Apps for surveydown
+  title: Companion GUI for the surveydown survey platform
 template:
   bootstrap: 5
   light-switch: true
@@ -20,10 +20,9 @@ template:
     danger: "#A6081A"
   opengraph:
     image:
-      src: https://sdapps.surveydown.org/reference/figures/logo.png
-      alt: "Logo for the sdApps package"
+      src: https://sdstudio.surveydown.org/reference/figures/logo.png
+      alt: "Logo for the sdstudio package"
 reference:
-- title: Shiny Apps
+- title: surveydown Studio
   contents:
-  - sd_dashboard
-  - sd_studio
+  - launch

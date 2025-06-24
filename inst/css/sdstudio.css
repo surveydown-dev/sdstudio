@@ -1,0 +1,247 @@
+/* ===== GENERAL LAYOUT & NAVIGATION ===== */
+.navbar:not(.fixed-bottom):not(.navbar-fixed-bottom):not(.navbar-fixed-bottom)+div>.tab-content>.tab-pane {
+  margin-top: 10px !important;
+}
+
+/* ===== DRAG & DROP EFFECTS ===== */
+.sortable-ghost {
+  opacity: 0.4;
+}
+
+.sortable-placeholder {
+  background-color: #f9f9f9;
+  border: 1px dashed #ccc;
+  margin: 5px 0;
+}
+
+/* ===== TEMPLATE SELECTION FORM STYLING ===== */
+/* Override default form-group margin for better alignment in template selection */
+.template-selection-container .form-group {
+  margin: 0.5rem;
+}
+
+/* Visual feedback during content dragging */
+.content-dragging .page-header {
+  transition: background-color 0.2s ease;
+}
+
+.content-dragging .page-header.drag-hover {
+  background-color: #b3d9ff !important;
+  border: 2px dashed #007bff;
+}
+
+.content-dragging .questions-container {
+  min-height: 50px;
+  transition: min-height 0.2s ease;
+}
+
+/* Ensure expanded pages during drag have visible drop zones */
+.content-dragging .questions-container:empty::after {
+  content: "Drop content here";
+  display: block;
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  padding: 20px;
+  border: 2px dashed #ccc;
+  border-radius: 5px;
+  margin: 10px;
+}
+
+/* ===== TAB ENLARGEMENT ===== */
+.navbar-nav .nav-link {
+  font-size: 1.1rem;
+}
+
+/* ===== CODE EDITOR STYLING ===== */
+.shiny-ace.ace_editor {
+  margin-bottom: 0.1rem !important;
+}
+
+/* ===== UNDO/REDO BUTTON HOVER EFFECTS ===== */
+/* Structure section undo/redo buttons */
+.btn-sm[style*="background-color: #cce5ff"]:hover {
+  background-color: #99d6ff !important;
+  border-color: #0056b3 !important;
+  color: #0056b3 !important;
+  transform: scale(1.05);
+  transition: all 0.2s ease;
+}
+
+/* Add page button styling */
+#add_page_btn {
+  background-color: #ffe0b2 !important;
+  border-color: #ffcc80 !important;
+  color: #f57c00 !important;
+}
+
+#add_page_btn:hover {
+  background-color: #ffcc80 !important;
+  border-color: #ffb74d !important;
+  color: #bf360c !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Add text button styling */
+.add-text-btn {
+  background-color: #f0fff0 !important;
+  border-color: #28a745 !important;
+  color: #28a745 !important;
+}
+
+.add-text-btn:hover {
+  background-color: #e8f5e8 !important;
+  border-color: #1e7e34 !important;
+  color: #1e7e34 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Add question button styling */
+.add-question-btn {
+  background-color: #f0f8ff !important;
+  border-color: #5bc0de !important;
+  color: #5bc0de !important;
+}
+
+.add-question-btn:hover {
+  background-color: #e6f3ff !important;
+  border-color: #31b0d5 !important;
+  color: #31b0d5 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Code section undo/redo buttons */
+.btn-sm[style*="background-color: #d4edda"]:hover {
+  background-color: #b8e6c1 !important;
+  border-color: #1e7e34 !important;
+  color: #1e7e34 !important;
+  transform: scale(1.05);
+  transition: all 0.2s ease;
+}
+
+/* Add smooth transition for all small buttons */
+.btn-sm {
+  transition: all 0.2s ease;
+}
+
+/* ===== MODAL & FORM STYLING ===== */
+.modal-body textarea {
+  height: 150px;
+  font-family: Monaco, 'Lucida Console', monospace;
+}
+
+.modal-body input[type='text'] {
+  font-family: Monaco, 'Lucida Console', monospace;
+}
+
+/* ===== PAGE STRUCTURE ===== */
+.page-header {
+  background-color: #cce5ff; 
+  padding: 10px; 
+  border-radius: 5px; 
+  margin-bottom: 10px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: Monaco, 'Lucida Console', monospace;
+}
+
+.page-header:hover {
+  background-color: #ADD8FF;
+}
+
+.page-header .toggle-icon {
+  margin-left: 10px;
+  min-width: 20px;
+}
+
+.page-actions {
+  margin-left: auto;
+}
+
+/* ===== CONTENT ITEMS ===== */
+/* Base styling for content items */
+.question-item, 
+.text-item {
+  margin: 0 auto 10px auto; 
+  padding: 5px 5px 5px 40px; 
+  width: 95%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  font-family: Monaco, 'Lucida Console', monospace;
+  font-size: 0.9rem;
+}
+
+/* Rounded corners for first and last content items */
+/* First content item */
+.questions-container > .question-item:first-child,
+.questions-container > .text-item:first-child {
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+}
+
+/* Last content item */
+.questions-container > .question-item:last-child,
+.questions-container > .text-item:last-child {
+  border-bottom-left-radius: 5px;
+  border-bottom-right-radius: 5px;
+}
+
+/* Question-specific styling */
+.question-item {
+  border-left: 3px solid #5bc0de; 
+  background-color: #f0f0f0;
+}
+
+/* Text-specific styling */
+.text-item {
+  border-left: 3px solid #28a745; 
+  background-color: #e3e3e3;
+}
+
+/* ===== INTERACTIVE ELEMENTS ===== */
+/* Drag handles - unified styling */
+.page-header .drag-handle,
+.question-item .drag-handle,
+.text-item .drag-handle {
+  cursor: move;
+  color: #777;
+}
+
+.page-header .drag-handle {
+  margin-right: 10px;
+}
+
+.question-item .drag-handle,
+.text-item .drag-handle {
+  position: absolute;
+  left: 8px;
+}
+
+/* Drag handle hover effects */
+.page-header .drag-handle:hover,
+.question-item .drag-handle:hover,
+.text-item .drag-handle:hover {
+  color: #333;
+}
+
+/* Action buttons */
+.content-actions {
+  margin-right: 5px;
+}
+
+/* ===== DRAG & DROP EFFECTS ===== */
+.sortable-ghost {
+  opacity: 0.4;
+}
+
+.sortable-placeholder {
+  background-color: #f9f9f9;
+  border: 1px dashed #ccc;
+  margin: 5px 0;
+}
