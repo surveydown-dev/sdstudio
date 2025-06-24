@@ -1882,14 +1882,17 @@ server_preview_handlers <- function(input, output, session, survey_exists) {
   refresh_preview <- function() {
     preview_url <- paste0("http://127.0.0.1:", preview_port, "?refresh=", as.numeric(Sys.time()))
     
-    output$preview_frame <- shiny::renderUI({
-      shiny::tags$iframe(
-        src = preview_url,
-        width = "100%",
-        height = "100%",
-        style = "border: none; display: block;"
-      )
-    })
+    # Add a small delay to ensure preview server is ready
+    later::later(function() {
+      output$preview_frame <- shiny::renderUI({
+        shiny::tags$iframe(
+          src = preview_url,
+          width = "100%",
+          height = "100%",
+          style = "border: none; display: block;"
+        )
+      })
+    }, delay = 0.5)  # 500ms delay
   }
   
   # Return the refresh functions and process for cleanup
