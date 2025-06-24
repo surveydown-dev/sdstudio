@@ -1173,7 +1173,7 @@ render_survey_structure <- function(survey_structure, page_states = NULL) {
             # Add Text button
             shiny::actionButton(
               inputId = "add_text_btn_ui",
-              label = "T",
+              label = "+T",
               icon = NULL,
               class = "btn-sm btn-outline-success add-text-btn",
               style = "font-weight: bold; font-family: Arial, sans-serif; width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;",
@@ -1183,7 +1183,7 @@ render_survey_structure <- function(survey_structure, page_states = NULL) {
             # Add Question button
             shiny::actionButton(
               inputId = "add_question_btn_ui",
-              label = "Q",
+              label = "+Q",
               icon = NULL,
               class = "btn-sm btn-outline-info add-question-btn",
               style = "font-weight: bold; font-family: Arial, sans-serif; width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;",
