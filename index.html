@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Supportive Shiny Apps for surveydown • sdApps</title>
+<title>Companion GUI for the surveydown survey platform • sdstudio</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png">
 <link rel="icon" type="”image/svg+xml”" href="favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
@@ -15,11 +15,11 @@
 <link href="deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Supportive Shiny Apps for surveydown">
-<meta name="description" content="Companion Shiny applications that support the surveydown survey platform. The default method for working with a surveydown survey is to edit the plain text survey.qmd and app.R files. With sdApps, you can create and manage surveys with interactive Shiny applications.">
-<meta property="og:description" content="Companion Shiny applications that support the surveydown survey platform. The default method for working with a surveydown survey is to edit the plain text survey.qmd and app.R files. With sdApps, you can create and manage surveys with interactive Shiny applications.">
-<meta property="og:image" content="https://sdapps.surveydown.org/reference/figures/logo.png">
-<meta property="og:image:alt" content="Logo for the sdApps package">
+<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Companion GUI for the surveydown survey platform">
+<meta name="description" content="Companion package that supports the surveydown survey platform. The default method for working with a surveydown survey is to edit the plain text survey.qmd and app.R files. With sdstudio, you can create, preview and manage surveys with a Shiny webapp as a Graphical User Interface.">
+<meta property="og:description" content="Companion package that supports the surveydown survey platform. The default method for working with a surveydown survey is to edit the plain text survey.qmd and app.R files. With sdstudio, you can create, preview and manage surveys with a Shiny webapp as a Graphical User Interface.">
+<meta property="og:image" content="https://sdstudio.surveydown.org/reference/figures/logo.png">
+<meta property="og:image:alt" content="Logo for the sdstudio package">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -27,9 +27,9 @@
 
     <nav class="navbar navbar-expand-lg fixed-top " aria-label="Site navigation"><div class="container">
 
-    <a class="navbar-brand me-2" href="index.html">sdApps</a>
+    <a class="navbar-brand me-2" href="index.html">sdstudio</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,7 +43,7 @@
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/surveydown-dev/sdApps/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/surveydown-dev/sdstudio/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -52,37 +52,123 @@
 </nav><div class="container template-home">
 <div class="row">
   <main id="main" class="col-md-9"><div class="section level2">
-<h2 id="sdapps">sdApps<a class="anchor" aria-label="anchor" href="#sdapps"></a>
+<h2 id="sdstudio">sdstudio<a class="anchor" aria-label="anchor" href="#sdstudio"></a>
 </h2>
-<p>The <code>sdApps</code> package is a collection of companion applications that support the <a href="https://surveydown.org/" class="external-link">surveydown</a> survey platform.</p>
+<p><strong>sdstudio</strong> is a companion package that support the <a href="https://surveydown.org/" class="external-link">surveydown</a> survey platform. It launches a Shiny webapp and transforms the typical code-heavy survey creation workflow into an accessible Graphical User Interface, making it easy to create, preview, and manage surveys without extensive programming knowledge.</p>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>The <code>sdApps</code> package is not yet on CRAN, but the development version can be installed from GitHub:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># install.packages("pak")</span></span>
-<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>pak<span class="sc">::</span><span class="fu">pak</span>(<span class="st">'surveydown-dev/sdApps)</span></span></code></pre></div>
+<p>The <strong>sdstudio</strong> package is not yet on CRAN, but the development version can be installed from GitHub:</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu">pak</span><span class="op">(</span><span class="st">"surveydown-dev/sdstudio"</span>, ask <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="dashboard">Dashboard<a class="anchor" aria-label="anchor" href="#dashboard"></a>
+<h2 id="launch-the-studio">Launch the Studio<a class="anchor" aria-label="anchor" href="#launch-the-studio"></a>
 </h2>
-<p>The <strong>surveydown Dashboard</strong> is a Shiny application that provides a user-friendly interface for managing and viewing survey response data from live surveys. To launch the dashboard, run the following in the R console:</p>
+<p>The <strong>surveydown Studio</strong> is the main application in <strong>sdstudio</strong> - a unified Shiny interface for complete survey lifecycle management. Launch it with:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">sdApps</span><span class="fu">::</span><span class="fu"><a href="reference/sd_dashboard.html">sd_dashboard</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu">sdstudio</span><span class="fu">::</span><span class="fu"><a href="reference/launch.html">launch</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<div class="section level3">
+<h3 id="studio-features">Studio Features<a class="anchor" aria-label="anchor" href="#studio-features"></a>
+</h3>
+<div class="section level4">
+<h4 id="id_️-build-tab---visual-survey-creation">🏗️ <strong>Build Tab</strong> - Visual Survey Creation<a class="anchor" aria-label="anchor" href="#id_%EF%B8%8F-build-tab---visual-survey-creation"></a>
+</h4>
+<ul>
+<li>
+<strong>Drag-and-drop interface</strong> for intuitive survey construction</li>
+<li>
+<strong>15 survey templates</strong> covering basic to advanced use cases:
+<ul>
+<li>Basic templates (Default, Question Types, YAML-based)</li>
+<li>Advanced features (Conditional logic, Random options, Reactive questions)</li>
+<li>Specialized surveys (Conjoint experiments, Interactive maps, Live polling)</li>
+</ul>
+</li>
+<li>
+<strong>Dual-pane editor</strong> with visual builder and code editor (ACE integration)</li>
+<li>
+<strong>12 question types</strong> including multiple choice, text, numeric, sliders, dates</li>
+<li>
+<strong>Real-time synchronization</strong> between visual interface and underlying code</li>
+<li>
+<strong>Undo/redo functionality</strong> for all editing operations</li>
+<li>
+<strong>Local/Live mode switching</strong> for development and production workflows</li>
+</ul>
+</div>
+<div class="section level4">
+<h4 id="id_️-preview-tab---live-survey-testing">👁️ <strong>Preview Tab</strong> - Live Survey Testing<a class="anchor" aria-label="anchor" href="#id_%EF%B8%8F-preview-tab---live-survey-testing"></a>
+</h4>
+<ul>
+<li>
+<strong>Real-time preview</strong> of your survey as you build</li>
+<li>
+<strong>Responsive preview modes</strong>: Desktop (widescreen) and Mobile (375px) views</li>
+<li>
+<strong>Automatic refresh</strong> when survey code changes</li>
+<li>
+<strong>Interactive testing</strong> environment before deployment</li>
+</ul>
+</div>
+<div class="section level4">
+<h4 id="id_-responses-tab---data-management--analytics">📊 <strong>Responses Tab</strong> - Data Management &amp; Analytics<a class="anchor" aria-label="anchor" href="#id_-responses-tab---data-management--analytics"></a>
+</h4>
+<ul>
+<li>
+<strong>PostgreSQL database integration</strong> with connection pooling</li>
+<li>
+<strong>GSSAPI encryption support</strong> with automatic fallback options</li>
+<li>
+<strong>Real-time analytics dashboard</strong> showing:
+<ul>
+<li>Total responses and daily averages</li>
+<li>Completion rate tracking</li>
+<li>Cumulative and daily response trends (interactive charts)</li>
+</ul>
+</li>
+<li>
+<strong>Interactive data table</strong> with search, filtering, and sorting</li>
+<li>
+<strong>CSV export functionality</strong> for data analysis</li>
+<li>
+<strong>Visual connection status</strong> indicators with detailed feedback</li>
+</ul>
+</div>
+</div>
+<div class="section level3">
+<h3 id="key-capabilities">Key Capabilities<a class="anchor" aria-label="anchor" href="#key-capabilities"></a>
+</h3>
+<p><strong>Template System</strong>: Choose from 15 professionally designed templates ranging from basic surveys to advanced conjoint experiments and interactive visualizations.</p>
+<p><strong>Visual Survey Builder</strong>: Create surveys using an intuitive drag-and-drop interface with real-time code synchronization, eliminating the need for manual coding while maintaining full code access.</p>
+<p><strong>Database Integration</strong>: Seamless PostgreSQL connectivity with enterprise-grade security (GSSAPI encryption) and automatic connection management.</p>
+<p><strong>Responsive Design</strong>: Built with Bootstrap 5, providing a modern, mobile-friendly interface that works across all devices.</p>
+<p><strong>Development Workflow</strong>: Switch between Local (development) and Live (production) modes with one click, supporting iterative survey development and testing.</p>
+</div>
 </div>
 <div class="section level2">
-<h2 id="studio">Studio<a class="anchor" aria-label="anchor" href="#studio"></a>
+<h2 id="database-configuration">Database Configuration<a class="anchor" aria-label="anchor" href="#database-configuration"></a>
 </h2>
-<p>The <strong>surveydown Studio</strong> is a Shiny application that provides a GUI for creating and managing surveys. To launch the dashboard, run the following in the R console:</p>
+<p>The studio supports flexible database connection modes:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">sdApps</span><span class="fu">::</span><span class="fu"><a href="reference/sd_studio.html">sd_studio</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># Auto mode (recommended) - tries GSSAPI first, falls back if needed</span></span>
+<span><span class="fu"><a href="reference/launch.html">launch</a></span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Prefer mode - uses GSSAPI if available, plain connection if not  </span></span>
+<span><span class="fu"><a href="reference/launch.html">launch</a></span><span class="op">(</span>gssencmode <span class="op">=</span> <span class="st">"prefer"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Disable mode - forces plain connection (useful for VPN environments)</span></span>
+<span><span class="fu"><a href="reference/launch.html">launch</a></span><span class="op">(</span>gssencmode <span class="op">=</span> <span class="st">"disable"</span><span class="op">)</span></span></code></pre></div>
+<p>Configure your database connection using environment variables or the built-in Settings interface within the studio.</p>
 </div>
 
   </main><aside class="col-md-3"><div class="links">
 <h2 data-toc-skip>Links</h2>
 <ul class="list-unstyled">
-<li><a href="https://github.com/surveydown-dev/sdApps/" class="external-link">Browse source code</a></li>
-<li><a href="https://github.com/surveydown-dev/sdApps/issues" class="external-link">Report a bug</a></li>
+<li><a href="https://github.com/surveydown-dev/sdstudio/" class="external-link">Browse source code</a></li>
+<li><a href="https://github.com/surveydown-dev/sdstudio/issues" class="external-link">Report a bug</a></li>
 </ul>
 </div>
 
@@ -105,7 +191,7 @@
 <div class="citation">
 <h2 data-toc-skip>Citation</h2>
 <ul class="list-unstyled">
-<li><a href="authors.html#citation">Citing sdApps</a></li>
+<li><a href="authors.html#citation">Citing sdstudio</a></li>
 </ul>
 </div>
 
