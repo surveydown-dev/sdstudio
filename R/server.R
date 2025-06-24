@@ -369,7 +369,6 @@ studio_server <- function(gssencmode = "prefer") {
         
         # Update internal mode state if it differs from detected mode
         if (rv$current_mode != detected_mode) {
-          message(paste("Mode change detected:", rv$current_mode, "->", detected_mode))
           rv$current_mode <- detected_mode
           
           # Update button states via JavaScript
