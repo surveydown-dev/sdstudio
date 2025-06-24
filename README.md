@@ -1,32 +1,32 @@
 
 <!-- README.md is generated from README.Rmd. Please edit this file -->
 
-## sdApps
+## sdstudio
 
-The `sdApps` package provides companion Shiny applications that support
-the [surveydown](https://surveydown.org/) survey platform. It transforms
-the typical code-heavy survey creation workflow into an accessible GUI
-interface, making it easy to create, preview, and manage surveys without
-extensive programming knowledge.
+The `sdstudio` package provides companion Shiny applications that
+support the [surveydown](https://surveydown.org/) survey platform. It
+transforms the typical code-heavy survey creation workflow into an
+accessible GUI interface, making it easy to create, preview, and manage
+surveys without extensive programming knowledge.
 
 ## Installation
 
-The `sdApps` package is not yet on CRAN, but the development version can
-be installed from GitHub:
+The `sdstudio` package is not yet on CRAN, but the development version
+can be installed from GitHub:
 
 ``` r
 # install.packages("pak")
-pak::pak("surveydown-dev/sdApps", ask = FALSE)
+pak::pak("surveydown-dev/sdstudio", ask = FALSE)
 ```
 
 ## surveydown Studio
 
-The **surveydown Studio** is the main application in sdApps - a unified
-Shiny interface for complete survey lifecycle management. Launch it
-with:
+The **surveydown Studio** is the main application in sdstudio - a
+unified Shiny interface for complete survey lifecycle management. Launch
+it with:
 
 ``` r
-sdApps::sd_studio()
+sdstudio::launch()
 ```
 
 ### Studio Features
@@ -96,13 +96,13 @@ The studio supports flexible database connection modes:
 
 ``` r
 # Auto mode (recommended) - tries GSSAPI first, falls back if needed
-sd_studio()
+launch()
 
 # Prefer mode - uses GSSAPI if available, plain connection if not  
-sd_studio(gssencmode = "prefer")
+launch(gssencmode = "prefer")
 
 # Disable mode - forces plain connection (useful for VPN environments)
-sd_studio(gssencmode = "disable")
+launch(gssencmode = "disable")
 ```
 
 Configure your database connection using environment variables or the

@@ -238,11 +238,11 @@ ui_construction_tab <- function() {
 
     shiny::tags$head(
       htmltools::htmlDependency(
-        name = "sdApps",
+        name = "sdstudio",
         version = "1.0.0",
-        src = c(file = system.file("", package = "sdApps")),
-        stylesheet = "css/sdApps.css",
-        script = "js/sdApps.js"
+        src = c(file = system.file("", package = "sdstudio")),
+        stylesheet = "css/sdstudio.css",
+        script = "js/sdstudio.js"
       ),
       shiny::tags$script(src = "https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"),
 

@@ -1,4 +1,4 @@
 library(testthat)
-library(sdApps)
+library(sdstudio)
 
-# test_check("sdApps")
+# test_check("sdstudio")
