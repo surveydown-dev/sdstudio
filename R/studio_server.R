@@ -367,7 +367,7 @@ studio_server <- function(gssencmode = "prefer") {
     
     # Periodic mode detection to catch changes from direct app.R modifications
     shiny::observe({
-      if (survey_exists() && file.exists("app.R")) {
+      if (survey_exists() && file.exists("app.R") && !suppress_auto_button_update()) {
         detected_mode <- detect_app_mode()
         
         # Update internal mode state if it differs from detected mode
@@ -1039,6 +1039,12 @@ studio_server <- function(gssencmode = "prefer") {
     shiny::observeEvent(input$code_mode_switch, {
       target_mode <- input$code_mode_switch$mode
       
+      # Suppress automatic button updates FIRST to prevent bouncing
+      suppress_auto_button_update(TRUE)
+      later::later(function() {
+        suppress_auto_button_update(FALSE)
+      }, 5000)  # Increase to 5 seconds
+      
       # Update current mode tracking
       rv$current_mode <- target_mode
       
@@ -1048,12 +1054,6 @@ studio_server <- function(gssencmode = "prefer") {
       }
       
       current_content <- input$app_editor
-      
-      # Suppress automatic button updates for 3 seconds to prevent bouncing
-      suppress_auto_button_update(TRUE)
-      later::later(function() {
-        suppress_auto_button_update(FALSE)
-      }, 3)
       
       # Show overlay and start monitoring if user is on Preview tab
       if (!is.null(input$tabset) && input$tabset == "Preview") {
