@@ -333,6 +333,11 @@ studio_server <- function(gssencmode = "prefer") {
         return(NULL)
       }
       
+      # Check if file exists before trying to read it
+      if (!file.exists(filename)) {
+        return(NULL)
+      }
+      
       tryCatch({
         utils::read.csv(filename, stringsAsFactors = FALSE)
       }, error = function(e) {
@@ -1256,6 +1261,20 @@ studio_server <- function(gssencmode = "prefer") {
           survey_html_exists(current_lua_exists)
           # Show loading message while rendering
           session$sendCustomMessage("showRenderingMessage", list())
+        }
+      } else if (input$tabset == "Responses") {
+        # Auto-refresh data when switching to Responses tab
+        refresh_response_data()
+        
+        # Show appropriate notification based on mode
+        if (rv$current_mode == "local") {
+          shiny::showNotification("Local CSV files refreshed", type = "message", duration = 2)
+        } else {
+          if (rv$connection_status && !is.null(rv$current_db)) {
+            shiny::showNotification("Database tables and data refreshed", type = "message", duration = 2)
+          } else {
+            shiny::showNotification("Database not connected", type = "warning", duration = 2)
+          }
         }
       } else {
         if (monitoring_active()) {
