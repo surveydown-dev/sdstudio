@@ -419,6 +419,12 @@ studio_server <- function(gssencmode = "prefer") {
     # Initial connection attempt (only if .env file exists)
     shiny::observe({
       if (file.exists(".env")) {
+        # Set placeholder table from .env file if it exists
+        env_table <- Sys.getenv("SD_TABLE", "")
+        if (env_table != "") {
+          rv$placeholder_table <- env_table
+        }
+        
         message(paste("Attempting initial database connection with gssencmode=", gssencmode, "..."))
         attempt_connection(config = NULL, return_details = FALSE, gss_mode = gssencmode)
       } else {
