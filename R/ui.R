@@ -397,20 +397,10 @@ ui_normal_build <- function() {
           style = "background-color: #ffffff; border-color: #cce5ff; padding: 0.5rem;",
           
           shiny::div(
-            style = "overflow-y: auto; height: calc(100vh - 191px);",
+            style = "overflow-y: auto; height: calc(100vh - 141px);",
             shiny::uiOutput("survey_structure")
           ),
           
-          # Add A New Page button
-          shiny::div(
-            style = "margin-top: 10px;",
-            shiny::actionButton(
-              "add_page_btn",
-              "Add A New Page",
-              class = "btn-success",
-              style = "width: 100%; padding: 8px; font-weight: bold;"
-            )
-          )
         )
       )
     ),

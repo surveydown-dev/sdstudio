@@ -1136,6 +1136,7 @@ add_content_to_target_page <- function(page_id, content_items, target_order, edi
 render_survey_structure <- function(survey_structure, page_states = NULL) {
   shiny::div(
     id = "pages-container",
+    # Render all pages
     lapply(survey_structure$page_ids, function(page_id) {
       page_items <- survey_structure$pages[[page_id]]
       
@@ -1168,7 +1169,32 @@ render_survey_structure <- function(survey_structure, page_states = NULL) {
           
           shiny::div(
             class = "page-actions",
-            style = "display: flex; gap: 5px;",
+            style = "display: flex; gap: 5px; align-items: center;",
+            # Add Text button
+            shiny::actionButton(
+              inputId = "add_text_btn_ui",
+              label = "T",
+              icon = NULL,
+              class = "btn-sm btn-outline-success add-text-btn",
+              style = "font-weight: bold; font-family: Arial, sans-serif; width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;",
+              title = "Add text to this page",
+              `data-page-id` = page_id
+            ),
+            # Add Question button
+            shiny::actionButton(
+              inputId = "add_question_btn_ui",
+              label = "Q",
+              icon = NULL,
+              class = "btn-sm btn-outline-info add-question-btn",
+              style = "font-weight: bold; font-family: Arial, sans-serif; width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;",
+              title = "Add question to this page",
+              `data-page-id` = page_id
+            ),
+            # Separator
+            shiny::div(
+              "|",
+              style = "color: #666; margin: 0 3px; font-weight: normal;"
+            ),
             # Modify page button
             shiny::actionButton(
               inputId = "modify_page_btn_ui",
@@ -1203,26 +1229,6 @@ render_survey_structure <- function(survey_structure, page_states = NULL) {
           `data-page-id` = page_id,
           style = if(is_expanded) "display: block;" else "display: none;",
           
-          shiny::div(
-            style = "margin-bottom: 10px; width: 98%; margin-left: auto; margin-right: auto; display: flex; gap: 5px;",
-            shiny::actionButton(
-              inputId = "add_text_btn_ui",
-              label = "Add Text",
-              class = "btn-success add-text-btn",
-              style = "width: calc(50% - 2.5px); padding: 8px; font-weight: bold;",
-              title = "Add text to this page",
-              `data-page-id` = page_id
-            ),
-            shiny::actionButton(
-              inputId = "add_question_btn_ui", 
-              label = "Add Question",
-              class = "btn-info add-question-btn",
-              style = "width: calc(50% - 2.5px); padding: 8px; font-weight: bold;",
-              title = "Add question to this page",
-              `data-page-id` = page_id
-            )
-          ),
-          
           # Add content items in their order
           if (length(sorted_items) > 0) {
             lapply(names(sorted_items), function(item_id) {
@@ -1231,7 +1237,19 @@ render_survey_structure <- function(survey_structure, page_states = NULL) {
           }
         )
       )
-    })
+    }),
+    
+    # Add A New Page button - follows the page pattern
+    shiny::div(
+      class = "page-wrapper",
+      style = "margin-top: 10px;",
+      shiny::actionButton(
+        "add_page_btn",
+        "Add A New Page",
+        class = "btn-success",
+        style = "width: 100%; padding: 10px; font-weight: bold; background-color: #ffe0b2 !important; border-color: #ffcc80 !important; color: #f57c00 !important;"
+      )
+    )
   )
 }
 
@@ -1248,7 +1266,10 @@ render_content_item <- function(item) {
       # Question drag handle
       shiny::div(
         class = "question-drag-handle drag-handle",
-        shiny::icon("grip-lines")
+        shiny::div(
+          "Q",
+          style = "width: 24px; height: 24px; background-color: #a6d4f0; color: #1e7e93; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; font-family: Arial, sans-serif;"
+        )
       ),
       
       # Content wrapper - keeps the vertical layout
@@ -1256,15 +1277,12 @@ render_content_item <- function(item) {
         class = "content-wrapper",
         style = "flex-grow: 1;",
         
-        # Question content - each on its own line
+        # Question content - ID and Type on first line, Label on second line
         shiny::div(
-          shiny::HTML(paste0("<strong>Question: ", item$id, "</strong>"))
+          shiny::HTML(paste0("<strong>", item$id, "</strong> | ", item$type))
         ),
         shiny::div(
-          shiny::HTML(paste0("Type: ", item$type))
-        ),
-        shiny::div(
-          shiny::HTML(paste0("Label: ", item$label))
+          shiny::HTML(paste0("<em>", item$label, "</em>"))
         )
       ),
       
@@ -1306,7 +1324,10 @@ render_content_item <- function(item) {
       # Text drag handle
       shiny::div(
         class = "text-drag-handle drag-handle",
-        shiny::icon("grip-lines")
+        shiny::div(
+          "T",
+          style = "width: 24px; height: 24px; background-color: #94d3a2; color: #1a5928; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; font-family: Arial, sans-serif;"
+        )
       ),
       
       # Text content wrapper - keeps vertical layout if needed
@@ -1316,7 +1337,7 @@ render_content_item <- function(item) {
         
         # Text content preview
         shiny::div(
-          shiny::HTML(paste0("<strong>Text:</strong> ", item$preview))
+          shiny::HTML(item$preview)
         )
       ),
       

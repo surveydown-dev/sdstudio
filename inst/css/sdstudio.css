@@ -168,7 +168,7 @@
 .question-item, 
 .text-item {
   margin: 0 auto 10px auto; 
-  padding: 5px 5px 5px 20px; 
+  padding: 5px 5px 5px 40px; 
   width: 98%;
   position: relative;
   display: flex;
@@ -179,8 +179,8 @@
 
 /* Rounded corners for first and last content items */
 /* First content item */
-.questions-container > .question-item:nth-child(2),
-.questions-container > .text-item:nth-child(2) {
+.questions-container > .question-item:first-child,
+.questions-container > .text-item:first-child {
   border-top-left-radius: 5px;
   border-top-right-radius: 5px;
 }
@@ -220,7 +220,7 @@
 .question-item .drag-handle,
 .text-item .drag-handle {
   position: absolute;
-  left: 5px;
+  left: 8px;
 }
 
 /* Drag handle hover effects */
