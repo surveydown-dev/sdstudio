@@ -362,19 +362,31 @@ studio_server <- function(gssencmode = "prefer") {
       session$sendCustomMessage("updateModeUI", list(mode = rv$current_mode))
     }, priority = 1000)
     
-    # File-based mode detection using reactiveFileReader for efficiency
-    app_file_watcher <- shiny::reactiveFileReader(
-      intervalMillis = 500,  # Only check if file timestamp changed
-      session = session,
-      filePath = "app.R",
-      readFunc = function(file) {
-        if (!file.exists(file)) return(NULL)
-        readLines(file, warn = FALSE)
-      }
-    )
+    # Conditional file watcher - only active when needed
+    file_watcher_active <- shiny::reactiveVal(FALSE)
     
-    # React to app.R changes only when file actually changes
+    # Create file watcher that only runs when activated
+    app_file_watcher <- shiny::reactive({
+      if (!file_watcher_active() || !file.exists("app.R")) return(NULL)
+      
+      shiny::reactivePoll(
+        intervalMillis = 1000,  # Check every 1 second when active
+        session = session,
+        checkFunc = function() {
+          if (!file.exists("app.R")) return(Sys.time())
+          file.mtime("app.R")
+        },
+        valueFunc = function() {
+          if (!file.exists("app.R")) return(NULL)
+          readLines("app.R", warn = FALSE)
+        }
+      )()
+    })
+    
+    # React to app.R changes only when file actually changes and watcher is active
     shiny::observe({
+      if (!file_watcher_active()) return()
+      
       app_content <- app_file_watcher()
       
       if (survey_exists() && !is.null(app_content) && !suppress_auto_button_update()) {
@@ -390,6 +402,17 @@ studio_server <- function(gssencmode = "prefer") {
           ))
         }
       }
+    })
+    
+    # Activate file watcher ONLY when on Build tab AND actively editing app.R
+    shiny::observe({
+      # Monitor only if: Build tab + app.R tab active
+      should_be_active <- !is.null(input$tabset) && 
+                         input$tabset == "Build" && 
+                         !is.null(input$code_tabs) && 
+                         input$code_tabs == "app.R"
+      
+      file_watcher_active(should_be_active)
     })
 
     # Initial connection attempt (only if .env file exists)
@@ -987,11 +1010,11 @@ studio_server <- function(gssencmode = "prefer") {
       }
     }
     
-    # Initialize button states when app.R editor is loaded and detect mode changes
+    # Initialize button states once when survey is ready (no continuous polling)
+    initialization_done <- shiny::reactiveVal(FALSE)
+    
     shiny::observe({
-      if (survey_exists() && file.exists("app.R") && !suppress_auto_button_update()) {
-        # Delay to ensure the UI is fully rendered
-        shiny::invalidateLater(500)
+      if (survey_exists() && file.exists("app.R") && !initialization_done() && !suppress_auto_button_update()) {
         current_mode <- detect_app_mode()
         
         # Update internal mode state if it differs from detected mode
@@ -1003,6 +1026,9 @@ studio_server <- function(gssencmode = "prefer") {
         session$sendCustomMessage("updateCodeModeButtons", list(
           mode = current_mode
         ))
+        
+        # Mark initialization as complete to prevent continuous running
+        initialization_done(TRUE)
       }
     })
     
