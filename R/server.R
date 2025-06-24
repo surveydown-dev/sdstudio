@@ -383,10 +383,16 @@ studio_server <- function(gssencmode = "prefer") {
       shiny::invalidateLater(2000)
     })
 
-    # Initial connection attempt
+    # Initial connection attempt (only if .env file exists)
     shiny::observe({
-      message(paste("Attempting initial database connection with gssencmode=", gssencmode, "..."))
-      attempt_connection(config = NULL, return_details = FALSE, gss_mode = gssencmode)
+      if (file.exists(".env")) {
+        message(paste("Attempting initial database connection with gssencmode=", gssencmode, "..."))
+        attempt_connection(config = NULL, return_details = FALSE, gss_mode = gssencmode)
+      } else {
+        message("No .env file found. Skipping initial database connection attempt.")
+        # Set connection indicator to show not connected status
+        update_connection_indicator(FALSE, gssapi_enabled = FALSE, attempted = FALSE)
+      }
     })
 
     # Update database tables when connection is established  
