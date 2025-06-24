@@ -362,9 +362,22 @@ studio_server <- function(gssencmode = "prefer") {
       session$sendCustomMessage("updateModeUI", list(mode = rv$current_mode))
     }, priority = 1000)
     
-    # Periodic mode detection to catch changes from direct app.R modifications
+    # File-based mode detection using reactiveFileReader for efficiency
+    app_file_watcher <- shiny::reactiveFileReader(
+      intervalMillis = 500,  # Only check if file timestamp changed
+      session = session,
+      filePath = "app.R",
+      readFunc = function(file) {
+        if (!file.exists(file)) return(NULL)
+        readLines(file, warn = FALSE)
+      }
+    )
+    
+    # React to app.R changes only when file actually changes
     shiny::observe({
-      if (survey_exists() && file.exists("app.R") && !suppress_auto_button_update()) {
+      app_content <- app_file_watcher()
+      
+      if (survey_exists() && !is.null(app_content) && !suppress_auto_button_update()) {
         detected_mode <- detect_app_mode()
         
         # Update internal mode state if it differs from detected mode
@@ -377,9 +390,6 @@ studio_server <- function(gssencmode = "prefer") {
           ))
         }
       }
-      
-      # Check every 2 seconds
-      shiny::invalidateLater(2000)
     })
 
     # Initial connection attempt (only if .env file exists)
