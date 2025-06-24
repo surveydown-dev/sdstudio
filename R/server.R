@@ -427,7 +427,9 @@ studio_server <- function(gssencmode = "prefer") {
         # Local mode: show CSV files
         selected_file <- if ("preview_data.csv" %in% rv$csv_files) {
           "preview_data.csv"
-        } else if (length(rv$csv_files) > 0 && names(rv$csv_files)[1] != "No CSV files found") {
+        } else if (length(rv$csv_files) > 0 && !is.null(names(rv$csv_files)) && names(rv$csv_files)[1] != "No CSV files found") {
+          rv$csv_files[1]
+        } else if (length(rv$csv_files) > 0 && is.null(names(rv$csv_files))) {
           rv$csv_files[1]
         } else {
           NULL
@@ -442,7 +444,9 @@ studio_server <- function(gssencmode = "prefer") {
         default_table <- Sys.getenv("SD_TABLE", "")
         selected_table <- if (default_table != "" && default_table %in% rv$database_tables) {
           default_table
-        } else if (length(rv$database_tables) > 0 && names(rv$database_tables)[1] != "No tables found") {
+        } else if (length(rv$database_tables) > 0 && !is.null(names(rv$database_tables)) && names(rv$database_tables)[1] != "No tables found") {
+          rv$database_tables[1]
+        } else if (length(rv$database_tables) > 0 && is.null(names(rv$database_tables))) {
           rv$database_tables[1]
         } else {
           NULL
