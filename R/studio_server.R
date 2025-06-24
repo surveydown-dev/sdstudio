@@ -271,8 +271,6 @@ studio_server <- function(gssencmode = "prefer") {
     # Function to refresh response data based on current mode
     refresh_response_data <- function() {
       if (rv$current_mode == "local") {
-        # Refresh CSV files
-        message("Refreshing local CSV files...")
         update_csv_files()
         update_table_dropdown()
         
@@ -1242,18 +1240,6 @@ studio_server <- function(gssencmode = "prefer") {
     # Handle responses refresh button
     shiny::observeEvent(input$responses_refresh_btn, {
       refresh_response_data()
-      
-      # Show appropriate notification based on mode and actual connection status
-      if (rv$current_mode == "local") {
-        shiny::showNotification("Local CSV files refreshed", type = "message", duration = 2)
-      } else {
-        # Check connection status after refresh attempt
-        if (rv$connection_status && !is.null(rv$current_db)) {
-          shiny::showNotification("Database connection verified and data refreshed", type = "message", duration = 2)
-        } else {
-          shiny::showNotification("Database connection failed - check connection settings", type = "error", duration = 3)
-        }
-      }
     })
 
     # Launch preview on startup
@@ -1278,18 +1264,6 @@ studio_server <- function(gssencmode = "prefer") {
       } else if (input$tabset == "Responses") {
         # Auto-refresh data when switching to Responses tab
         refresh_response_data()
-        
-        # Show appropriate notification based on mode and actual connection status
-        if (rv$current_mode == "local") {
-          shiny::showNotification("Local CSV files refreshed", type = "message", duration = 2)
-        } else {
-          # Check connection status after refresh attempt
-          if (rv$connection_status && !is.null(rv$current_db)) {
-            shiny::showNotification("Database connection verified and data refreshed", type = "message", duration = 2)
-          } else {
-            shiny::showNotification("Database connection failed - check connection settings", type = "warning", duration = 2)
-          }
-        }
       } else {
         if (monitoring_active()) {
           monitoring_active(FALSE)

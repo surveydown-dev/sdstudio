@@ -83,7 +83,7 @@ studio_ui <- function() {
             shiny::HTML('<i class="fas fa-cloud"></i>'),
             class = "btn-outline-primary active",
             style = "padding: 8px 12px; font-size: 0.875rem; border-radius: 6px;",
-            title = "Live Mode"
+            title = "DB Mode"
           )
         )
       )

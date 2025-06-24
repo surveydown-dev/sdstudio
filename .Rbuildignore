@@ -21,3 +21,4 @@ build.R
 ^.vscode$
 ^app.R$
 ^CLAUDE\.md$
+^\.claude$
