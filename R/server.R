@@ -1735,10 +1735,14 @@ studio_server <- function(gssencmode = "prefer") {
     
     # Clean up when session ends
     session$onSessionEnded(function() {
-      process <- preview_handlers$preview_process()
-      if (!is.null(process)) {
-        try(tools::pskill(process), silent = TRUE)
-      }
+      tryCatch({
+        process <- shiny::isolate(preview_handlers$preview_process())
+        if (!is.null(process)) {
+          try(tools::pskill(process), silent = TRUE)
+        }
+      }, error = function(e) {
+        # Silently ignore reactive context errors during cleanup
+      })
     })
   }
 }
