@@ -3,15 +3,16 @@
 
 ## sdstudio
 
-The `sdstudio` package is a companion Shiny app that support the
-[surveydown](https://surveydown.org/) survey platform. It transforms the
-typical code-heavy survey creation workflow into an accessible Graphical
-User Interface, making it easy to create, preview, and manage surveys
-without extensive programming knowledge.
+**sdstudio** is a companion package that support the
+[surveydown](https://surveydown.org/) survey platform. It launches a
+Shiny webapp and transforms the typical code-heavy survey creation
+workflow into an accessible Graphical User Interface, making it easy to
+create, preview, and manage surveys without extensive programming
+knowledge.
 
 ## Installation
 
-The `sdstudio` package is not yet on CRAN, but the development version
+The **sdstudio** package is not yet on CRAN, but the development version
 can be installed from GitHub:
 
 ``` r
@@ -21,7 +22,7 @@ pak::pak("surveydown-dev/sdstudio", ask = FALSE)
 
 ## Launch the Studio
 
-The **surveydown Studio** is the main application in sdstudio - a
+The **surveydown Studio** is the main application in **sdstudio** - a
 unified Shiny interface for complete survey lifecycle management. Launch
 it with:
 

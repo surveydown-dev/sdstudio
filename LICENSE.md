@@ -1,6 +1,6 @@
 # MIT License
 
-Copyright (c) 2025 John Paul Helveston, Pingfan Hu, Bogdan Bunea
+Copyright (c) 2025 Pingfan Hu, John Paul Helveston, Bogdan Bunea
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

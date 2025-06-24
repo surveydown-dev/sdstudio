@@ -286,7 +286,6 @@ studio_server <- function(gssencmode = "prefer") {
         }
       } else {
         # Refresh database tables and data
-        message("Refreshing database tables and data...")
         if (rv$connection_status && !is.null(rv$current_db)) {
           # Force refresh of database tables (same as Test Connection does)
           update_database_tables()
