@@ -1049,6 +1049,10 @@ studio_server <- function(gssencmode = "prefer") {
       session$sendCustomMessage("updateModeUI", list(mode = current_mode))
       # Update table dropdown when mode changes
       update_table_dropdown()
+      # Update connection indicator when switching to DB mode
+      if (current_mode == "live") {
+        update_connection_indicator(rv$connection_status, rv$gssapi_enabled, rv$connection_attempted)
+      }
     })
     
     # Handle code mode switching
