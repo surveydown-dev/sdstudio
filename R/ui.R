@@ -580,12 +580,12 @@ ui_dashboard_tab <- function() {
     ),
     
     # Table Selection
-    shiny::selectInput(
+    shiny::selectizeInput(
       "table_select",
       "Choose a table to view:",
       choices = c("Loading..." = ""),
       width = "20%",
-      selectize = FALSE
+      options = list(create = TRUE, placeholder = "Select or type table name...")
     ),
     
     # Value boxes

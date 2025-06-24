@@ -38,7 +38,8 @@ studio_server <- function(gssencmode = "prefer") {
       connection_attempted = FALSE, # Track if connection has been attempted
       current_mode = "live",      # Track current mode: "live" or "local"
       database_tables = c(),      # Store database tables
-      csv_files = c()             # Store CSV files
+      csv_files = c(),            # Store CSV files
+      placeholder_table = NULL    # Store current placeholder table name
     )
 
     # Function to update connection state indicator
@@ -436,18 +437,13 @@ studio_server <- function(gssencmode = "prefer") {
             all_tables[!grepl("^pg_", all_tables)]
           })
 
-          # Only use environment variable for initial table selection
-          default_table <- Sys.getenv("SD_TABLE", "")
-          
-          # Include default table in choices even if it doesn't exist yet
+          # Start with existing tables
           all_choices <- tables
           
-          if (default_table != "" && !default_table %in% tables) {
-            # Table doesn't exist yet - add it to the front
-            all_choices <- c(default_table, tables)
-          } else if (default_table != "") {
-            # Table exists - move to front
-            all_choices <- c(default_table, setdiff(tables, default_table))
+          # Add placeholder table if it exists and is not already in the list
+          if (!is.null(rv$placeholder_table) && rv$placeholder_table != "" && 
+              !rv$placeholder_table %in% tables) {
+            all_choices <- c(rv$placeholder_table, tables)
           }
 
           rv$database_tables <- if (length(all_choices) > 0) all_choices else c("No tables found" = "")
@@ -473,26 +469,32 @@ studio_server <- function(gssencmode = "prefer") {
           NULL
         }
         
-        shiny::updateSelectInput(session, "table_select",
-                                 choices = rv$csv_files,
-                                 selected = selected_file
+        shiny::updateSelectizeInput(session, "table_select",
+                                    choices = rv$csv_files,
+                                    selected = selected_file
         )
       } else {
         # Live mode: show database tables
-        default_table <- Sys.getenv("SD_TABLE", "")
-        selected_table <- if (default_table != "" && default_table %in% rv$database_tables) {
-          default_table
-        } else if (length(rv$database_tables) > 0 && !is.null(names(rv$database_tables)) && names(rv$database_tables)[1] != "No tables found") {
-          rv$database_tables[1]
-        } else if (length(rv$database_tables) > 0 && is.null(names(rv$database_tables))) {
-          rv$database_tables[1]
+        # Prioritize placeholder table, then default from env, then first table
+        selected_table <- if (!is.null(rv$placeholder_table) && rv$placeholder_table != "" && 
+                             rv$placeholder_table %in% rv$database_tables) {
+          rv$placeholder_table
         } else {
-          NULL
+          default_table <- Sys.getenv("SD_TABLE", "")
+          if (default_table != "" && default_table %in% rv$database_tables) {
+            default_table
+          } else if (length(rv$database_tables) > 0 && !is.null(names(rv$database_tables)) && names(rv$database_tables)[1] != "No tables found") {
+            rv$database_tables[1]
+          } else if (length(rv$database_tables) > 0 && is.null(names(rv$database_tables))) {
+            rv$database_tables[1]
+          } else {
+            NULL
+          }
         }
         
-        shiny::updateSelectInput(session, "table_select",
-                                 choices = rv$database_tables,
-                                 selected = selected_table
+        shiny::updateSelectizeInput(session, "table_select",
+                                    choices = rv$database_tables,
+                                    selected = selected_table
         )
       }
     }
@@ -570,6 +572,11 @@ studio_server <- function(gssencmode = "prefer") {
           write(".env", ".gitignore")
         }
 
+        # Set placeholder table from the default_table input
+        if (input$default_table != "") {
+          rv$placeholder_table <- input$default_table
+        }
+        
         # Update database tables after successful test connection
         if (rv$connection_status && !is.null(rv$current_db)) {
           update_database_tables()
@@ -614,6 +621,7 @@ studio_server <- function(gssencmode = "prefer") {
           })
           return(data)
         }, error = function(e) {
+          # Just return NULL for any error - this will leave dashboard empty
           return(NULL)
         })
       }
