@@ -275,14 +275,55 @@ studio_server <- function(gssencmode = "prefer") {
         message("Refreshing local CSV files...")
         update_csv_files()
         update_table_dropdown()
+        
+        # Force refresh of survey data by invalidating the reactive
+        # This is done by briefly changing the table selection to trigger data refresh
+        current_selection <- input$table_select
+        if (!is.null(current_selection) && current_selection != "") {
+          # Temporarily change to empty and back to force reactive update
+          shiny::updateSelectInput(session, "table_select", selected = "")
+          later::later(function() {
+            shiny::updateSelectInput(session, "table_select", selected = current_selection)
+          }, 0.1)
+        }
       } else {
-        # Refresh database tables
-        message("Refreshing database tables...")
+        # Refresh database tables and data
+        message("Refreshing database tables and data...")
         if (rv$connection_status && !is.null(rv$current_db)) {
+          # Force refresh of database tables (same as Test Connection does)
           update_database_tables()
           update_table_dropdown()
+          
+          # Also invalidate the survey_data reactive to force data reload
+          # This is done by briefly changing the table selection to trigger data refresh
+          current_selection <- input$table_select
+          if (!is.null(current_selection) && current_selection != "") {
+            # Temporarily change to empty and back to force reactive update
+            shiny::updateSelectInput(session, "table_select", selected = "")
+            later::later(function() {
+              shiny::updateSelectInput(session, "table_select", selected = current_selection)
+            }, 0.1)
+          }
         } else {
           message("No database connection available for refresh")
+          # Attempt to reconnect if we have environment variables
+          if (file.exists(".env")) {
+            dotenv::load_dot_env(".env")
+          }
+          
+          host <- Sys.getenv("SD_HOST", "")
+          dbname <- Sys.getenv("SD_DBNAME", "")
+          user <- Sys.getenv("SD_USER", "")
+          
+          if (host != "" && dbname != "" && user != "") {
+            message("Attempting to reconnect...")
+            result <- attempt_connection(config = NULL, return_details = TRUE, gss_mode = "auto")
+            if (result$success) {
+              message("Reconnection successful, updating data...")
+              update_database_tables()
+              update_table_dropdown()
+            }
+          }
         }
       }
     }
@@ -1184,6 +1225,17 @@ studio_server <- function(gssencmode = "prefer") {
     # Handle responses refresh button
     shiny::observeEvent(input$responses_refresh_btn, {
       refresh_response_data()
+      
+      # Show appropriate notification based on mode
+      if (rv$current_mode == "local") {
+        shiny::showNotification("Local CSV files refreshed", type = "message", duration = 2)
+      } else {
+        if (rv$connection_status && !is.null(rv$current_db)) {
+          shiny::showNotification("Database tables and data refreshed", type = "message", duration = 2)
+        } else {
+          shiny::showNotification("Attempted database reconnection", type = "warning", duration = 3)
+        }
+      }
     })
 
     # Launch preview on startup
