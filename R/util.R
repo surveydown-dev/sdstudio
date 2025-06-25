@@ -623,10 +623,10 @@ r_chunk_separation <- function(editor_content) {
       if (!is.null(chunk_end)) {
         chunk_content <- editor_content[(chunk_start+1):(chunk_end-1)]
         
-        # Check for sd_ function calls
-        sd_start_indices <- grep("\\bsd_[a-zA-Z0-9_]+\\s*\\(", chunk_content)
+        # Check for top-level sd_ function calls (not nested)
+        sd_start_indices <- find_top_level_sd_calls(chunk_content)
         
-        # If multiple sd_ calls, split the chunk
+        # If multiple top-level sd_ calls, split the chunk
         if (length(sd_start_indices) > 1) {
           for (start_idx in sd_start_indices) {
             call_end <- find_function_call_end(chunk_content, start_idx)
@@ -678,6 +678,43 @@ r_chunk_separation <- function(editor_content) {
   content_string <- clean_multiple_empty_lines(content_string)
   
   return(content_string)
+}
+
+# Find top-level sd_ function calls (not nested inside other sd_ calls)
+find_top_level_sd_calls <- function(chunk_content) {
+  # Find all sd_ function call positions
+  all_sd_indices <- grep("\\bsd_[a-zA-Z0-9_]+\\s*\\(", chunk_content)
+  
+  if (length(all_sd_indices) <= 1) {
+    return(all_sd_indices)
+  }
+  
+  top_level_indices <- c()
+  
+  for (i in seq_along(all_sd_indices)) {
+    current_idx <- all_sd_indices[i]
+    is_top_level <- TRUE
+    
+    # Check if this sd_ call is nested inside any previous sd_ call
+    for (j in seq_along(all_sd_indices)) {
+      if (j >= i) break  # Only check previous calls
+      
+      prev_idx <- all_sd_indices[j]
+      prev_end <- find_function_call_end(chunk_content, prev_idx)
+      
+      # If current call is within the range of a previous call, it's nested
+      if (current_idx > prev_idx && current_idx <= prev_end) {
+        is_top_level <- FALSE
+        break
+      }
+    }
+    
+    if (is_top_level) {
+      top_level_indices <- c(top_level_indices, current_idx)
+    }
+  }
+  
+  return(top_level_indices)
 }
 
 # Find the end of a function call by tracking parentheses
