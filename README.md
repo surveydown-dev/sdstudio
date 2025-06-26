@@ -48,7 +48,8 @@ sdstudio::launch()
 - **Real-time synchronization** between visual interface and underlying
   code
 - **Undo/redo functionality** for all editing operations
-- **Local/Live mode switching** for development and production workflows
+- **Local/DB mode switching** for local testing and database connection
+  workflows
 
 #### 👁️ **Preview Tab** - Live Survey Testing
 
@@ -87,8 +88,8 @@ management.
 **Responsive Design**: Built with Bootstrap 5, providing a modern,
 mobile-friendly interface that works across all devices.
 
-**Development Workflow**: Switch between Local (development) and Live
-(production) modes with one click, supporting iterative survey
+**Development Workflow**: Switch between Local (local testing) and DB
+(database connection) modes with one click, supporting iterative survey
 development and testing.
 
 ## Database Configuration

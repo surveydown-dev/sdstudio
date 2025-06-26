@@ -52,7 +52,7 @@ sdstudio::launch()
 - **12 question types** including multiple choice, text, numeric, sliders, dates
 - **Real-time synchronization** between visual interface and underlying code
 - **Undo/redo functionality** for all editing operations
-- **Local/Live mode switching** for development and production workflows
+- **Local/DB mode switching** for local testing and database connection workflows
 
 #### 👁️ **Preview Tab** - Live Survey Testing  
 - **Real-time preview** of your survey as you build
@@ -81,7 +81,7 @@ sdstudio::launch()
 
 **Responsive Design**: Built with Bootstrap 5, providing a modern, mobile-friendly interface that works across all devices.
 
-**Development Workflow**: Switch between Local (development) and Live (production) modes with one click, supporting iterative survey development and testing.
+**Development Workflow**: Switch between Local (local testing) and DB (database connection) modes with one click, supporting iterative survey development and testing.
 
 ## Database Configuration
 
