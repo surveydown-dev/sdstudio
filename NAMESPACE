@@ -3,6 +3,7 @@
 export(launch)
 importFrom(htmltools,htmlDependency)
 importFrom(shiny,req)
+importFrom(stats,quantile)
 importFrom(stats,runif)
 importFrom(stats,setNames)
 importFrom(surveydown,sd_create_survey)

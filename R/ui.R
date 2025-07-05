@@ -128,8 +128,7 @@ ui_template_selection <- function() {
               choices = list(
                 "Basic Templates" = list(
                   "Default" = "default",
-                  "Question Types" = "question_types",
-                  "Questions (YAML)" = "questions_yml"
+                  "Question Types" = "question_types"
                 ),
                 "Advanced Features" = list(
                   "Conditional Display" = "conditional_display",

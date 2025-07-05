@@ -287,7 +287,7 @@ generate_page_template <- function(page_id) {
 }
 
 # Insert a question into a specific page
-insert_question_into_survey <- function(page_id, question_type, question_id, question_label, editor_content, options_text = NULL) {
+insert_question_into_survey <- function(page_id, question_type, question_id, question_label, editor_content, options_text = NULL, min_val = NULL, max_val = NULL, is_range = FALSE) {
   if (is.null(editor_content) || is.null(page_id)) {
     return(NULL)
   }
@@ -318,7 +318,7 @@ insert_question_into_survey <- function(page_id, question_type, question_id, que
   }
   
   insertion_point <- find_insertion_point(editor_content, page_start_line, page_end_line)
-  question_code <- generate_question_code(question_type, question_id, question_label, options_text)
+  question_code <- generate_question_code(question_type, question_id, question_label, options_text, min_val, max_val, is_range)
   question_chunk <- c(
     "```{r}",
     question_code,
@@ -760,7 +760,7 @@ find_function_call_end <- function(chunk_content, start_idx) {
 }
 
 # Generate question code based on type
-generate_question_code <- function(type, id, label, options_text = NULL) {
+generate_question_code <- function(type, id, label, options_text = NULL, min_val = NULL, max_val = NULL, is_range = FALSE) {
   # Ensure we have valid inputs
   if (is.null(id) || id == "") id <- paste0(type, "_id")
   if (is.null(label) || label == "") label <- paste0(type, "_label")
@@ -805,14 +805,36 @@ generate_question_code <- function(type, id, label, options_text = NULL) {
       paste0(")")
     ))
   } else if (type == "slider_numeric") {
-    return(c(
+    # Set default values if not provided
+    if (is.null(min_val)) min_val <- 0
+    if (is.null(max_val)) max_val <- 10
+    
+    # Generate the option sequence
+    option_seq <- paste0("seq(", min_val, ", ", max_val, ", 1)")
+    
+    result <- c(
       paste0("sd_question("),
       paste0("  type   = \"", type, "\","),
       paste0("  id     = \"", id, "\","),
-      paste0("  label  = \"", label, "\","),
-      paste0("  option = seq(0, 10, 1)"),
-      paste0(")")
-    ))
+      paste0("  label  = \"", label, "\",")
+    )
+    
+    # Add option parameter with comma if range mode is enabled
+    if (is_range) {
+      result <- c(result, paste0("  option = ", option_seq, ","))
+      
+      # Calculate 25% and 75% quantiles rounded to integers
+      range_vals <- seq(min_val, max_val, 1)
+      q25 <- round(quantile(range_vals, 0.25))
+      q75 <- round(quantile(range_vals, 0.75))
+      
+      result <- c(result, paste0("  default = c(", q25, ", ", q75, ")"))
+    } else {
+      result <- c(result, paste0("  option = ", option_seq))
+    }
+    
+    result <- c(result, paste0(")"))
+    return(result)
   } else {
     # Simple questions (text, textarea, numeric, date, daterange)
     return(c(
@@ -1645,7 +1667,7 @@ modify_page_id <- function(old_page_id, new_page_id, editor_content) {
 }
 
 # Modify question content in the survey
-modify_question_content <- function(page_id, old_question_id, new_type, new_id, new_label, editor_content, options_text = NULL) {
+modify_question_content <- function(page_id, old_question_id, new_type, new_id, new_label, editor_content, options_text = NULL, min_val = NULL, max_val = NULL, is_range = FALSE) {
   if (is.null(editor_content) || is.null(page_id) || is.null(old_question_id)) {
     return(NULL)
   }
@@ -1697,7 +1719,7 @@ modify_question_content <- function(page_id, old_question_id, new_type, new_id, 
         # Check if this chunk contains the question we want to modify
         if (grepl(paste0('id\\s*=\\s*["\']', old_question_id, '["\']'), chunk_content, perl = TRUE)) {
           # Generate new question code
-          new_question_code <- generate_question_code(new_type, new_id, new_label, options_text)
+          new_question_code <- generate_question_code(new_type, new_id, new_label, options_text, min_val, max_val, is_range)
           
           # Replace the chunk content
           result <- c(
