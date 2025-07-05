@@ -352,10 +352,18 @@ $(document).ready(function() {
     if (addQuestionType) {
       var choiceTypes = ['mc', 'mc_buttons', 'mc_multiple', 'mc_multiple_buttons', 'select', 'slider'];
       var $optionsDiv = $('#add_question_options_div');
+      var $sliderNumericDiv = $('#add_slider_numeric_div');
+      
       if (choiceTypes.includes(addQuestionType)) {
         $optionsDiv.show();
       } else {
         $optionsDiv.hide();
+      }
+      
+      if (addQuestionType === 'slider_numeric') {
+        $sliderNumericDiv.show();
+      } else {
+        $sliderNumericDiv.hide();
       }
     }
     
@@ -365,10 +373,21 @@ $(document).ready(function() {
       var choiceTypes = ['mc', 'mc_buttons', 'mc_multiple', 'mc_multiple_buttons', 'select', 'slider'];
       var $optionsInput = $('#modify_question_options');
       var $optionsContainer = $optionsInput.closest('div');
+      var $sliderMinInput = $('#modify_slider_min');
+      var $sliderMaxInput = $('#modify_slider_max');
+      var $sliderRangeInput = $('#modify_slider_range');
+      var $sliderContainer = $sliderMinInput.closest('div').parent();
+      
       if (choiceTypes.includes(modifyQuestionType)) {
         $optionsContainer.show();
       } else {
         $optionsContainer.hide();
+      }
+      
+      if (modifyQuestionType === 'slider_numeric') {
+        $sliderContainer.show();
+      } else {
+        $sliderContainer.hide();
       }
     }
   }

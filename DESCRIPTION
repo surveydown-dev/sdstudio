@@ -1,6 +1,6 @@
 Package: sdstudio
 Title: Companion GUI for the surveydown survey platform
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: c(
     person("Pingfan", "Hu", , "pingfan0727@gmail.com", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0009-0001-4877-4844")),

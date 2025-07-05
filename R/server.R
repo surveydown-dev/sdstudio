@@ -1159,6 +1159,36 @@ studio_server <- function(gssencmode = "prefer") {
           }
         }
         
+        # Extract slider_numeric values if it's a slider_numeric question
+        current_min <- 0
+        current_max <- 10
+        current_range <- FALSE
+        if (current_type == "slider_numeric" && "raw" %in% names(current_item)) {
+          # Parse the raw code to extract seq() parameters
+          raw_text <- current_item$raw
+          if (grepl("seq\\s*\\(", raw_text)) {
+            # Extract seq parameters
+            seq_match <- regexpr("seq\\s*\\(([^)]+)\\)", raw_text, perl = TRUE)
+            if (seq_match > 0) {
+              seq_params <- regmatches(raw_text, seq_match)
+              seq_params <- gsub("seq\\s*\\(|\\)", "", seq_params)
+              params <- strsplit(seq_params, ",")[[1]]
+              if (length(params) >= 2) {
+                min_parsed <- suppressWarnings(as.numeric(trimws(params[1])))
+                max_parsed <- suppressWarnings(as.numeric(trimws(params[2])))
+                if (!is.na(min_parsed) && !is.na(max_parsed)) {
+                  current_min <- min_parsed
+                  current_max <- max_parsed
+                }
+              }
+            }
+          }
+          # Check if there's a default parameter for range mode
+          if (grepl("default\\s*=\\s*c\\s*\\(", raw_text)) {
+            current_range <- TRUE
+          }
+        }
+        
         form_elements <- list(
           shiny::selectInput("modify_question_type", "Question Type:", 
                     choices = c(
@@ -1190,6 +1220,27 @@ studio_server <- function(gssencmode = "prefer") {
                                   value = current_options,
                                   rows = 3,
                                   placeholder = "Apple, Banana, Cherry")
+            )
+          ))
+        }
+        
+        # Add slider_numeric specific inputs
+        if (current_type == "slider_numeric") {
+          form_elements <- append(form_elements, list(
+            shiny::div(
+              style = "margin-top: 10px;",
+              shiny::fluidRow(
+                shiny::column(6,
+                  shiny::numericInput("modify_slider_min", "Minimum Value:", value = current_min, min = -1000, max = 1000, step = 1)
+                ),
+                shiny::column(6,
+                  shiny::numericInput("modify_slider_max", "Maximum Value:", value = current_max, min = -1000, max = 1000, step = 1)
+                )
+              )
+            ),
+            shiny::div(
+              style = "margin-top: 10px;",
+              shiny::checkboxInput("modify_slider_range", "Range Mode (two handles)", value = current_range)
             )
           ))
         }
@@ -1259,6 +1310,22 @@ studio_server <- function(gssencmode = "prefer") {
                                 "Options:", 
                                 rows = 3,
                                 placeholder = "Apple, Banana, Cherry")
+          ),
+          shiny::div(
+            id = "add_slider_numeric_div",
+            style = "display: none; margin-top: 10px;",
+            shiny::fluidRow(
+              shiny::column(6,
+                shiny::numericInput("add_slider_min", "Minimum Value:", value = 0, min = -1000, max = 1000, step = 1)
+              ),
+              shiny::column(6,
+                shiny::numericInput("add_slider_max", "Maximum Value:", value = 10, min = -1000, max = 1000, step = 1)
+              )
+            ),
+            shiny::div(
+              style = "margin-top: 10px;",
+              shiny::checkboxInput("add_slider_range", "Range Mode (two handles)", value = FALSE)
+            )
           )
         )
         
@@ -1495,13 +1562,40 @@ studio_server <- function(gssencmode = "prefer") {
             options_text <- input$add_question_options
           }
           
+          # Get slider_numeric specific parameters
+          min_val <- NULL
+          max_val <- NULL
+          is_range <- FALSE
+          if (input$add_question_type == "slider_numeric") {
+            min_val <- input$add_slider_min
+            max_val <- input$add_slider_max
+            is_range <- input$add_slider_range
+            
+            # Validate min/max values
+            if (is.null(min_val) || is.null(max_val) || is.na(min_val) || is.na(max_val)) {
+              shiny::showNotification("Please specify valid numeric minimum and maximum values for slider", type = "error")
+              return()
+            }
+            if (!is.numeric(min_val) || !is.numeric(max_val)) {
+              shiny::showNotification("Minimum and maximum values must be numeric", type = "error")
+              return()
+            }
+            if (min_val >= max_val) {
+              shiny::showNotification("Minimum value must be less than maximum value", type = "error")
+              return()
+            }
+          }
+          
           updated_content <- insert_question_into_survey(
             page_id,
             input$add_question_type,
             input$add_question_id,
             input$add_question_label,
             current_content,
-            options_text  # Pass options text
+            options_text,  # Pass options text
+            min_val,       # Pass min value
+            max_val,       # Pass max value
+            is_range       # Pass range flag
           )
           
           if (!is.null(updated_content)) {
@@ -1610,10 +1704,34 @@ studio_server <- function(gssencmode = "prefer") {
           new_label <- input$modify_question_label
           new_options <- input$modify_question_options  # Get options input
           
+          # Get slider_numeric specific parameters
+          min_val <- NULL
+          max_val <- NULL
+          is_range <- FALSE
+          if (new_type == "slider_numeric") {
+            min_val <- input$modify_slider_min
+            max_val <- input$modify_slider_max
+            is_range <- input$modify_slider_range
+            
+            # Validate min/max values
+            if (is.null(min_val) || is.null(max_val) || is.na(min_val) || is.na(max_val)) {
+              shiny::showNotification("Please specify valid numeric minimum and maximum values for slider", type = "error")
+              return()
+            }
+            if (!is.numeric(min_val) || !is.numeric(max_val)) {
+              shiny::showNotification("Minimum and maximum values must be numeric", type = "error")
+              return()
+            }
+            if (min_val >= max_val) {
+              shiny::showNotification("Minimum value must be less than maximum value", type = "error")
+              return()
+            }
+          }
+          
           if (!is.null(new_type) && !is.null(new_id) && !is.null(new_label) && 
               new_id != "" && new_label != "") {
             updated_content <- modify_question_content(
-              page_id, content_id, new_type, new_id, new_label, current_content, new_options
+              page_id, content_id, new_type, new_id, new_label, current_content, new_options, min_val, max_val, is_range
             )
           } else {
             shiny::showNotification("Please fill in all question fields", type = "error")

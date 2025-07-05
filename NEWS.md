@@ -1,5 +1,10 @@
 # sdstudio (development version)
 
+# sdstudio 0.1.1
+
+- Removed the "Questions (YAML)" template since `.yml` files are not yet compatible.
+- Improved the Modal UI of the `slider_numeric` question type.
+
 # sdstudio 0.1.0
 
 - Package renamed to **sdstudio** (used to be sdApps).

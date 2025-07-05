@@ -12,7 +12,7 @@
 #'   }
 #'
 #' @return No return value, called for its side effects of launching a Shiny app.
-#' @importFrom stats runif setNames
+#' @importFrom stats runif setNames quantile
 #' @importFrom utils head
 #' @importFrom shiny req
 #' @importFrom surveydown sd_create_survey sd_db_connect
