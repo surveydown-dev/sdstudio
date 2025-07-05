@@ -1580,6 +1580,10 @@ studio_server <- function(gssencmode = "prefer") {
               shiny::showNotification("Minimum and maximum values must be numeric", type = "error")
               return()
             }
+            if (min_val != round(min_val) || max_val != round(max_val)) {
+              shiny::showNotification("Minimum and maximum values must be integers", type = "error")
+              return()
+            }
             if (min_val >= max_val) {
               shiny::showNotification("Minimum value must be less than maximum value", type = "error")
               return()
@@ -1720,6 +1724,10 @@ studio_server <- function(gssencmode = "prefer") {
             }
             if (!is.numeric(min_val) || !is.numeric(max_val)) {
               shiny::showNotification("Minimum and maximum values must be numeric", type = "error")
+              return()
+            }
+            if (min_val != round(min_val) || max_val != round(max_val)) {
+              shiny::showNotification("Minimum and maximum values must be integers", type = "error")
               return()
             }
             if (min_val >= max_val) {
