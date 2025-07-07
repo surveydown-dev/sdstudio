@@ -1,5 +1,5 @@
 Package: sdstudio
-Title: Companion GUI for the surveydown survey platform
+Title: Companion Application For The Surveydown Survey Platform
 Version: 0.1.1
 Authors@R: c(
     person("Pingfan", "Hu", , "pingfan0727@gmail.com", role = c("aut", "cre", "cph"),
@@ -9,7 +9,7 @@ Authors@R: c(
     person("Bogdan", "Bunea", , "buneabt@yahoo.com", role = c("aut", "cph"),
            comment = c(ORCID = "0009-0006-2942-0588"))
   )
-Description: Companion package that supports the surveydown survey platform. The default method for working with a surveydown survey is to edit the plain text survey.qmd and app.R files. With sdstudio, you can create, preview and manage surveys with a Shiny webapp as a Graphical User Interface.
+Description: Companion package that supports the surveydown survey platform. The default method for working with a surveydown survey is to edit the plain text survey.qmd and app.R files. With sdstudio, you can create, preview and manage surveys with a 'shiny' application as a Graphical User Interface.
 License: MIT + file LICENSE
 URL: https://sdstudio.surveydown.org
 BugReports: https://github.com/surveydown-dev/sdstudio/issues
