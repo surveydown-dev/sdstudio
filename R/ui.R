@@ -2,14 +2,14 @@
 studio_ui <- function() {
   shiny::div(
     style = "position: relative;",
-    
+
     # Unified floating button container (top-right)
     shiny::div(
       id = "unified-floating-buttons",
       style = "position: fixed; top: 20px; right: 20px; z-index: 2000;",
       shiny::div(
         style = "display: flex; align-items: center; gap: 10px; background: rgba(255, 255, 255, 0.95); padding: 5px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); backdrop-filter: blur(10px);",
-        
+
         # Group 1: Refresh buttons (leftmost, context-dependent)
         shiny::div(
           id = "refresh-group",
@@ -32,13 +32,13 @@ studio_ui <- function() {
             title = "Refresh Response Data"
           )
         ),
-        
+
         # Separator 1 (only visible when refresh group is visible)
         shiny::div(
           id = "separator-1",
           style = "display: none; height: 24px; width: 1px; background-color: #dee2e6;"
         ),
-        
+
         # Group 2: View Mode (Desktop/Mobile, only on Preview tab)
         shiny::div(
           id = "view-group",
@@ -52,20 +52,20 @@ studio_ui <- function() {
             title = "Desktop View"
           ),
           shiny::actionButton(
-            "preview_mobile_btn", 
+            "preview_mobile_btn",
             shiny::HTML('<i class="fas fa-mobile-alt"></i>'),
             class = "btn-outline-primary",
             style = "padding: 8px 12px; font-size: 0.875rem; border-radius: 6px;",
             title = "Mobile View"
           )
         ),
-        
+
         # Separator 2 (only visible when both view and code groups are visible)
         shiny::div(
           id = "separator-2",
           style = "display: none; height: 24px; width: 1px; background-color: #dee2e6;"
         ),
-        
+
         # Group 3: Code Mode (Local/Live, visible on all tabs)
         shiny::div(
           id = "code-group",
@@ -79,7 +79,7 @@ studio_ui <- function() {
             title = "Local Mode"
           ),
           shiny::actionButton(
-            "code_live_btn", 
+            "code_live_btn",
             shiny::HTML('<i class="fas fa-cloud"></i>'),
             class = "btn-outline-primary active",
             style = "padding: 8px 12px; font-size: 0.875rem; border-radius: 6px;",
@@ -88,7 +88,7 @@ studio_ui <- function() {
         )
       )
     ),
-    
+
     # Main navbar
     shiny::navbarPage(
       title = "surveydown Studio",
@@ -106,12 +106,15 @@ ui_template_selection <- function() {
   shiny::div(
     class = "template-selection-container",
     style = "padding: 40px; text-align: center; height: calc(100vh - 120px); display: flex; flex-direction: column; justify-content: center;",
-    
+
     shiny::div(
       style = "width: 500px; margin: 0 auto;",
-      
-      shiny::h2("Create New Survey", style = "margin-bottom: 30px; color: #333; text-align: center; margin-left: 135px;"),
-      
+
+      shiny::h2(
+        "Create New Survey",
+        style = "margin-bottom: 30px; color: #333; text-align: center; margin-left: 135px;"
+      ),
+
       # Form table layout
       shiny::tags$table(
         style = "width: 100%; border-collapse: separate; border-spacing: 0 15px;",
@@ -179,7 +182,7 @@ ui_template_selection <- function() {
           )
         )
       ),
-      
+
       # Create button
       shiny::div(
         style = "margin-top: 30px; margin-left: 135px;",
@@ -191,7 +194,7 @@ ui_template_selection <- function() {
         )
       )
     ),
-    
+
     # Directory edit modal
     shiny::div(
       id = "edit-directory-modal",
@@ -204,7 +207,11 @@ ui_template_selection <- function() {
           shiny::div(
             class = "modal-header",
             shiny::h5("Edit Directory Path", class = "modal-title"),
-            shiny::tags$button(type = "button", class = "btn-close", `data-bs-dismiss` = "modal")
+            shiny::tags$button(
+              type = "button",
+              class = "btn-close",
+              `data-bs-dismiss` = "modal"
+            )
           ),
           shiny::div(
             class = "modal-body",
@@ -221,8 +228,17 @@ ui_template_selection <- function() {
           ),
           shiny::div(
             class = "modal-footer",
-            shiny::actionButton("confirm_path_edit", "Confirm", class = "btn btn-primary"),
-            shiny::tags$button("Cancel", type = "button", class = "btn btn-secondary", `data-bs-dismiss` = "modal")
+            shiny::actionButton(
+              "confirm_path_edit",
+              "Confirm",
+              class = "btn btn-primary"
+            ),
+            shiny::tags$button(
+              "Cancel",
+              type = "button",
+              class = "btn btn-secondary",
+              `data-bs-dismiss` = "modal"
+            )
           )
         )
       )
@@ -243,7 +259,9 @@ ui_construction_tab <- function() {
         stylesheet = "css/sdstudio.css",
         script = "js/sdstudio.js"
       ),
-      shiny::tags$script(src = "https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"),
+      shiny::tags$script(
+        src = "https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"
+      ),
 
       shiny::div(
         id = "modify-page-modal",
@@ -256,7 +274,11 @@ ui_construction_tab <- function() {
             shiny::div(
               class = "modal-header",
               shiny::h5("Modify Page ID", class = "modal-title"),
-              shiny::tags$button(type = "button", class = "btn-close", `data-bs-dismiss` = "modal")
+              shiny::tags$button(
+                type = "button",
+                class = "btn-close",
+                `data-bs-dismiss` = "modal"
+              )
             ),
             shiny::div(
               class = "modal-body",
@@ -264,8 +286,17 @@ ui_construction_tab <- function() {
             ),
             shiny::div(
               class = "modal-footer",
-              shiny::actionButton("modify_page_confirm", "Save Changes", class = "btn btn-primary"),
-              shiny::tags$button("Cancel", type = "button", class = "btn btn-secondary", `data-bs-dismiss` = "modal")
+              shiny::actionButton(
+                "modify_page_confirm",
+                "Save Changes",
+                class = "btn btn-primary"
+              ),
+              shiny::tags$button(
+                "Cancel",
+                type = "button",
+                class = "btn btn-secondary",
+                `data-bs-dismiss` = "modal"
+              )
             )
           )
         )
@@ -281,8 +312,16 @@ ui_construction_tab <- function() {
             class = "modal-content",
             shiny::div(
               class = "modal-header",
-              shiny::h5(id = "modify-content-modal-title", "Modify Content", class = "modal-title"),
-              shiny::tags$button(type = "button", class = "btn-close", `data-bs-dismiss` = "modal")
+              shiny::h5(
+                id = "modify-content-modal-title",
+                "Modify Content",
+                class = "modal-title"
+              ),
+              shiny::tags$button(
+                type = "button",
+                class = "btn-close",
+                `data-bs-dismiss` = "modal"
+              )
             ),
             shiny::div(
               class = "modal-body",
@@ -290,8 +329,17 @@ ui_construction_tab <- function() {
             ),
             shiny::div(
               class = "modal-footer",
-              shiny::actionButton("modify_content_confirm", "Save Changes", class = "btn btn-primary"),
-              shiny::tags$button("Cancel", type = "button", class = "btn btn-secondary", `data-bs-dismiss` = "modal")
+              shiny::actionButton(
+                "modify_content_confirm",
+                "Save Changes",
+                class = "btn btn-primary"
+              ),
+              shiny::tags$button(
+                "Cancel",
+                type = "button",
+                class = "btn btn-secondary",
+                `data-bs-dismiss` = "modal"
+              )
             )
           )
         )
@@ -307,8 +355,16 @@ ui_construction_tab <- function() {
             class = "modal-content",
             shiny::div(
               class = "modal-header",
-              shiny::h5(id = "add-content-modal-title", "Add Content", class = "modal-title"),
-              shiny::tags$button(type = "button", class = "btn-close", `data-bs-dismiss` = "modal")
+              shiny::h5(
+                id = "add-content-modal-title",
+                "Add Content",
+                class = "modal-title"
+              ),
+              shiny::tags$button(
+                type = "button",
+                class = "btn-close",
+                `data-bs-dismiss` = "modal"
+              )
             ),
             shiny::div(
               class = "modal-body",
@@ -316,8 +372,17 @@ ui_construction_tab <- function() {
             ),
             shiny::div(
               class = "modal-footer",
-              shiny::actionButton("add_content_confirm", "Add Content", class = "btn btn-primary"),
-              shiny::tags$button("Cancel", type = "button", class = "btn btn-secondary", `data-bs-dismiss` = "modal")
+              shiny::actionButton(
+                "add_content_confirm",
+                "Add Content",
+                class = "btn btn-primary"
+              ),
+              shiny::tags$button(
+                "Cancel",
+                type = "button",
+                class = "btn btn-secondary",
+                `data-bs-dismiss` = "modal"
+              )
             )
           )
         )
@@ -334,18 +399,34 @@ ui_construction_tab <- function() {
             shiny::div(
               class = "modal-header",
               shiny::h5("Add A New Page", class = "modal-title"),
-              shiny::tags$button(type = "button", class = "btn-close", `data-bs-dismiss` = "modal")
+              shiny::tags$button(
+                type = "button",
+                class = "btn-close",
+                `data-bs-dismiss` = "modal"
+              )
             ),
             shiny::div(
               class = "modal-body",
-              shiny::textInput("add_page_id_input", "Page ID:", 
-                              placeholder = "Enter page ID"),
+              shiny::textInput(
+                "add_page_id_input",
+                "Page ID:",
+                placeholder = "Enter page ID"
+              ),
               shiny::uiOutput("add_page_position_ui")
             ),
             shiny::div(
               class = "modal-footer",
-              shiny::actionButton("add_page_confirm", "Add Page", class = "btn btn-success"),
-              shiny::tags$button("Cancel", type = "button", class = "btn btn-secondary", `data-bs-dismiss` = "modal")
+              shiny::actionButton(
+                "add_page_confirm",
+                "Add Page",
+                class = "btn btn-success"
+              ),
+              shiny::tags$button(
+                "Cancel",
+                type = "button",
+                class = "btn btn-secondary",
+                `data-bs-dismiss` = "modal"
+              )
             )
           )
         )
@@ -359,16 +440,16 @@ ui_construction_tab <- function() {
 
 # Normal Build Interface UI
 ui_normal_build <- function() {
-  shiny::fluidRow(      
+  shiny::fluidRow(
     # Left - Structure Panel
     shiny::column(
       width = 5,
       style = "border-right: 1px solid #ddd;",
-      shiny::div(          
+      shiny::div(
         # Structure header with undo/redo buttons
         shiny::div(
           style = "display: flex; justify-content: space-between; align-items: center; background-color: #cce5ff; padding: 6px; margin-bottom: 10px; border-radius: 4px;",
-          
+
           # Undo button (left)
           shiny::actionButton(
             "undo_btn",
@@ -377,10 +458,13 @@ ui_normal_build <- function() {
             class = "btn-sm",
             style = "background-color: #cce5ff; border-color: #007bff; color: #007bff; padding: 2px 5px; font-size: 0.8rem;"
           ),
-          
+
           # Structure title (center)
-          shiny::h5("Structure", style = "margin: 0; text-align: center; flex-grow: 1;"),
-          
+          shiny::h5(
+            "Structure",
+            style = "margin: 0; text-align: center; flex-grow: 1;"
+          ),
+
           # Redo button (right)
           shiny::actionButton(
             "redo_btn",
@@ -390,20 +474,19 @@ ui_normal_build <- function() {
             style = "background-color: #cce5ff; border-color: #007bff; color: #007bff; padding: 2px 5px; font-size: 0.8rem;"
           )
         ),
-        
+
         # Structure content panel
         shiny::wellPanel(
           style = "background-color: #ffffff; border-color: #cce5ff; padding: 0.5rem;",
-          
+
           shiny::div(
             style = "overflow-y: auto; height: calc(100vh - 141px);",
             shiny::uiOutput("survey_structure")
           ),
-          
         )
       )
     ),
-    
+
     # Right - Code Panel
     shiny::column(
       width = 7,
@@ -412,14 +495,16 @@ ui_normal_build <- function() {
         # Code header
         shiny::div(
           style = "display: flex; justify-content: space-between; align-items: center; background-color: #d4edda; padding: 6px; margin-bottom: 10px; border-radius: 4px;",
-          shiny::h5("Code", style = "margin: 0; text-align: center; flex-grow: 1;")
+          shiny::h5(
+            "Code",
+            style = "margin: 0; text-align: center; flex-grow: 1;"
+          )
         ),
-        
+
         # Code panel with tabs
         shiny::wellPanel(
           style = "background-color: #f0fff0; border-color: #d4edda; padding: 0.5rem; position: relative;",
-          
-          
+
           shiny::tabsetPanel(
             id = "code_tabs",
             shiny::tabPanel(
@@ -449,7 +534,7 @@ ui_preview_tab <- function() {
     "Preview",
     shiny::div(
       style = "display: flex; flex-direction: column; height: calc(100vh - 79px); padding: 10px; position: relative;",
-      
+
       # Preview container (now takes full height)
       shiny::div(
         style = "flex: 1; display: flex; justify-content: center; align-items: flex-start;",
@@ -467,9 +552,10 @@ ui_preview_tab <- function() {
 ui_dashboard_tab <- function() {
   shiny::tabPanel(
     "Responses",
-    
+
     shiny::tags$head(
-      shiny::tags$script("
+      shiny::tags$script(
+        "
         function myFunction() {
           var x = document.getElementById('password');
           if (x.type === 'password') {
@@ -502,9 +588,10 @@ ui_dashboard_tab <- function() {
             }
           });
         });
-      ")
+      "
+      )
     ),
-    
+
     # Database Connection (full width, collapsible)
     bslib::card(
       id = "database_connection_card",
@@ -513,10 +600,13 @@ ui_dashboard_tab <- function() {
         shiny::div(
           class = "d-flex align-items-center",
           "Database Connection",
-          shiny::actionButton("toggle_db_settings", "Settings", 
-                              class = "btn-sm btn-outline-primary ms-3",
-                              style = "width: 90px;",
-                              icon = shiny::icon("cog"))
+          shiny::actionButton(
+            "toggle_db_settings",
+            "Settings",
+            class = "btn-sm btn-outline-primary ms-3",
+            style = "width: 90px;",
+            icon = shiny::icon("cog")
+          )
         ),
         # Connection state indicator
         shiny::div(
@@ -542,7 +632,11 @@ ui_dashboard_tab <- function() {
           style = "display: none;",
           shiny::textInput("host", "Host:", value = Sys.getenv("SD_HOST", "")),
           shiny::textInput("port", "Port:", value = Sys.getenv("SD_PORT", "")),
-          shiny::textInput("dbname", "Database Name:", value = Sys.getenv("SD_DBNAME", "")),
+          shiny::textInput(
+            "dbname",
+            "Database Name:",
+            value = Sys.getenv("SD_DBNAME", "")
+          ),
           shiny::textInput("user", "User:", value = Sys.getenv("SD_USER", "")),
           shiny::div(
             id = "password-container",
@@ -565,31 +659,40 @@ ui_dashboard_tab <- function() {
               )
             )
           ),
-          shiny::textInput("default_table", "Table:",
-                           value = Sys.getenv("SD_TABLE", "")),
+          shiny::textInput(
+            "default_table",
+            "Table:",
+            value = Sys.getenv("SD_TABLE", "")
+          ),
           shiny::div(
             style = "margin-top: 20px;",
-            shiny::actionButton("test_connection", "Test Connection",
-                                class = "btn-primary",
-                                style = "width: 300px;")
+            shiny::actionButton(
+              "test_connection",
+              "Test Connection",
+              class = "btn-primary",
+              style = "width: 300px;"
+            )
           ),
           shiny::textOutput("connection_status")
         )
       )
     ),
-    
+
     # Table Selection
     shiny::selectizeInput(
       "table_select",
       "Choose a table to view:",
       choices = c("Loading..." = ""),
       width = "20%",
-      options = list(create = TRUE, placeholder = "Select or type table name...")
+      options = list(
+        create = TRUE,
+        placeholder = "Select or type table name..."
+      )
     ),
-    
+
     # Value boxes
     bslib::layout_column_wrap(
-      width = 1/3,
+      width = 1 / 3,
       heights_equal = "row",
       bslib::value_box(
         title = "Total Responses",
@@ -607,10 +710,10 @@ ui_dashboard_tab <- function() {
         showcase = shiny::icon("check-circle")
       )
     ),
-    
+
     # Charts
     bslib::layout_column_wrap(
-      width = 1/2,
+      width = 1 / 2,
       bslib::card(
         full_screen = TRUE,
         bslib::card_header("Cumulative Responses"),
@@ -622,18 +725,20 @@ ui_dashboard_tab <- function() {
         shiny::plotOutput("daily_trend", height = "300px")
       )
     ),
-    
+
     # Data table
     bslib::card(
       full_screen = TRUE,
       bslib::card_header(
         class = "d-flex justify-content-between align-items-center",
         "Survey Responses",
-        shiny::downloadButton("download_survey_data", "Download CSV",
-                              class = "btn-sm btn-secondary")
+        shiny::downloadButton(
+          "download_survey_data",
+          "Download CSV",
+          class = "btn-sm btn-secondary"
+        )
       ),
       DT::dataTableOutput("survey_data_table")
     )
   )
 }
-

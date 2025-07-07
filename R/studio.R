@@ -23,13 +23,16 @@
 #' if (interactive()) {
 #'   # Launch studio (uses "auto" mode by default)
 #'   launch()
-#'   
+#'
 #'   # Launch studio with disabled GSS encryption (for VPN connections)
 #'   launch(gssencmode = "disable")
-#'   
+#'
 #'   # Launch studio with prefer mode (no fallback)
 #'   launch(gssencmode = "prefer")
 #' }
 launch <- function(gssencmode = "auto") {
-  shiny::shinyApp(ui = studio_ui(), server = studio_server(gssencmode = gssencmode))
+  shiny::shinyApp(
+    ui = studio_ui(),
+    server = studio_server(gssencmode = gssencmode)
+  )
 }
