@@ -26,10 +26,10 @@ The Build tab includes a template selection interface for creating new surveys.
 if (interactive()) {
   # Launch studio (uses "auto" mode by default)
   launch()
-  
+
   # Launch studio with disabled GSS encryption (for VPN connections)
   launch(gssencmode = "disable")
-  
+
   # Launch studio with prefer mode (no fallback)
   launch(gssencmode = "prefer")
 }

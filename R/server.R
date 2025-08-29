@@ -106,7 +106,7 @@ studio_server <- function(gssencmode = "prefer") {
       # Handle auto mode by trying prefer first, then disable
       if (gss_mode == "auto") {
         # Try prefer first
-        tryCatch({
+        prefer_result <- tryCatch({
           db <- try_connection("prefer")
           
           if (!is.null(db)) {
@@ -120,11 +120,17 @@ studio_server <- function(gssencmode = "prefer") {
               return(TRUE)
             }
           }
+          NULL  # Return NULL if db is null
         }, error = function(e) {
+          "error"  # Return "error" to indicate prefer mode failed
+        })
+        
+        # If prefer mode succeeded, we already returned above
+        if (is.null(prefer_result) || prefer_result == "error") {
           message("Connection failed with gssencmode='prefer', trying 'disable'...")
           
           # Try disable as fallback
-          tryCatch({
+          disable_result <- tryCatch({
             db <- try_connection("disable")
             
             if (!is.null(db)) {
@@ -140,32 +146,25 @@ studio_server <- function(gssencmode = "prefer") {
                 return(TRUE)
               }
             }
+            NULL  # Return NULL if db is null
           }, error = function(e2) {
-            # Both attempts failed
+            "error"  # Return "error" to indicate disable mode also failed
+          })
+          
+          # If we reach here and disable didn't succeed, both attempts failed
+          if (is.null(disable_result) || disable_result == "error") {
             rv$connection_status <- FALSE
             rv$current_db <- NULL
             rv$gssapi_enabled <- FALSE
             update_connection_indicator(FALSE, gssapi_enabled = FALSE)
-            warning("Connection failed with both gssencmode='prefer' and 'disable': ", e2$message)
+            warning("Connection failed with both gssencmode='prefer' and 'disable'")
             if (return_details) {
               return(list(success = FALSE, fallback_used = TRUE, 
-                         message = paste("Connection failed with both GSSAPI modes:", e2$message)))
+                         message = "Connection failed with both prefer and disable modes"))
             } else {
               return(FALSE)
             }
-          })
-        })
-        
-        # If we reach here, both attempts failed
-        rv$connection_status <- FALSE
-        rv$current_db <- NULL
-        rv$gssapi_enabled <- FALSE
-        update_connection_indicator(FALSE, gssapi_enabled = FALSE)
-        if (return_details) {
-          return(list(success = FALSE, fallback_used = TRUE, 
-                     message = "Connection failed with both prefer and disable modes"))
-        } else {
-          return(FALSE)
+          }
         }
       } else {
         # For non-auto modes, use original logic

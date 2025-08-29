@@ -1,5 +1,9 @@
 # sdstudio (development version)
 
+# sdstudio 0.1.2
+
+- Bug fix: The database connection is now fully compatible with `gssencmode = "auto"` when `"disable"` mode is triggered. 
+
 # sdstudio 0.1.1
 
 - Removed the "Questions (YAML)" template since `.yml` files are not yet compatible.
