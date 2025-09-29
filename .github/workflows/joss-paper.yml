@@ -1,0 +1,38 @@
+name: Build JOSS Paper
+
+on:
+  push:
+    branches: [ main, joss ]
+    paths:
+      - 'paper/**'
+  pull_request:
+    branches: [ main, joss ]
+    paths:
+      - 'paper/**'
+  workflow_dispatch:
+
+jobs:
+  paper:
+    runs-on: ubuntu-latest
+    name: Build JOSS Paper PDF
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build paper
+        uses: openjournals/openjournals-draft-action@master
+        with:
+          journal: joss
+          paper-path: paper/paper.md
+
+      - name: Upload paper PDF
+        uses: actions/upload-artifact@v4
+        with:
+          name: joss-paper-pdf
+          path: paper/paper.pdf
+
+      - name: Upload paper HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: joss-paper-html
+          path: paper/paper.html
