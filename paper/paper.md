@@ -2,29 +2,25 @@
 title: 'sdstudio: A Graphical User Interface for Survey Design and Data Collection'
 tags:
   - R
+  - shiny
+  - surveydown
   - survey research
   - graphical user interface
   - data collection
-  - social science
-  - shiny
 authors:
   - name: Pingfan Hu
     orcid: 0009-0001-4877-4844
     affiliation: 1
     corresponding: true
-  - name: John Paul Helveston
-    orcid: 0000-0002-2657-9191
-    affiliation: 2
   - name: Bogdan Bunea
     orcid: 0009-0006-2942-0588
-    affiliation: 3
+    affiliation: 1
+  - name: John Paul Helveston
+    orcid: 0000-0002-2657-9191
+    affiliation: 1
 affiliations:
- - name: Independent Researcher
+ - name: Department of Engineering Management and Systems Engineering, George Washington University, Washington, District of Columbia, United States of America
    index: 1
- - name: George Washington University, USA
-   index: 2
- - name: Independent Researcher
-   index: 3
 date: 28 September 2025
 bibliography: paper.bib
 ---
