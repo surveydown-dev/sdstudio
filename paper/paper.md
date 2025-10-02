@@ -21,7 +21,7 @@ authors:
 affiliations:
  - name: Department of Engineering Management and Systems Engineering, George Washington University, Washington, District of Columbia, United States of America
    index: 1
-date: 28 September 2025
+date: "28 September 2025"
 bibliography: paper.bib
 ---
 
