@@ -35,17 +35,29 @@ The `surveydown` platform has established itself as a powerful framework for cre
 
 `sdstudio` addresses these diverse needs by providing a comprehensive companion interface for the `surveydown` survey platform [@surveydown2025]. The package offers three specialized capabilities through dedicated tabs: Build, Preview, and Responses.
 
-The Build tab presents a graphical interface for survey construction, which supports full graphical capability of toggling on and off, and drag-n-drop behaviors. There are clear buttons for managing pages and contents. The Preview tab enables immediate survey testing and has both desktop and mobile view modes. This combination ensures a GUI experience for both survey creation and survey test run, which should largely improve the user experience of `surveydown` for survey researchers in general. Lastly, the Responses tab streamlines database connection and data management. These capabilities serve researchers regardless of their preference for GUI or code-based development, providing unified interfaces for survey design, testing, and data analysis [@tourangeau2017adaptive].
+The Build tab presents a graphical interface for survey construction, which supports toggle controls, and drag-and-drop behaviors. There are clear buttons for managing pages and contents. The Preview tab enables immediate survey testing and has both desktop and mobile view modes. This combination ensures a GUI experience for both survey creation and survey testing, improving the user experience of `surveydown` for survey researchers in general. Lastly, the Responses tab streamlines database connection and data management. These capabilities serve researchers regardless of their preference for GUI or code-based development, providing unified interfaces for survey design, testing, and data analysis [@tourangeau2017adaptive].
 
 # Implementation
 
-`sdstudio` is built using the R Shiny framework. While launched, a local Shiny App will open in a new browser window.
+`sdstudio` is built using the R Shiny framework and can be installed directly from GitHub:
 
-The studio launches with a template system, which uses existing templates supported in the `surveydown-dev` GitHub repositories [@surveydowndev]. The Build tab interface features a dual-pane design (\autoref{fig:interface}): the left "Structure" panel provides hierarchical page and content management with drag-and-drop functionality, while the right "Code" panel displays the automatically generated `surveydown` markup using the ACE code editor. During the survey design process, `surveydown` runs on the backend to render the survey in real time. The Preview tab uses an iframe to display the rendered survey. While it's not ready, there is a loading spinner to indicate the rendering status. The Response tab provides database integration that supports both local testing CSV files and online databases.
+```r
+pak::pak("surveydown-dev/sdstudio", ask = FALSE)
+```
 
-This three-tab interface works seamlessly while generating the desired survey files, ensuring collaborations between design, preview, and data management. Security features include `.env` for database credentials and automatic `.gitignore` generation to prevent exposure of sensitive files.
+To launch the application, users simply call:
 
-![The dual-pane interface of the Build tab showing the Structure panel (left) for graphical user experience and the Code panel (right) displaying the automatically generated `survey.qmd` scripts.\label{fig:interface}](sdstudio.png)
+```r
+sdstudio::launch()
+```
+
+When launched, a local Shiny application will open in a new browser window.
+
+The studio launches with a template system, which uses existing templates available from the `surveydown-dev` GitHub organization [@surveydowndev]. The Build tab interface features a dual-pane design (\autoref{fig:interface}): the left "Structure" panel provides hierarchical page and content management with drag-and-drop functionality, while the right "Code" panel displays the automatically generated `surveydown` markup using the ACE code editor. During the survey design process, the survey is rendered on the backend in real time. The Preview tab uses an iframe to display the rendered survey, with a loading spinner providing visual feedback while rendering is in progress. The Responses tab provides database integration that supports both local CSV files and online databases.
+
+This three-tab interface works seamlessly while generating the desired survey files, enabling smooth workflow transitions among design, preview, and data management. Security features include `.env` for database credentials and automatic `.gitignore` generation to prevent exposure of sensitive files.
+
+![The dual-pane interface of the Build tab showing the Structure panel (left) for graphical user experience and the Code panel (right) displaying the automatically generated `survey.qmd` script.\label{fig:interface}](sdstudio.png)
 
 # Comparison with Existing Tools
 
