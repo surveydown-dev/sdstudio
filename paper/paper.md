@@ -27,7 +27,7 @@ bibliography: paper.bib
 
 # Summary
 
-Survey research is fundamental to social sciences, market research, and data collection across numerous disciplines. While code-based survey platforms like `surveydown` [@surveydown2025] offer powerful capabilities for reproducible research, researchers often benefit from complementary tools that enhance workflow efficiency. `sdstudio` is an R package that provides a comprehensive graphical user interface (GUI) companion for the `surveydown` platform, offering multiple interaction modes to suit different preferences and use cases. Built using the Shiny framework [@shiny2021], `sdstudio` features three main components: a visual survey builder with real-time code synchronization (the "Build" tab), an interactive preview system supporting both desktop and mobile views (the "Preview" tab), and a data management interface for response collection and analysis (the "Responses" tab). A comprehensive tutorial and demonstration is available [@sdstudio_tutorial2025].
+Survey research is fundamental to social sciences, market research, and data collection across numerous disciplines. While `surveydown` as a code-based survey platform [@surveydown2025] offers powerful capabilities, researchers often benefit from complementary tools that enhance workflow efficiency. `sdstudio` is a companion R package for the `surveydown` platform, offering multiple interaction modes to suit different preferences and use cases. Built using the Shiny framework [@shiny2021], `sdstudio` features three main components: a visual survey builder with real-time code synchronization (the "Build" tab), an interactive preview system supporting both desktop and mobile views (the "Preview" tab), and a data management interface for response collection and analysis (the "Responses" tab). A comprehensive tutorial and demonstration is available [@sdstudio_tutorial2025].
 
 # Statement of need
 
@@ -45,15 +45,13 @@ The Build tab presents a graphical interface for survey construction, which supp
 pak::pak("surveydown-dev/sdstudio", ask = FALSE)
 ```
 
-To launch the application, users simply call:
+To launch the application, simply call:
 
 ```r
 sdstudio::launch()
 ```
 
-When launched, a local Shiny application will open in a new browser window.
-
-The studio launches with a template system, which uses existing templates available from the `surveydown-dev` GitHub organization [@surveydowndev]. The Build tab interface features a dual-pane design (\autoref{fig:interface}): the left "Structure" panel provides hierarchical page and content management with drag-and-drop functionality, while the right "Code" panel displays the automatically generated `surveydown` markup using the ACE code editor. During the survey design process, the survey is rendered on the backend in real time. The Preview tab uses an iframe to display the rendered survey, with a loading spinner providing visual feedback while rendering is in progress. The Responses tab provides database integration that supports both local CSV files and online databases.
+When launched, a local Shiny application will open in a new browser window. The workflow starts with a template system, which uses existing templates available from the `surveydown-dev` GitHub organization [@surveydowndev]. The Build tab interface features a dual-pane design (\autoref{fig:interface}): the left "Structure" panel provides hierarchical page and content management with drag-and-drop functionality, while the right "Code" panel displays the automatically generated `surveydown` markup using the ACE code editor. During the survey design process, the survey is rendered on the backend in real time. The Preview tab uses an iframe to display the rendered survey, with a loading spinner providing visual feedback while rendering is in progress. The Responses tab provides database integration that supports both local CSV files and online databases.
 
 This three-tab interface works seamlessly while generating the desired survey files, enabling smooth workflow transitions among design, preview, and data management. Security features include `.env` for database credentials and automatic `.gitignore` generation to prevent exposure of sensitive files.
 
