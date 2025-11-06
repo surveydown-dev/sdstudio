@@ -1,0 +1,4 @@
+# License
+
+    YEAR: 2025
+    COPYRIGHT HOLDER: Pingfan Hu, John Paul Helveston, Bogdan Bunea
