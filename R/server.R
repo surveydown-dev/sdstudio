@@ -705,6 +705,8 @@ studio_server <- function(gssencmode = "prefer") {
       cumulative_responses <- cumsum(all_counts)
 
       # Plot setup with theme
+      oldpar <- graphics::par(no.readonly = TRUE)
+      on.exit(graphics::par(oldpar))
       graphics::par(bg = bg_color, fg = text_color, col.axis = text_color, col.lab = text_color,
           mar = c(4, 4, 2, 2))
 
@@ -750,6 +752,8 @@ studio_server <- function(gssencmode = "prefer") {
       all_counts[names(daily_counts)] <- daily_counts
 
       # Plot setup with theme
+      oldpar <- graphics::par(no.readonly = TRUE)
+      on.exit(graphics::par(oldpar))
       graphics::par(bg = bg_color, fg = text_color, col.axis = text_color, col.lab = text_color,
           mar = c(5, 4, 2, 2))  # Increased bottom margin for date labels
 
@@ -863,13 +867,13 @@ studio_server <- function(gssencmode = "prefer") {
     # Handle create survey button
     shiny::observeEvent(input$create_survey_btn, {
       req(input$template_select, input$path_input)
-      
+
       # Validate path
       if (!dir.exists(dirname(input$path_input))) {
         shiny::showNotification("Parent directory does not exist!", type = "error")
         return()
       }
-      
+
       # Create the directory if it doesn't exist
       if (!dir.exists(input$path_input)) {
         tryCatch({
@@ -879,16 +883,18 @@ studio_server <- function(gssencmode = "prefer") {
           return()
         })
       }
-      
+
       # Create the survey with full path first
       tryCatch({
         surveydown::sd_create_survey(
-          template = input$template_select, 
-          path = input$path_input, 
+          template = input$template_select,
+          path = input$path_input,
           ask = FALSE
         )
-        
+
         # Change to the target directory after creation
+        # Note: This working directory change is scoped to the Shiny session
+        # and does not affect the user's R environment outside the app
         setwd(input$path_input)
         survey_exists(TRUE)
       }, error = function(e) {

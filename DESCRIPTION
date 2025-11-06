@@ -13,7 +13,7 @@ Author: Pingfan Hu [aut, cre, cph] (<https://orcid.org/0009-0001-4877-4844>),
   John Paul Helveston [aut, cph] (<https://orcid.org/0000-0002-2657-9191>),
   Bogdan Bunea [aut, cph] (<https://orcid.org/0009-0006-2942-0588>)
 Maintainer: Pingfan Hu <pingfan0727@gmail.com>
-Description: Companion package that supports the 'surveydown' survey platform. The default method for working with a 'surveydown' survey is to edit the plain text 'survey.qmd' and 'app.R' files. With 'sdstudio', you can create, preview and manage surveys with a 'shiny' application as a Graphical User Interface.
+Description: Companion package that supports the 'surveydown' survey platform (<https://surveydown.org>). The default method for working with a 'surveydown' survey is to edit the plain text 'survey.qmd' and 'app.R' files. With 'sdstudio', you can create, preview and manage surveys with a 'shiny' application as a graphical user interface.
 License: MIT + file LICENSE
 URL: https://sdstudio.surveydown.org
 BugReports: https://github.com/surveydown-dev/sdstudio/issues
