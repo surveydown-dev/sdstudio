@@ -1422,17 +1422,14 @@ studio_server <- function(gssencmode = "prefer") {
       }
     })
     
-    # Handle format conversion and R chunk separation for manual edits
+    # Handle R chunk separation for manual edits
     shiny::observeEvent(input$survey_editor, {
       shiny::invalidateLater(1000)
       current_content <- input$survey_editor
-      
-      # First convert page formats
-      converted_content <- convert_page_formats(current_content)
-      
-      # Then separate R chunks
-      separated_content <- r_chunk_separation(converted_content)
-      
+
+      # Separate R chunks if needed
+      separated_content <- r_chunk_separation(current_content)
+
       if (!identical(current_content, separated_content)) {
         shinyAce::updateAceEditor(session, "survey_editor", value = separated_content)
       }

@@ -33,7 +33,7 @@ sdstudio::launch()
 ### 🏗️ **Build Tab** - Visual Survey Creation
 
 - **Drag-and-drop interface** for intuitive survey construction
-- **15 survey templates** covering basic to advanced use cases
+- **14 survey templates** covering basic to advanced use cases
 - **Dual-pane editor** with visual builder and code editor
 - **Real-time synchronization** between visual interface and underlying
   code

@@ -1,5 +1,9 @@
 # sdstudio (development version)
 
+# sdstudio 0.1.3
+
+- Page break compatibility with the new `surveydown` package (>= 0.14.0).
+
 # sdstudio 0.1.2
 
 - Bug fix: The database connection is now fully compatible with `gssencmode = "auto"` when `"disable"` mode is triggered. 

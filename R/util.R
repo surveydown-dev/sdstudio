@@ -1,38 +1,5 @@
 # Content Editing Functions ----
 
-# Convert default quarto format to surveydown format
-convert_page_formats <- function(content) {
-  if (is.null(content)) {
-    return(NULL)
-  }
-
-  if (is.character(content) && length(content) == 1) {
-    content_text <- content
-  } else {
-    content_text <- paste(content, collapse = "\n")
-  }
-
-  # Pattern to match default format: ::: {#id .sd_page} or ::: {#id .sd-page}
-  default_pattern_underscore <- ":::\\s*\\{\\s*#([a-zA-Z0-9_]+)\\s+\\.sd_page\\s*\\}"
-  default_pattern_dash <- ":::\\s*\\{\\s*#([a-zA-Z0-9_]+)\\s+\\.sd-page\\s*\\}"
-
-  # Replace with surveydown format
-  content_text <- gsub(
-    default_pattern_underscore,
-    "::: {.sd_page id=\\1}",
-    content_text,
-    perl = TRUE
-  )
-  content_text <- gsub(
-    default_pattern_dash,
-    "::: {.sd-page id=\\1}",
-    content_text,
-    perl = TRUE
-  )
-
-  return(content_text)
-}
-
 # Reorganize library calls to the beginning of the file
 reorganize_libraries <- function(editor_content) {
   if (is.null(editor_content)) {
@@ -213,9 +180,14 @@ insert_page_into_survey <- function(page_id, editor_content) {
     editor_content <- strsplit(editor_content, "\n")[[1]]
   }
 
-  last_page_end <- max(which(grepl(":::", editor_content, fixed = TRUE)), 0)
+  # Find the last page marker (lines starting with ---)
+  page_markers <- grep("^---\\s+[a-zA-Z0-9_]+", editor_content, perl = TRUE)
 
-  if (last_page_end == 0) {
+  if (length(page_markers) == 0) {
+    # No pages yet, insert at the end
+    last_page_end <- length(editor_content)
+  } else {
+    # Insert after the last page
     last_page_end <- length(editor_content)
   }
 
@@ -249,7 +221,8 @@ insert_page_below_specific_page <- function(
     editor_content <- strsplit(editor_content, "\n")[[1]]
   }
 
-  page_start_pattern <- paste0("::: \\{.sd[_-]page id=", below_page_id, "\\}")
+  # Find the page with the new format: --- below_page_id
+  page_start_pattern <- paste0("^---\\s+", below_page_id, "\\s*$")
   page_start_lines <- grep(page_start_pattern, editor_content, perl = TRUE)
 
   if (length(page_start_lines) == 0) {
@@ -257,17 +230,17 @@ insert_page_below_specific_page <- function(
   }
 
   page_start_line <- page_start_lines[1]
-  page_end_line <- NULL
 
-  for (i in page_start_line:length(editor_content)) {
-    if (grepl("^:::$", editor_content[i])) {
-      page_end_line <- i
-      break
-    }
-  }
+  # Find where this page ends (start of next page or end of file)
+  all_page_markers <- grep("^---\\s+[a-zA-Z0-9_]+", editor_content, perl = TRUE)
+  next_page_markers <- all_page_markers[all_page_markers > page_start_line]
 
-  if (is.null(page_end_line)) {
-    return(insert_page_into_survey(new_page_id, editor_content))
+  if (length(next_page_markers) > 0) {
+    # Insert before the next page
+    page_end_line <- next_page_markers[1] - 1
+  } else {
+    # This is the last page, insert at the end
+    page_end_line <- length(editor_content)
   }
 
   page_template <- generate_page_template(new_page_id)
@@ -289,27 +262,22 @@ insert_page_below_specific_page <- function(
 generate_page_template <- function(page_id) {
   if (page_id == "end") {
     return(c(
-      "::: {.sd_page id=end}",
+      paste0("--- ", page_id),
       "",
       "## Thanks for taking our survey!",
       "",
       "```{r}",
-      "# Close button",
       "sd_close()",
       "```",
-      "",
-      ":::",
       ""
     ))
   } else {
     return(c(
-      paste0("::: {.sd_page id=", page_id, "}"),
+      paste0("--- ", page_id),
       "",
       "```{r}",
       "sd_next()",
       "```",
-      "",
-      ":::",
       ""
     ))
   }
@@ -335,7 +303,8 @@ insert_question_into_survey <- function(
     editor_content <- strsplit(editor_content, "\n")[[1]]
   }
 
-  page_start_pattern <- paste0("::: \\{.sd[_-]page id=", page_id, "\\}")
+  # Find the page with new format: --- page_id
+  page_start_pattern <- paste0("^---\\s+", page_id, "\\s*$")
   page_start_lines <- grep(page_start_pattern, editor_content, perl = TRUE)
 
   if (length(page_start_lines) == 0) {
@@ -343,17 +312,15 @@ insert_question_into_survey <- function(
   }
 
   page_start_line <- page_start_lines[1]
-  page_end_line <- NULL
 
-  for (i in page_start_line:length(editor_content)) {
-    if (grepl("^:::$", editor_content[i])) {
-      page_end_line <- i
-      break
-    }
-  }
+  # Find where this page ends (start of next page or end of file)
+  all_page_markers <- grep("^---\\s+[a-zA-Z0-9_]+", editor_content, perl = TRUE)
+  next_page_markers <- all_page_markers[all_page_markers > page_start_line]
 
-  if (is.null(page_end_line)) {
-    return(NULL)
+  if (length(next_page_markers) > 0) {
+    page_end_line <- next_page_markers[1] - 1
+  } else {
+    page_end_line <- length(editor_content)
   }
 
   insertion_point <- find_insertion_point(
@@ -395,7 +362,8 @@ insert_text_into_survey <- function(page_id, text_content, editor_content) {
     editor_content <- strsplit(editor_content, "\n")[[1]]
   }
 
-  page_start_pattern <- paste0("::: \\{.sd[_-]page id=", page_id, "\\}")
+  # Find the page with new format: --- page_id
+  page_start_pattern <- paste0("^---\\s+", page_id, "\\s*$")
   page_start_lines <- grep(page_start_pattern, editor_content, perl = TRUE)
 
   if (length(page_start_lines) == 0) {
@@ -403,17 +371,15 @@ insert_text_into_survey <- function(page_id, text_content, editor_content) {
   }
 
   page_start_line <- page_start_lines[1]
-  page_end_line <- NULL
 
-  for (i in page_start_line:length(editor_content)) {
-    if (grepl("^:::$", editor_content[i])) {
-      page_end_line <- i
-      break
-    }
-  }
+  # Find where this page ends (start of next page or end of file)
+  all_page_markers <- grep("^---\\s+[a-zA-Z0-9_]+", editor_content, perl = TRUE)
+  next_page_markers <- all_page_markers[all_page_markers > page_start_line]
 
-  if (is.null(page_end_line)) {
-    return(NULL)
+  if (length(next_page_markers) > 0) {
+    page_end_line <- next_page_markers[1] - 1
+  } else {
+    page_end_line <- length(editor_content)
   }
 
   insertion_point <- find_insertion_point(
@@ -485,10 +451,14 @@ reorder_pages <- function(new_order, editor_content) {
     editor_content <- strsplit(editor_content, "\n")[[1]]
   }
 
+  # Find all page markers
+  all_page_markers <- grep("^---\\s+[a-zA-Z0-9_]+", editor_content, perl = TRUE)
+
   page_blocks <- list()
 
   for (page_id in new_order) {
-    page_start_pattern <- paste0("::: \\{.sd[_-]page id=", page_id, "\\}")
+    # Find this specific page
+    page_start_pattern <- paste0("^---\\s+", page_id, "\\s*$")
     page_start_lines <- grep(page_start_pattern, editor_content, perl = TRUE)
 
     if (length(page_start_lines) == 0) {
@@ -496,22 +466,21 @@ reorder_pages <- function(new_order, editor_content) {
     }
 
     page_start_line <- page_start_lines[1]
-    page_end_line <- NULL
 
-    for (i in page_start_line:length(editor_content)) {
-      if (i > page_start_line && grepl("^:::$", editor_content[i])) {
-        page_end_line <- i
-        break
-      }
+    # Find where this page ends (start of next page or end of file)
+    next_page_markers <- all_page_markers[all_page_markers > page_start_line]
+
+    if (length(next_page_markers) > 0) {
+      page_end_line <- next_page_markers[1] - 1
+    } else {
+      page_end_line <- length(editor_content)
     }
 
-    if (!is.null(page_end_line)) {
-      page_blocks[[page_id]] <- list(
-        start = page_start_line,
-        end = page_end_line,
-        content = editor_content[page_start_line:page_end_line]
-      )
-    }
+    page_blocks[[page_id]] <- list(
+      start = page_start_line,
+      end = page_end_line,
+      content = editor_content[page_start_line:page_end_line]
+    )
   }
 
   if (length(page_blocks) != length(new_order)) {
@@ -562,7 +531,8 @@ reorder_page_content <- function(page_id, new_content_order, editor_content) {
     editor_content <- strsplit(editor_content, "\n")[[1]]
   }
 
-  page_start_pattern <- paste0("::: \\{.sd[_-]page id=", page_id, "\\}")
+  # Find the page with new format: --- page_id
+  page_start_pattern <- paste0("^---\\s+", page_id, "\\s*$")
   page_start_lines <- grep(page_start_pattern, editor_content, perl = TRUE)
 
   if (length(page_start_lines) == 0) {
@@ -570,17 +540,15 @@ reorder_page_content <- function(page_id, new_content_order, editor_content) {
   }
 
   page_start_line <- page_start_lines[1]
-  page_end_line <- NULL
 
-  for (i in page_start_line:length(editor_content)) {
-    if (grepl("^:::$", editor_content[i])) {
-      page_end_line <- i
-      break
-    }
-  }
+  # Find where this page ends (start of next page or end of file)
+  all_page_markers <- grep("^---\\s+[a-zA-Z0-9_]+", editor_content, perl = TRUE)
+  next_page_markers <- all_page_markers[all_page_markers > page_start_line]
 
-  if (is.null(page_end_line)) {
-    return(NULL)
+  if (length(next_page_markers) > 0) {
+    page_end_line <- next_page_markers[1] - 1
+  } else {
+    page_end_line <- length(editor_content)
   }
 
   original_page_content <- editor_content[page_start_line:page_end_line]
@@ -635,7 +603,7 @@ reorder_page_content <- function(page_id, new_content_order, editor_content) {
     }
   }
 
-  new_page_content <- c(new_page_content, ":::")
+  # No closing delimiter needed with new format
 
   result <- c(
     editor_content[1:(page_start_line - 1)],
@@ -1105,47 +1073,46 @@ parse_survey_structure <- function() {
     return(list(error = "survey.qmd file not found!"))
   }
 
-  # Extract pages
-  page_pattern_underscore <- ":::\\s*\\{\\s*\\.sd_page\\s+id\\s*=\\s*([a-zA-Z0-9_]+)\\s*\\}"
-  page_pattern_dash <- ":::\\s*\\{\\s*\\.sd-page\\s+id\\s*=\\s*([a-zA-Z0-9_]+)\\s*\\}"
+  # Convert to lines for easier processing
+  survey_lines <- strsplit(survey_content, "\n")[[1]]
 
-  # Check which pattern is used
-  if (grepl(page_pattern_underscore, survey_content)) {
-    page_pattern <- page_pattern_underscore
-  } else if (grepl(page_pattern_dash, survey_content)) {
-    page_pattern <- page_pattern_dash
-  } else {
+  # Extract pages using new format: --- page_id
+  page_pattern <- "^---\\s+([a-zA-Z0-9_]+)\\s*$"
+
+  # Find all page markers
+  page_line_numbers <- grep(page_pattern, survey_lines, perl = TRUE)
+
+  if (length(page_line_numbers) == 0) {
     return(list(error = "No pages found in survey.qmd!"))
   }
 
-  # Find all pages
-  page_matches <- gregexpr(page_pattern, survey_content, perl = TRUE)
-  page_ids <- regmatches(survey_content, page_matches)
-
-  if (length(page_ids) == 0 || length(page_ids[[1]]) == 0) {
-    return(list(error = "No pages found in survey.qmd!"))
+  # Extract page IDs from the matched lines
+  page_ids <- character(length(page_line_numbers))
+  for (i in seq_along(page_line_numbers)) {
+    line <- survey_lines[page_line_numbers[i]]
+    # Extract the page ID (everything after "--- ")
+    page_ids[i] <- trimws(sub("^---\\s+", "", line))
   }
-
-  # Extract page IDs
-  page_ids <- extract_page_ids(page_ids[[1]])
-
-  # Split content by pages
-  split_pattern <- ":::\\s*\\{\\s*\\.sd[_-]page"
-  page_splits <- strsplit(survey_content, split_pattern, perl = TRUE)[[1]]
-
-  if (length(page_splits) <= 1) {
-    return(list(error = "Error parsing page content!"))
-  }
-
-  page_splits <- page_splits[-1] # Remove content before first page
 
   # Process each page
   pages <- list()
   for (i in seq_along(page_ids)) {
-    if (i <= length(page_splits)) {
-      page_id <- page_ids[i]
-      page_content <- extract_page_content(page_splits[i])
+    page_id <- page_ids[i]
+    page_start <- page_line_numbers[i] + 1  # Start after the --- page_id line
+
+    # Find where this page ends
+    if (i < length(page_line_numbers)) {
+      page_end <- page_line_numbers[i + 1] - 1
+    } else {
+      page_end <- length(survey_lines)
+    }
+
+    # Extract page content
+    if (page_end >= page_start) {
+      page_content <- paste(survey_lines[page_start:page_end], collapse = "\n")
       pages[[page_id]] <- extract_page_items(page_content, page_id)
+    } else {
+      pages[[page_id]] <- list()
     }
   }
 
@@ -1265,8 +1232,8 @@ add_content_to_target_page <- function(
   target_order,
   editor_lines
 ) {
-  # Find target page boundaries
-  page_start_pattern <- paste0("::: \\{.sd[_-]page id=", page_id, "\\}")
+  # Find target page boundaries with new format: --- page_id
+  page_start_pattern <- paste0("^---\\s+", page_id, "\\s*$")
   page_start_lines <- grep(page_start_pattern, editor_lines, perl = TRUE)
 
   if (length(page_start_lines) == 0) {
@@ -1274,17 +1241,15 @@ add_content_to_target_page <- function(
   }
 
   page_start_line <- page_start_lines[1]
-  page_end_line <- NULL
 
-  for (i in page_start_line:length(editor_lines)) {
-    if (grepl("^:::$", editor_lines[i])) {
-      page_end_line <- i
-      break
-    }
-  }
+  # Find where this page ends (start of next page or end of file)
+  all_page_markers <- grep("^---\\s+[a-zA-Z0-9_]+", editor_lines, perl = TRUE)
+  next_page_markers <- all_page_markers[all_page_markers > page_start_line]
 
-  if (is.null(page_end_line)) {
-    return(NULL)
+  if (length(next_page_markers) > 0) {
+    page_end_line <- next_page_markers[1] - 1
+  } else {
+    page_end_line <- length(editor_lines)
   }
 
   # Get current page structure to identify existing content and navigation
@@ -1349,8 +1314,7 @@ add_content_to_target_page <- function(
     }
   }
 
-  # Add page closing
-  new_page_content <- c(new_page_content, ":::")
+  # No closing delimiter needed with new format
 
   # Rebuild the entire file
   result <- c(
@@ -1615,44 +1579,6 @@ render_content_item <- function(item) {
   }
 }
 
-# Extract page IDs from page matches
-extract_page_ids <- function(page_matches) {
-  extracted_ids <- vector("character", length(page_matches))
-
-  for (i in seq_along(page_matches)) {
-    id_match <- regexpr(
-      "id\\s*=\\s*([a-zA-Z0-9_]+)",
-      page_matches[i],
-      perl = TRUE
-    )
-    if (id_match > 0) {
-      match_text <- regmatches(page_matches[i], list(id_match))[[1]]
-      extracted_ids[i] <- gsub("id\\s*=\\s*", "", match_text)
-    } else {
-      extracted_ids[i] <- paste("page", i)
-    }
-  }
-
-  return(extracted_ids)
-}
-
-# Extract cleaned page content
-extract_page_content <- function(raw_page_content) {
-  # Find the closing :::
-  closing_idx <- regexpr(":::", raw_page_content, fixed = TRUE)
-  if (closing_idx > 0) {
-    raw_page_content <- substr(raw_page_content, 1, closing_idx - 1)
-  }
-
-  # Skip the id part
-  id_end_idx <- regexpr("}", raw_page_content, fixed = TRUE)
-  if (id_end_idx > 0) {
-    return(substr(raw_page_content, id_end_idx + 1, nchar(raw_page_content)))
-  }
-
-  return(raw_page_content)
-}
-
 # Extract items (questions and text) from page content
 extract_page_items <- function(page_content, page_id) {
   # Find all R code blocks
@@ -1835,29 +1761,15 @@ modify_page_id <- function(old_page_id, new_page_id, editor_content) {
     editor_content <- strsplit(editor_content, "\n")[[1]]
   }
 
-  # Find and replace the page ID in the opening tag
-  page_pattern_underscore <- paste0("::: \\{.sd_page id=", old_page_id, "\\}")
-  page_pattern_dash <- paste0("::: \\{.sd-page id=", old_page_id, "\\}")
+  # Find and replace the page ID using new format: --- old_page_id
+  page_pattern <- paste0("^---\\s+", old_page_id, "\\s*$")
 
-  # Check which pattern exists and replace
   replaced <- FALSE
   for (i in seq_along(editor_content)) {
-    if (grepl(page_pattern_underscore, editor_content[i], perl = TRUE)) {
-      editor_content[i] <- gsub(
-        page_pattern_underscore,
-        paste0("::: {.sd_page id=", new_page_id, "}"),
-        editor_content[i],
-        perl = TRUE
-      )
+    if (grepl(page_pattern, editor_content[i], perl = TRUE)) {
+      editor_content[i] <- paste0("--- ", new_page_id)
       replaced <- TRUE
-    } else if (grepl(page_pattern_dash, editor_content[i], perl = TRUE)) {
-      editor_content[i] <- gsub(
-        page_pattern_dash,
-        paste0("::: {.sd-page id=", new_page_id, "}"),
-        editor_content[i],
-        perl = TRUE
-      )
-      replaced <- TRUE
+      break  # Only replace the first occurrence
     }
   }
 
@@ -1890,8 +1802,8 @@ modify_question_content <- function(
     editor_content <- strsplit(editor_content, "\n")[[1]]
   }
 
-  # Find the page
-  page_start_pattern <- paste0("::: \\{.sd[_-]page id=", page_id, "\\}")
+  # Find the page with new format: --- page_id
+  page_start_pattern <- paste0("^---\\s+", page_id, "\\s*$")
   page_start_lines <- grep(page_start_pattern, editor_content, perl = TRUE)
 
   if (length(page_start_lines) == 0) {
@@ -1900,17 +1812,14 @@ modify_question_content <- function(
 
   page_start_line <- page_start_lines[1]
 
-  # Find the page end
-  page_end_line <- NULL
-  for (i in page_start_line:length(editor_content)) {
-    if (grepl("^:::$", editor_content[i])) {
-      page_end_line <- i
-      break
-    }
-  }
+  # Find where this page ends (start of next page or end of file)
+  all_page_markers <- grep("^---\\s+[a-zA-Z0-9_]+", editor_content, perl = TRUE)
+  next_page_markers <- all_page_markers[all_page_markers > page_start_line]
 
-  if (is.null(page_end_line)) {
-    return(NULL)
+  if (length(next_page_markers) > 0) {
+    page_end_line <- next_page_markers[1] - 1
+  } else {
+    page_end_line <- length(editor_content)
   }
 
   # Find the R chunk containing the old question
@@ -2041,8 +1950,8 @@ delete_page_from_survey <- function(page_id, editor_content) {
     editor_content <- strsplit(editor_content, "\n")[[1]]
   }
 
-  # Find the page
-  page_start_pattern <- paste0("::: \\{.sd[_-]page id=", page_id, "\\}")
+  # Find the page with new format: --- page_id
+  page_start_pattern <- paste0("^---\\s+", page_id, "\\s*$")
   page_start_lines <- grep(page_start_pattern, editor_content, perl = TRUE)
 
   if (length(page_start_lines) == 0) {
@@ -2052,20 +1961,17 @@ delete_page_from_survey <- function(page_id, editor_content) {
   # Use the first match
   page_start_line <- page_start_lines[1]
 
-  # Find the end of the page
-  page_end_line <- NULL
-  for (i in page_start_line:length(editor_content)) {
-    if (grepl("^:::$", editor_content[i])) {
-      page_end_line <- i
-      break
-    }
+  # Find where this page ends (start of next page or end of file)
+  all_page_markers <- grep("^---\\s+[a-zA-Z0-9_]+", editor_content, perl = TRUE)
+  next_page_markers <- all_page_markers[all_page_markers > page_start_line]
+
+  if (length(next_page_markers) > 0) {
+    page_end_line <- next_page_markers[1] - 1
+  } else {
+    page_end_line <- length(editor_content)
   }
 
-  if (is.null(page_end_line)) {
-    return(NULL)
-  }
-
-  # Remove the page
+  # Remove the page (including the --- page_id line)
   result <- c(
     editor_content[1:(page_start_line - 1)],
     if (page_end_line < length(editor_content)) {
@@ -2095,8 +2001,8 @@ delete_content_from_survey <- function(
     editor_content <- strsplit(editor_content, "\n")[[1]]
   }
 
-  # Find the page
-  page_start_pattern <- paste0("::: \\{.sd[_-]page id=", page_id, "\\}")
+  # Find the page with new format: --- page_id
+  page_start_pattern <- paste0("^---\\s+", page_id, "\\s*$")
   page_start_lines <- grep(page_start_pattern, editor_content, perl = TRUE)
 
   if (length(page_start_lines) == 0) {
@@ -2106,17 +2012,14 @@ delete_content_from_survey <- function(
   # Use the first match
   page_start_line <- page_start_lines[1]
 
-  # Find the page end
-  page_end_line <- NULL
-  for (i in page_start_line:length(editor_content)) {
-    if (grepl("^:::$", editor_content[i])) {
-      page_end_line <- i
-      break
-    }
-  }
+  # Find where this page ends (start of next page or end of file)
+  all_page_markers <- grep("^---\\s+[a-zA-Z0-9_]+", editor_content, perl = TRUE)
+  next_page_markers <- all_page_markers[all_page_markers > page_start_line]
 
-  if (is.null(page_end_line)) {
-    return(NULL)
+  if (length(next_page_markers) > 0) {
+    page_end_line <- next_page_markers[1] - 1
+  } else {
+    page_end_line <- length(editor_content)
   }
 
   # Get the page content
