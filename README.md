@@ -24,7 +24,7 @@ and manage surveys without extensive programming knowledge.
 <div align="center">
 
 <a href="https://www.youtube.com/watch?v=p00ivfg1B1M">
-<img src="https://img.youtube.com/vi/p00ivfg1B1M/maxresdefault.jpg" alt="Watch the sdstudio intro video" width="400"/>
+<img src="https://img.youtube.com/vi/p00ivfg1B1M/maxresdefault.jpg" alt="Watch the sdstudio intro video" width="600"/>
 </a>
 
 </div>
