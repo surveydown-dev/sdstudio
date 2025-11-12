@@ -4,6 +4,8 @@
 
 ## sdstudio 0.1.3
 
+CRAN release: 2025-11-11
+
 - Page break compatibility with the new `surveydown` package (\>=
   0.14.0).
 

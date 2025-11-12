@@ -54,13 +54,25 @@
   <main id="main" class="col-md-9"><div class="section level2">
 <h2 id="sdstudio">sdstudio<a class="anchor" aria-label="anchor" href="#sdstudio"></a>
 </h2>
+<!-- badges: start -->
+
 <p><strong>sdstudio</strong> is a companion package for building, previewing, and managing surveys built using the <a href="https://surveydown.org/" class="external-link">surveydown</a> survey platform through a Graphical User Interface (GUI). The studio runs as a local Shiny web app and makes it easier to create, preview, and manage surveys without extensive programming knowledge.</p>
+</div>
+<div class="section level2">
+<h2 id="intro-video">Intro Video<a class="anchor" aria-label="anchor" href="#intro-video"></a>
+</h2>
+<div align="center">
+<p><a href="https://www.youtube.com/watch?v=p00ivfg1B1M" class="external-link"> <img src="https://img.youtube.com/vi/p00ivfg1B1M/maxresdefault.jpg" alt="Watch the sdstudio intro video" width="400"></a></p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>The <strong>sdstudio</strong> package is not yet on CRAN, but the development version can be installed from GitHub:</p>
+<p>Install from CRAN:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"sdstudio"</span><span class="op">)</span></span></code></pre></div>
+<p>Install from GitHub (development version):</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
 <span><span class="fu">pak</span><span class="fu">::</span><span class="fu">pak</span><span class="op">(</span><span class="st">"surveydown-dev/sdstudio"</span>, ask <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -68,7 +80,7 @@
 <h2 id="launch-the-studio">Launch the Studio<a class="anchor" aria-label="anchor" href="#launch-the-studio"></a>
 </h2>
 <p>The <strong>surveydown studio</strong> is the main application in <strong>sdstudio</strong>. Launch it with:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">sdstudio</span><span class="fu">::</span><span class="fu"><a href="reference/launch.html">launch</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -121,7 +133,7 @@
 <h2 id="database-configuration">Database Configuration<a class="anchor" aria-label="anchor" href="#database-configuration"></a>
 </h2>
 <p>The studio supports flexible database connection modes:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Auto mode (recommended) - tries GSSAPI first, falls back if needed</span></span>
 <span><span class="fu"><a href="reference/launch.html">launch</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
@@ -130,12 +142,12 @@
 <span></span>
 <span><span class="co"># Disable mode - forces plain connection (useful for VPN environments)</span></span>
 <span><span class="fu"><a href="reference/launch.html">launch</a></span><span class="op">(</span>gssencmode <span class="op">=</span> <span class="st">"disable"</span><span class="op">)</span></span></code></pre></div>
-<p>Configure your database connection using environment variables or the built-in Settings interface within the studio.</p>
 </div>
 
   </main><aside class="col-md-3"><div class="links">
 <h2 data-toc-skip>Links</h2>
 <ul class="list-unstyled">
+<li><a href="https://cloud.r-project.org/package=sdstudio" class="external-link">View on CRAN</a></li>
 <li><a href="https://github.com/surveydown-dev/sdstudio/" class="external-link">Browse source code</a></li>
 <li><a href="https://github.com/surveydown-dev/sdstudio/issues" class="external-link">Report a bug</a></li>
 </ul>
@@ -173,7 +185,14 @@
 </ul>
 </div>
 
-
+<div class="dev-status">
+<h2 data-toc-skip>Dev status</h2>
+<ul class="list-unstyled">
+<li><a href="https://cran.r-project.org/package=sdstudio" class="external-link"><img src="https://www.r-pkg.org/badges/version/sdstudio" alt="CRAN status"></a></li>
+<li><a href="https://cran.r-project.org/package=sdstudio" class="external-link"><img src="https://cranlogs.r-pkg.org/badges/grand-total/sdstudio" alt="metacran downloads"></a></li>
+<li><a href="https://github.com/surveydown-dev/sdstudio" class="external-link"><img src="https://img.shields.io/github/stars/surveydown-dev/sdstudio?style=social" alt="GitHub stars"></a></li>
+</ul>
+</div>
 
   </aside>
 </div>

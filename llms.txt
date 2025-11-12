@@ -6,10 +6,20 @@ survey platform through a Graphical User Interface (GUI). The studio
 runs as a local Shiny web app and makes it easier to create, preview,
 and manage surveys without extensive programming knowledge.
 
+## Intro Video
+
+[![Watch the sdstudio intro
+video](https://img.youtube.com/vi/p00ivfg1B1M/maxresdefault.jpg)](https://www.youtube.com/watch?v=p00ivfg1B1M)
+
 ## Installation
 
-The **sdstudio** package is not yet on CRAN, but the development version
-can be installed from GitHub:
+Install from CRAN:
+
+``` r
+install.packages("sdstudio")
+```
+
+Install from GitHub (development version):
 
 ``` r
 # install.packages("pak")
@@ -66,9 +76,6 @@ launch(gssencmode = "prefer")
 # Disable mode - forces plain connection (useful for VPN environments)
 launch(gssencmode = "disable")
 ```
-
-Configure your database connection using environment variables or the
-built-in Settings interface within the studio.
 
 # Package index
 
