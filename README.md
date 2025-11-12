@@ -3,16 +3,41 @@
 
 ## sdstudio
 
+<!-- badges: start -->
+
+[![CRAN
+status](https://www.r-pkg.org/badges/version/sdstudio)](https://cran.r-project.org/package=sdstudio)
+[![metacran
+downloads](https://cranlogs.r-pkg.org/badges/grand-total/sdstudio)](https://cran.r-project.org/package=sdstudio)
+[![GitHub
+stars](https://img.shields.io/github/stars/surveydown-dev/sdstudio?style=social)](https://github.com/surveydown-dev/sdstudio)
+<!-- badges: end -->
+
 **sdstudio** is a companion package for building, previewing, and
 managing surveys built using the [surveydown](https://surveydown.org/)
 survey platform through a Graphical User Interface (GUI). The studio
 runs as a local Shiny web app and makes it easier to create, preview,
 and manage surveys without extensive programming knowledge.
 
+## Intro Video
+
+<div align="center">
+
+<a href="https://www.youtube.com/watch?v=p00ivfg1B1M">
+<img src="https://img.youtube.com/vi/p00ivfg1B1M/maxresdefault.jpg" alt="Watch the sdstudio intro video" width="400"/>
+</a>
+
+</div>
+
 ## Installation
 
-The **sdstudio** package is not yet on CRAN, but the development version
-can be installed from GitHub:
+Install from CRAN:
+
+``` r
+install.packages("sdstudio")
+```
+
+Install from GitHub (development version):
 
 ``` r
 # install.packages("pak")
@@ -69,6 +94,3 @@ launch(gssencmode = "prefer")
 # Disable mode - forces plain connection (useful for VPN environments)
 launch(gssencmode = "disable")
 ```
-
-Configure your database connection using environment variables or the
-built-in Settings interface within the studio.

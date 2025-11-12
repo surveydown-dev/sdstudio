@@ -24,3 +24,5 @@ example1.rmarkdown
 .env
 preview_data.csv
 /.quarto/
+
+**/*.quarto_ipynb
