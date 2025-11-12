@@ -56,7 +56,7 @@
 </h2>
 <!-- badges: start -->
 
-<p><strong>sdstudio</strong> is a companion package for building, previewing, and managing surveys built using the <a href="https://surveydown.org/" class="external-link">surveydown</a> survey platform through a Graphical User Interface (GUI). The studio runs as a local Shiny web app and makes it easier to create, preview, and manage surveys without extensive programming knowledge.</p>
+<p><code>sdstudio</code> is a companion package for building, previewing, and managing surveys built using the <a href="https://surveydown.org/" class="external-link">surveydown</a> survey platform through a Graphical User Interface (GUI). The studio runs as a local Shiny web app and makes it easier to create, preview, and manage surveys without extensive programming knowledge.</p>
 </div>
 <div class="section level2">
 <h2 id="intro-video">Intro Video<a class="anchor" aria-label="anchor" href="#intro-video"></a>
@@ -68,18 +68,25 @@
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>Install from CRAN:</p>
+<p>Installing <code>sdstudio</code>:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"sdstudio"</span><span class="op">)</span></span></code></pre></div>
-<p>Install from GitHub (development version):</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
+<code class="sourceCode R"><span><span class="co"># Option 1: install from CRAN</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"sdstudio"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Option 2: install from GitHub</span></span>
 <span><span class="fu">pak</span><span class="fu">::</span><span class="fu">pak</span><span class="op">(</span><span class="st">"surveydown-dev/sdstudio"</span>, ask <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+<p>Make sure to install <code>surveydown</code> as well:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Option 1: install from CRAN</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"surveydown"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Option 2: install from GitHub</span></span>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu">pak</span><span class="op">(</span><span class="st">"surveydown-dev/surveydown"</span>, ask <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="launch-the-studio">Launch the Studio<a class="anchor" aria-label="anchor" href="#launch-the-studio"></a>
+<h2 id="launch">Launch<a class="anchor" aria-label="anchor" href="#launch"></a>
 </h2>
-<p>The <strong>surveydown studio</strong> is the main application in <strong>sdstudio</strong>. Launch it with:</p>
+<p>Simply call the <code><a href="reference/launch.html">launch()</a></code> function to start the studio:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">sdstudio</span><span class="fu">::</span><span class="fu"><a href="reference/launch.html">launch</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -93,7 +100,7 @@
 <li>
 <strong>Drag-and-drop interface</strong> for intuitive survey construction</li>
 <li>
-<strong>14 survey templates</strong> covering basic to advanced use cases</li>
+<strong>16 survey templates</strong> covering basic to advanced use cases</li>
 <li>
 <strong>Dual-pane editor</strong> with visual builder and code editor</li>
 <li>
@@ -128,6 +135,11 @@
 <strong>CSV export functionality</strong> for data analysis</li>
 </ul>
 </div>
+</div>
+<div class="section level2">
+<h2 id="templates">Templates<a class="anchor" aria-label="anchor" href="#templates"></a>
+</h2>
+<p>We currently have 16 templates to choose from. The <strong><em>default</em></strong> template contains a minimum basic structure for a clean start. You might also try the <strong><em>question_type</em></strong> template for a showcase of all question types, or try some advanced features with <strong><em>conditional_display</em></strong>, <strong><em>conditional_navigation</em></strong>, etc. For a full list of templates, go to the <a href="https://github.com/surveydown-dev" class="external-link">surveydown-dev GitHub site</a> and search for any repo starting with “template_”.</p>
 </div>
 <div class="section level2">
 <h2 id="database-configuration">Database Configuration<a class="anchor" aria-label="anchor" href="#database-configuration"></a>
