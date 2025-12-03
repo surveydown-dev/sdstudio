@@ -275,9 +275,6 @@ generate_page_template <- function(page_id) {
     return(c(
       paste0("--- ", page_id),
       "",
-      "```{r}",
-      "sd_next()",
-      "```",
       ""
     ))
   }
@@ -418,10 +415,10 @@ find_insertion_point <- function(
 
       if (!is.null(chunk_end)) {
         chunk_content <- editor_content[(chunk_start + 1):(chunk_end - 1)]
-        # Updated pattern to include sd_close() and sd_prev() as navigation functions
+        # Updated pattern to include sd_nav(), sd_close() and sd_prev() as navigation functions
         if (
           any(grepl(
-            "sd_next\\(|sd_prev\\(|sd_close\\(",
+            "sd_nav\\(|sd_next\\(|sd_prev\\(|sd_close\\(",
             chunk_content,
             perl = TRUE
           ))
@@ -634,7 +631,7 @@ extract_navigation_chunks <- function(page_content) {
       in_chunk <- FALSE
       chunk_content <- page_content[(chunk_start + 1):(i - 1)]
 
-      if (any(grepl("sd_next\\(|sd_prev\\(|sd_close\\(", chunk_content))) {
+      if (any(grepl("sd_nav\\(|sd_next\\(|sd_prev\\(|sd_close\\(", chunk_content))) {
         navigation_chunks[[length(navigation_chunks) + 1]] <- list(
           start = chunk_start,
           end = i,
@@ -938,7 +935,7 @@ generate_question_code <- function(
 
 # Content Editing Helper Functions ----
 
-# Clean up multiple consecutive empty lines - reduce to single empty line
+# Clean up multiple consecutive empty lines - allow up to two empty lines
 clean_multiple_empty_lines <- function(content) {
   if (is.null(content)) {
     return(NULL)
@@ -954,8 +951,8 @@ clean_multiple_empty_lines <- function(content) {
   for (line in content) {
     if (trimws(line) == "") {
       empty_line_count <- empty_line_count + 1
-      # Only add one empty line, regardless of how many consecutive we find
-      if (empty_line_count == 1) {
+      # Allow up to two empty lines, remove anything beyond that
+      if (empty_line_count <= 2) {
         result <- c(result, line)
       }
     } else {

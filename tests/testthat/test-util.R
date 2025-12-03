@@ -30,12 +30,13 @@ test_that("clean_consecutive_empty_lines removes multiple empty lines", {
 })
 
 test_that("generate_page_template creates correct templates", {
-  # Test regular page
+  # Test regular page - should NOT contain navigation functions (new surveydown API)
   result <- generate_page_template("my_page")
   expect_true(any(grepl("--- my_page", result)))
-  expect_true(any(grepl("sd_next\\(\\)", result)))
+  expect_false(any(grepl("sd_next\\(\\)", result)))
+  expect_false(any(grepl("sd_nav\\(\\)", result)))
 
-  # Test end page
+  # Test end page - should contain sd_close()
   result_end <- generate_page_template("end")
   expect_true(any(grepl("--- end", result_end)))
   expect_true(any(grepl("sd_close\\(\\)", result_end)))
@@ -58,7 +59,7 @@ test_that("clean_multiple_empty_lines reduces consecutive blanks", {
       empty_count <- 0
     }
   }
-  expect_lte(max_empty, 1)
+  expect_lte(max_empty, 2)
 })
 
 test_that("parse_survey_structure handles basic survey", {
@@ -77,10 +78,6 @@ library(surveydown)
 --- welcome
 
 # Welcome
-
-```{r}
-sd_next()
-```
 
 --- end
 

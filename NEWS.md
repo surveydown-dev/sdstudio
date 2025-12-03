@@ -1,5 +1,9 @@
 # sdstudio (development version)
 
+# sdstudio 0.1.4
+
+- Update to match with the latest version of `surveydown` (>= 1.0.1).
+
 # sdstudio 0.1.3
 
 - Page break compatibility with the new `surveydown` package (>= 0.14.0).
