@@ -35,8 +35,25 @@
 </div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.4" id="sdstudio-014">sdstudio 0.1.4<a class="anchor" aria-label="anchor" href="#sdstudio-014"></a></h2>
-<ul><li>Update to match with the latest version of <code>surveydown</code> (&gt;= 1.0.1).</li>
+<div class="section level3">
+<h3 id="major-updates-0-1-4">Major Updates<a class="anchor" aria-label="anchor" href="#major-updates-0-1-4"></a></h3>
+<ul><li>Updated to match the latest <code>surveydown</code> API (&gt;= 1.0.1):
+<ul><li>
+<code>sd_next()</code> is now deprecated; use <code>sd_nav()</code> for explicit navigation</li>
+<li>Navigation functions are no longer required on intermediate pages</li>
+<li>Only the final page needs <code>sd_close()</code> for proper survey termination</li>
+<li>Page templates now generate clean pages without automatic navigation code</li>
+</ul></li>
 </ul></div>
+<div class="section level3">
+<h3 id="improvements-0-1-4">Improvements<a class="anchor" aria-label="anchor" href="#improvements-0-1-4"></a></h3>
+<ul><li>Auto-refresh logic now preserves user-added spacing:
+<ul><li>Up to 2 consecutive empty lines are preserved during content refresh</li>
+<li>Prevents automatic removal of intentional line breaks</li>
+<li>Improves visual formatting control in the survey editor</li>
+</ul></li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.3" id="sdstudio-013">sdstudio 0.1.3<a class="anchor" aria-label="anchor" href="#sdstudio-013"></a></h2><p class="text-muted">CRAN release: 2025-11-11</p>
 <ul><li>Page break compatibility with the new <code>surveydown</code> package (&gt;= 0.14.0).</li>
