@@ -2,7 +2,20 @@
 
 # sdstudio 0.1.4
 
-- Update to match with the latest version of `surveydown` (>= 1.0.1).
+## Major Updates
+
+- Updated to match the latest `surveydown` API (>= 1.0.1):
+  - `sd_next()` is now deprecated; use `sd_nav()` for explicit navigation
+  - Navigation functions are no longer required on intermediate pages
+  - Only the final page needs `sd_close()` for proper survey termination
+  - Page templates now generate clean pages without automatic navigation code
+
+## Improvements
+
+- Auto-refresh logic now preserves user-added spacing:
+  - Up to 2 consecutive empty lines are preserved during content refresh
+  - Prevents automatic removal of intentional line breaks
+  - Improves visual formatting control in the survey editor
 
 # sdstudio 0.1.3
 

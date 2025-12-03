@@ -1,23 +1,10 @@
-# CRAN Submission Comments
+CRAN Submission Comments - v0.1.4
 
-## Test environments
-* local macOS Tahoe 26.0, R 4.5.1
-* R CMD check --as-cran using platform: aarch64-apple-darwin20
+Test environments:
+- local macOS Tahoe 26.1, R 4.5.1
+- R CMD check --as-cran, platform: aarch64-apple-darwin20
 
-## R CMD check results
-There were no ERRORs or WARNINGs.
+R CMD check results:
+0 errors | 0 warnings | 0 notes
 
-There were 2 NOTEs:
-
-1. New submission
-   - This is the first submission of the sdstudio package to CRAN.
-
-2. HTML Tidy warning
-   - "Skipping checking HTML validation: 'tidy' doesn't look like recent enough HTML Tidy."
-   - This is a local environment issue and does not affect package functionality or documentation quality.
-
-## Package overview
-sdstudio is a companion package for the surveydown survey platform, providing a Shiny GUI for visual survey creation. The package has been tested and is ready for CRAN distribution.
-
-## Downstream dependencies
-This is a new package with no downstream dependencies.
+This is a maintenance release for compatibility with surveydown 1.0.1+. Updated navigation API and improved auto-refresh spacing preservation.
