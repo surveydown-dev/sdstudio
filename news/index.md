@@ -2,6 +2,10 @@
 
 ## sdstudio (development version)
 
+## sdstudio 0.1.4
+
+- Update to match with the latest version of `surveydown` (\>= 1.0.1).
+
 ## sdstudio 0.1.3
 
 CRAN release: 2025-11-11
