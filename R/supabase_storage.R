@@ -275,14 +275,39 @@ supabase_upload_survey <- function(survey_path, survey_name = NULL, conn = NULL,
       # Build relative path
       relative_path <- gsub(paste0("^", survey_path, "/?"), "", file_path)
 
+      # Skip temporary Quarto/knitr files
+      if (grepl("\\.(knit|utf8)\\.md$|surveydown\\.lua$", relative_path)) {
+        next
+      }
+
+      # Skip if file no longer exists (temporary files deleted during rendering)
+      if (!file.exists(file_path)) {
+        next
+      }
+
       # Build storage path
       storage_path <- paste0(conn$base_path, "/", survey_name, "/", relative_path)
 
       # Upload file
       file_url <- build_storage_url(conn, storage_path)
 
-      # Read file content
-      file_content <- readBin(file_path, "raw", file.info(file_path)$size)
+      # Read file content (with additional check)
+      file_info <- file.info(file_path)
+      if (is.na(file_info$size)) {
+        next  # File disappeared between checks
+      }
+
+      # Try to read file content (may fail if file deleted during rendering)
+      file_content <- tryCatch({
+        readBin(file_path, "raw", file_info$size)
+      }, error = function(e) {
+        # File was deleted between list and read - skip it
+        return(NULL)
+      })
+
+      if (is.null(file_content)) {
+        next
+      }
 
       # Determine content type
       content_type <- guess_content_type(file_path)
