@@ -4,6 +4,8 @@
 
 ## sdstudio 0.1.4
 
+CRAN release: 2025-12-03
+
 - Updated for compatibility with `surveydown` \>= 1.0.1 where
   `sd_next()` is deprecated and navigation functions are no longer
   required on intermediate pages.
