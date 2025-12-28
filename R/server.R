@@ -2234,7 +2234,7 @@ studio_server <- function(gssencmode = "prefer") {
     })
 
     # Auto-sync mechanism (debounced)
-    auto_sync_timer <- shiny::reactiveVal(NULL)
+    last_sync_time <- shiny::reactiveVal(Sys.time())
 
     shiny::observe({
       # Only auto-sync in online mode when survey exists
@@ -2243,35 +2243,38 @@ studio_server <- function(gssencmode = "prefer") {
           !is.null(current_survey_name()) &&
           !is.null(supabase_conn())) {
 
-        # Debounce: reset timer on every edit
-        timer <- auto_sync_timer()
-        if (!is.null(timer)) {
-          timer$destroy()
-        }
+        # Update last edit time whenever editors change
+        input$survey_editor
+        input$app_editor
 
-        # Set new timer for 10 seconds after last edit
-        new_timer <- later::later(function() {
-          tryCatch({
-            # Save and sync
-            if (!is.null(input$survey_editor)) {
-              writeLines(input$survey_editor, "survey.qmd")
-            }
-            if (!is.null(input$app_editor)) {
-              writeLines(input$app_editor, "app.R")
-            }
+        # Schedule sync 10 seconds after last edit
+        later::later(function() {
+          # Only sync if enough time has passed (debouncing)
+          time_since_update <- as.numeric(difftime(Sys.time(), last_sync_time(), units = "secs"))
 
-            supabase_upload_survey(
-              survey_path = getwd(),
-              survey_name = current_survey_name(),
-              conn = supabase_conn(),
-              overwrite = TRUE
-            )
-          }, error = function(e) {
-            # Silent auto-sync failures
-          })
+          if (time_since_update >= 9.5) {  # Allow small margin
+            tryCatch({
+              # Save and sync
+              if (!is.null(input$survey_editor)) {
+                writeLines(input$survey_editor, "survey.qmd")
+              }
+              if (!is.null(input$app_editor)) {
+                writeLines(input$app_editor, "app.R")
+              }
+
+              supabase_upload_survey(
+                survey_path = getwd(),
+                survey_name = current_survey_name(),
+                conn = supabase_conn(),
+                overwrite = TRUE
+              )
+
+              last_sync_time(Sys.time())
+            }, error = function(e) {
+              # Silent auto-sync failures
+            })
+          }
         }, delay = 10)
-
-        auto_sync_timer(new_timer)
       }
     })
 
@@ -2281,12 +2284,6 @@ studio_server <- function(gssencmode = "prefer") {
         process <- shiny::isolate(preview_handlers$preview_process())
         if (!is.null(process)) {
           try(tools::pskill(process), silent = TRUE)
-        }
-
-        # Cancel auto-sync timer
-        timer <- shiny::isolate(auto_sync_timer())
-        if (!is.null(timer)) {
-          timer$destroy()
         }
       }, error = function(e) {
         # Silently ignore reactive context errors during cleanup
