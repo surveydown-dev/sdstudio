@@ -275,45 +275,24 @@ supabase_upload_survey <- function(survey_path, survey_name = NULL, conn = NULL,
       # Build relative path
       relative_path <- gsub(paste0("^", survey_path, "/?"), "", file_path)
 
-      # WHITELIST APPROACH: Only upload essential files
-      # Source files, final output, and assets - skip everything else
-      is_essential <- (
-        # Source files (what users edit)
-        grepl("^(survey\\.qmd|app\\.R|settings\\.yml|head\\.rds|README\\.md)$", relative_path) ||
-        # Final rendered output and assets (preserve these)
-        grepl("^_survey/", relative_path) ||
-        grepl("^survey_files/", relative_path)
-      )
-
-      if (!is_essential) {
-        next  # Skip non-essential files (temp files, intermediate outputs, etc.)
-      }
-
-      # Skip if file no longer exists (may happen during rendering)
-      if (!file.exists(file_path)) {
-        next
-      }
-
       # Build storage path
       storage_path <- paste0(conn$base_path, "/", survey_name, "/", relative_path)
 
       # Upload file
       file_url <- build_storage_url(conn, storage_path)
 
-      # Read file content (with additional check)
-      file_info <- file.info(file_path)
-      if (is.na(file_info$size)) {
-        next  # File disappeared between checks
-      }
-
-      # Try to read file content (may fail if file deleted during rendering)
+      # Try to read file content (silently skip if it fails)
       file_content <- tryCatch({
+        file_info <- file.info(file_path)
+        if (is.na(file_info$size) || !file.exists(file_path)) {
+          return(NULL)
+        }
         readBin(file_path, "raw", file_info$size)
       }, error = function(e) {
-        # File was deleted between list and read - skip it
         return(NULL)
       })
 
+      # Skip if we couldn't read the file
       if (is.null(file_content)) {
         next
       }
