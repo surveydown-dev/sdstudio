@@ -275,18 +275,21 @@ supabase_upload_survey <- function(survey_path, survey_name = NULL, conn = NULL,
       # Build relative path
       relative_path <- gsub(paste0("^", survey_path, "/?"), "", file_path)
 
-      # Skip temporary Quarto/knitr files
-      if (grepl("\\.(knit|utf8)\\.md$|surveydown\\.lua$", relative_path)) {
-        next
+      # WHITELIST APPROACH: Only upload essential files
+      # Source files, final output, and assets - skip everything else
+      is_essential <- (
+        # Source files (what users edit)
+        grepl("^(survey\\.qmd|app\\.R|settings\\.yml|head\\.rds|README\\.md)$", relative_path) ||
+        # Final rendered output and assets (preserve these)
+        grepl("^_survey/", relative_path) ||
+        grepl("^survey_files/", relative_path)
+      )
+
+      if (!is_essential) {
+        next  # Skip non-essential files (temp files, intermediate outputs, etc.)
       }
 
-      # Skip survey.html at root level (it gets moved to _survey/ by surveydown)
-      # Only upload the final version in _survey/survey.html
-      if (relative_path == "survey.html") {
-        next
-      }
-
-      # Skip if file no longer exists (temporary files deleted during rendering)
+      # Skip if file no longer exists (may happen during rendering)
       if (!file.exists(file_path)) {
         next
       }

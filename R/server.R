@@ -2390,40 +2390,65 @@ server_preview_handlers <- function(input, output, session, survey_exists) {
     data = preview_port,  # Store port in data for access in filter
     filter = function(port_data, req) {
       port <- port_data
-      tryCatch({
-        # Build the target URL for the preview server
-        target_url <- paste0("http://127.0.0.1:", port, req$PATH_INFO)
-        if (!is.null(req$QUERY_STRING) && nzchar(req$QUERY_STRING)) {
-          target_url <- paste0(target_url, "?", req$QUERY_STRING)
+
+      # Build the target URL for the preview server
+      target_url <- paste0("http://127.0.0.1:", port, req$PATH_INFO)
+      if (!is.null(req$QUERY_STRING) && nzchar(req$QUERY_STRING)) {
+        target_url <- paste0(target_url, "?", req$QUERY_STRING)
+      }
+
+      # Retry logic: try up to 3 times with delays
+      max_attempts <- 3
+      for (attempt in 1:max_attempts) {
+        result <- tryCatch({
+          # Forward the request to preview server
+          response <- httr2::request(target_url) |>
+            httr2::req_timeout(10) |>
+            httr2::req_error(is_error = \(resp) FALSE) |>
+            httr2::req_perform()
+
+          # Return proxied response
+          list(
+            status = httr2::resp_status(response),
+            headers = as.list(httr2::resp_headers(response)),
+            body = httr2::resp_body_raw(response)
+          )
+        }, error = function(e) {
+          NULL  # Return NULL to trigger retry
+        })
+
+        if (!is.null(result)) {
+          return(result)  # Success!
         }
 
-        # Forward the request to preview server
-        response <- httr2::request(target_url) |>
-          httr2::req_timeout(30) |>
-          httr2::req_error(is_error = \(resp) FALSE) |>
-          httr2::req_perform()
+        # Wait before retry (except on last attempt)
+        if (attempt < max_attempts) {
+          Sys.sleep(1)
+        }
+      }
 
-        # Return proxied response
-        list(
-          status = httr2::resp_status(response),
-          headers = as.list(httr2::resp_headers(response)),
-          body = httr2::resp_body_raw(response)
-        )
-      }, error = function(e) {
-        # Return error page if preview not ready
-        list(
-          status = 503L,
-          headers = list("Content-Type" = "text/html; charset=utf-8"),
-          body = charToRaw(paste0(
-            "<!DOCTYPE html><html><body style='font-family: sans-serif; padding: 40px; text-align: center;'>",
-            "<h3 style='color: #dc3545;'>Preview Server Not Ready</h3>",
-            "<p>Please wait a moment for the preview to start...</p>",
-            "<p style='color: #666; font-size: 0.9em;'>Error: ", e$message, "</p>",
-            "<button onclick='location.reload()' style='margin-top: 20px; padding: 10px 20px;'>Retry</button>",
-            "</body></html>"
-          ))
-        )
-      })
+      # All attempts failed - return error page with auto-reload
+      list(
+        status = 503L,
+        headers = list(
+          "Content-Type" = "text/html; charset=utf-8",
+          "Refresh" = "3"  # Auto-reload after 3 seconds
+        ),
+        body = charToRaw(paste0(
+          "<!DOCTYPE html><html><head>",
+          "<meta http-equiv='refresh' content='3'>",
+          "</head><body style='font-family: sans-serif; padding: 40px; text-align: center;'>",
+          "<h3 style='color: #dc3545;'>Preview Server Starting...</h3>",
+          "<p>The preview is loading, please wait...</p>",
+          "<p style='color: #666; font-size: 0.9em;'>This page will refresh automatically.</p>",
+          "<div style='margin-top: 20px;'>",
+          "<div style='display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; ",
+          "border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;'></div>",
+          "</div>",
+          "<style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>",
+          "</body></html>"
+        ))
+      )
     }
   )
 
