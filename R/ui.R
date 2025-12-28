@@ -3,6 +3,9 @@ studio_ui <- function() {
   shiny::div(
     style = "position: relative;",
 
+    # Initialize shinyjs
+    shinyjs::useShinyjs(),
+
     # Unified floating button container (top-right)
     shiny::div(
       id = "unified-floating-buttons",
@@ -85,6 +88,40 @@ studio_ui <- function() {
             style = "padding: 8px 12px; font-size: 0.875rem; border-radius: 6px;",
             title = "DB Mode"
           )
+        ),
+
+        # Separator 3 (only visible when storage buttons are visible)
+        shiny::div(
+          id = "separator-3",
+          style = "display: none; height: 24px; width: 1px; background-color: #dee2e6;"
+        ),
+
+        # Group 4: Storage Actions (Download/Upload, only on Build tab)
+        shiny::div(
+          id = "storage-group",
+          class = "button-group",
+          style = "display: none; align-items: center; gap: 5px;",
+          shiny::actionButton(
+            "download_survey_files_btn",
+            shiny::HTML('<i class="fas fa-download"></i>'),
+            class = "btn-outline-info",
+            style = "padding: 8px 12px; font-size: 0.875rem; border-radius: 6px; display: none;",
+            title = "Download Survey (ZIP)"
+          ),
+          shiny::actionButton(
+            "upload_survey_files_btn",
+            shiny::HTML('<i class="fas fa-upload"></i>'),
+            class = "btn-outline-success",
+            style = "padding: 8px 12px; font-size: 0.875rem; border-radius: 6px; display: none;",
+            title = "Upload to Supabase"
+          ),
+          shiny::actionButton(
+            "sync_survey_btn",
+            shiny::HTML('<i class="fas fa-sync"></i>'),
+            class = "btn-outline-primary",
+            style = "padding: 8px 12px; font-size: 0.875rem; border-radius: 6px; display: none;",
+            title = "Sync to Supabase"
+          )
         )
       )
     ),
@@ -108,89 +145,206 @@ ui_template_selection <- function() {
     style = "padding: 40px; text-align: center; height: calc(100vh - 120px); display: flex; flex-direction: column; justify-content: center;",
 
     shiny::div(
-      style = "width: 500px; margin: 0 auto;",
+      style = "width: 600px; margin: 0 auto;",
 
       shiny::h2(
         "Create New Survey",
-        style = "margin-bottom: 30px; color: #333; text-align: center; margin-left: 135px;"
+        style = "margin-bottom: 20px; color: #333; text-align: center;"
       ),
 
-      # Form table layout
-      shiny::tags$table(
-        style = "width: 100%; border-collapse: separate; border-spacing: 0 15px;",
-        shiny::tags$tr(
-          shiny::tags$td(
-            style = "width: 120px; font-weight: bold; vertical-align: middle; padding-right: 15px;",
-            "Template:"
-          ),
-          shiny::tags$td(
-            style = "vertical-align: middle; margin: 0.5rem;",
-            shiny::selectInput(
-              "template_select",
-              NULL,
-              choices = list(
-                "Basic Templates" = list(
-                  "Default" = "default",
-                  "Question Types" = "question_types"
-                ),
-                "Advanced Features" = list(
-                  "Conditional Display" = "conditional_display",
-                  "Conditional Navigation" = "conditional_navigation",
-                  "Random Options" = "random_options",
-                  "Random Options (Predefined)" = "random_options_predefined",
-                  "Reactive Drilldown" = "reactive_drilldown",
-                  "Reactive Questions" = "reactive_questions"
-                ),
-                "Specialized" = list(
-                  "Conjoint (Buttons)" = "conjoint_buttons",
-                  "Conjoint (Tables)" = "conjoint_tables",
-                  "Custom Leaflet Map" = "custom_leaflet_map",
-                  "Custom Plotly Chart" = "custom_plotly_chart",
-                  "External Redirect" = "external_redirect",
-                  "Live Polling" = "live_polling"
-                )
-              ),
-              selected = "default",
-              width = "100%"
-            )
-          )
+      # Storage Mode Selection
+      shiny::div(
+        style = "margin-bottom: 30px; padding: 15px; background-color: #f8f9fa; border-radius: 8px;",
+        shiny::div(
+          style = "margin-bottom: 10px; font-weight: bold; color: #495057;",
+          "Storage Mode:"
         ),
-        shiny::tags$tr(
-          shiny::tags$td(
-            style = "width: 120px; font-weight: bold; vertical-align: middle; padding-right: 15px;",
-            "Directory:"
+        shiny::radioButtons(
+          "storage_mode",
+          NULL,
+          choices = c("Local" = "local", "Online (Supabase)" = "online"),
+          selected = "local",
+          inline = TRUE
+        ),
+        # Supabase status indicator
+        shiny::div(
+          id = "supabase_status_indicator",
+          style = "display: none; margin-top: 10px; font-size: 0.9em;",
+          shiny::uiOutput("supabase_connection_status")
+        )
+      ),
+
+      # Local Mode UI
+      shiny::div(
+        id = "local_mode_ui",
+        shiny::tags$table(
+          style = "width: 100%; border-collapse: separate; border-spacing: 0 15px;",
+          shiny::tags$tr(
+            shiny::tags$td(
+              style = "width: 120px; font-weight: bold; vertical-align: middle; padding-right: 15px;",
+              "Template:"
+            ),
+            shiny::tags$td(
+              style = "vertical-align: middle; margin: 0.5rem;",
+              shiny::selectInput(
+                "template_select",
+                NULL,
+                choices = list(
+                  "Basic Templates" = list(
+                    "Default" = "default",
+                    "Question Types" = "question_types"
+                  ),
+                  "Advanced Features" = list(
+                    "Conditional Display" = "conditional_display",
+                    "Conditional Navigation" = "conditional_navigation",
+                    "Random Options" = "random_options",
+                    "Random Options (Predefined)" = "random_options_predefined",
+                    "Reactive Drilldown" = "reactive_drilldown",
+                    "Reactive Questions" = "reactive_questions"
+                  ),
+                  "Specialized" = list(
+                    "Conjoint (Buttons)" = "conjoint_buttons",
+                    "Conjoint (Tables)" = "conjoint_tables",
+                    "Custom Leaflet Map" = "custom_leaflet_map",
+                    "Custom Plotly Chart" = "custom_plotly_chart",
+                    "External Redirect" = "external_redirect",
+                    "Live Polling" = "live_polling"
+                  )
+                ),
+                selected = "default",
+                width = "100%"
+              )
+            )
           ),
-          shiny::tags$td(
-            style = "vertical-align: middle;",
-            shiny::div(
-              shiny::actionButton(
-                "path_display_btn",
-                paste0(basename(getwd()), "/"),
-                class = "btn-outline-secondary",
-                style = "width: 100%; text-align: center; font-family: monospace; padding: 8px 12px; margin: 0.5rem;",
-                title = paste("Click to edit:", getwd())
-              ),
+          shiny::tags$tr(
+            shiny::tags$td(
+              style = "width: 120px; font-weight: bold; vertical-align: middle; padding-right: 15px;",
+              "Directory:"
+            ),
+            shiny::tags$td(
+              style = "vertical-align: middle;",
               shiny::div(
-                style = "display: none;",
-                shiny::textInput(
-                  "path_input",
-                  NULL,
-                  value = getwd()
+                shiny::actionButton(
+                  "path_display_btn",
+                  paste0(basename(getwd()), "/survey/"),
+                  class = "btn-outline-secondary",
+                  style = "width: 100%; text-align: center; font-family: monospace; padding: 8px 12px; margin: 0.5rem;",
+                  title = paste("Click to edit:", file.path(getwd(), "survey"))
+                ),
+                shiny::div(
+                  style = "display: none;",
+                  shiny::textInput(
+                    "path_input",
+                    NULL,
+                    value = file.path(getwd(), "survey")
+                  )
                 )
               )
             )
           )
+        ),
+
+        # Create button
+        shiny::div(
+          style = "margin-top: 30px;",
+          shiny::actionButton(
+            "create_survey_btn",
+            "Create Survey",
+            class = "btn-primary btn-lg",
+            style = "padding: 12px 30px; font-size: 16px; font-weight: bold;"
+          )
         )
       ),
 
-      # Create button
+      # Online Mode UI
       shiny::div(
-        style = "margin-top: 30px; margin-left: 135px;",
-        shiny::actionButton(
-          "create_survey_btn",
-          "Create Survey",
-          class = "btn-primary btn-lg",
-          style = "padding: 12px 30px; font-size: 16px; font-weight: bold;"
+        id = "online_mode_ui",
+        style = "display: none;",
+
+        # Load existing survey section
+        shiny::div(
+          style = "padding: 20px; background-color: #e7f3ff; border-radius: 8px; margin-bottom: 20px;",
+          shiny::h5("Load Existing Survey", style = "margin-top: 0;"),
+          shiny::selectizeInput(
+            "online_survey_select",
+            "Select Survey:",
+            choices = NULL,
+            width = "100%",
+            options = list(placeholder = "Loading...")
+          ),
+          shiny::actionButton(
+            "load_survey_btn",
+            "Load Survey",
+            class = "btn-success",
+            style = "margin-top: 10px;"
+          )
+        ),
+
+        # Create new survey section
+        shiny::div(
+          style = "padding: 20px; background-color: #fff3cd; border-radius: 8px;",
+          shiny::h5("Or Create New Survey", style = "margin-top: 0;"),
+          shiny::tags$table(
+            style = "width: 100%; border-collapse: separate; border-spacing: 0 10px;",
+            shiny::tags$tr(
+              shiny::tags$td(
+                style = "width: 120px; font-weight: bold; vertical-align: middle; padding-right: 15px;",
+                "Template:"
+              ),
+              shiny::tags$td(
+                style = "vertical-align: middle;",
+                shiny::selectInput(
+                  "online_template_select",
+                  NULL,
+                  choices = list(
+                    "Basic Templates" = list(
+                      "Default" = "default",
+                      "Question Types" = "question_types"
+                    ),
+                    "Advanced Features" = list(
+                      "Conditional Display" = "conditional_display",
+                      "Conditional Navigation" = "conditional_navigation",
+                      "Random Options" = "random_options",
+                      "Random Options (Predefined)" = "random_options_predefined",
+                      "Reactive Drilldown" = "reactive_drilldown",
+                      "Reactive Questions" = "reactive_questions"
+                    ),
+                    "Specialized" = list(
+                      "Conjoint (Buttons)" = "conjoint_buttons",
+                      "Conjoint (Tables)" = "conjoint_tables",
+                      "Custom Leaflet Map" = "custom_leaflet_map",
+                      "Custom Plotly Chart" = "custom_plotly_chart",
+                      "External Redirect" = "external_redirect",
+                      "Live Polling" = "live_polling"
+                    )
+                  ),
+                  selected = "default",
+                  width = "100%"
+                )
+              )
+            ),
+            shiny::tags$tr(
+              shiny::tags$td(
+                style = "width: 120px; font-weight: bold; vertical-align: middle; padding-right: 15px;",
+                "Survey Name:"
+              ),
+              shiny::tags$td(
+                style = "vertical-align: middle;",
+                shiny::textInput(
+                  "online_survey_name",
+                  NULL,
+                  placeholder = "my-survey",
+                  width = "100%"
+                )
+              )
+            )
+          ),
+          shiny::actionButton(
+            "create_online_survey_btn",
+            "Create Survey",
+            class = "btn-primary",
+            style = "margin-top: 10px; padding: 10px 24px;"
+          )
         )
       )
     ),
