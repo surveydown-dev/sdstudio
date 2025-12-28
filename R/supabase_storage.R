@@ -256,15 +256,60 @@ supabase_upload_survey <- function(survey_path, survey_name = NULL, conn = NULL,
   }
 
   tryCatch({
-    # Get all files in the survey folder
+    # STEP 1: Get all local files
     all_files <- list.files(survey_path, recursive = TRUE, full.names = TRUE)
+    local_relative_paths <- vapply(all_files, function(f) {
+      if (dir.exists(f)) return("")
+      gsub(paste0("^", survey_path, "/?"), "", f)
+    }, character(1))
+    local_relative_paths <- local_relative_paths[local_relative_paths != ""]
 
-    if (length(all_files) == 0) {
-      warning("No files found in survey folder: ", survey_path)
-      return(FALSE)
+    # STEP 2: Get all files currently in Supabase for this survey
+    list_url <- build_list_url(conn)
+    list_response <- httr2::request(list_url) |>
+      httr2::req_headers(
+        "Authorization" = paste("Bearer", conn$service_key),
+        "apikey" = conn$service_key
+      ) |>
+      httr2::req_body_json(list(
+        prefix = paste0(conn$base_path, "/", survey_name, "/"),
+        limit = 1000,
+        offset = 0
+      )) |>
+      httr2::req_perform()
+
+    supabase_content <- httr2::resp_body_json(list_response)
+    supabase_paths <- character(0)
+    if (length(supabase_content) > 0) {
+      supabase_full_paths <- vapply(supabase_content, function(x) x$name, character(1))
+      # Extract relative paths
+      supabase_paths <- gsub(paste0("^", conn$base_path, "/", survey_name, "/"), "", supabase_full_paths)
+      # Remove directory entries (paths ending in /)
+      supabase_paths <- supabase_paths[!grepl("/$", supabase_paths)]
     }
 
-    # Upload each file
+    # STEP 3: Delete files from Supabase that don't exist locally
+    files_to_delete <- setdiff(supabase_paths, local_relative_paths)
+    if (length(files_to_delete) > 0) {
+      delete_url <- paste0(conn$url, "/storage/v1/object/", conn$bucket)
+      for (rel_path in files_to_delete) {
+        storage_path <- paste0(conn$base_path, "/", survey_name, "/", rel_path)
+        tryCatch({
+          httr2::request(delete_url) |>
+            httr2::req_headers(
+              "Authorization" = paste("Bearer", conn$service_key),
+              "apikey" = conn$service_key
+            ) |>
+            httr2::req_body_json(list(prefixes = list(storage_path))) |>
+            httr2::req_method("DELETE") |>
+            httr2::req_perform()
+        }, error = function(e) {
+          # Silently ignore delete errors
+        })
+      }
+    }
+
+    # STEP 4: Upload all local files (new or modified)
     upload_success <- TRUE
     for (file_path in all_files) {
       # Skip directories
