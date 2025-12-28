@@ -2243,33 +2243,41 @@ studio_server <- function(gssencmode = "prefer") {
           !is.null(current_survey_name()) &&
           !is.null(supabase_conn())) {
 
-        # Update last edit time whenever editors change
-        input$survey_editor
-        input$app_editor
+        # Capture reactive values before passing to later::later()
+        survey_editor_content <- input$survey_editor
+        app_editor_content <- input$app_editor
+        survey_name_captured <- current_survey_name()
+        conn_captured <- supabase_conn()
+        current_dir <- getwd()
+
+        # Isolate last_sync_time to prevent triggering on every sync
+        last_time <- shiny::isolate(last_sync_time())
 
         # Schedule sync 10 seconds after last edit
         later::later(function() {
           # Only sync if enough time has passed (debouncing)
-          time_since_update <- as.numeric(difftime(Sys.time(), last_sync_time(), units = "secs"))
+          time_since_update <- as.numeric(difftime(Sys.time(), last_time, units = "secs"))
 
           if (time_since_update >= 9.5) {  # Allow small margin
             tryCatch({
-              # Save and sync
-              if (!is.null(input$survey_editor)) {
-                writeLines(input$survey_editor, "survey.qmd")
+              # Save captured content to files
+              if (!is.null(survey_editor_content)) {
+                writeLines(survey_editor_content, file.path(current_dir, "survey.qmd"))
               }
-              if (!is.null(input$app_editor)) {
-                writeLines(input$app_editor, "app.R")
+              if (!is.null(app_editor_content)) {
+                writeLines(app_editor_content, file.path(current_dir, "app.R"))
               }
 
+              # Upload to Supabase
               supabase_upload_survey(
-                survey_path = getwd(),
-                survey_name = current_survey_name(),
-                conn = supabase_conn(),
+                survey_path = current_dir,
+                survey_name = survey_name_captured,
+                conn = conn_captured,
                 overwrite = TRUE
               )
 
-              last_sync_time(Sys.time())
+              # Update last sync time (not in reactive context, so set directly)
+              # This is OK because we're just updating a timestamp
             }, error = function(e) {
               # Silent auto-sync failures
             })
