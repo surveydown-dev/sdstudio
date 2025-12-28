@@ -280,6 +280,12 @@ supabase_upload_survey <- function(survey_path, survey_name = NULL, conn = NULL,
         next
       }
 
+      # Skip survey.html at root level (it gets moved to _survey/ by surveydown)
+      # Only upload the final version in _survey/survey.html
+      if (relative_path == "survey.html") {
+        next
+      }
+
       # Skip if file no longer exists (temporary files deleted during rendering)
       if (!file.exists(file_path)) {
         next
