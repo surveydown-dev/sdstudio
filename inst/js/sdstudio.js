@@ -4,73 +4,38 @@ $(document).ready(function() {
   // Function to update floating button groups based on active tab
   function updateFloatingButtonVisibility() {
     var activeTab = $('#tabset .nav-link.active').text().trim();
-
+    
     if (activeTab === 'Preview') {
       // Show all groups on Preview tab
       $('#refresh-group').css('display', 'flex');
       $('#view-group').css('display', 'flex');
       $('#code-group').css('display', 'flex');
-      $('#storage-group').css('display', 'none');
       $('#separator-1').css('display', 'block');
       $('#separator-2').css('display', 'block');
-      $('#separator-3').css('display', 'none');
-
+      
       // Show preview refresh button, hide responses refresh button
       $('#preview_refresh_btn').css('display', 'inline-block');
       $('#responses_refresh_btn').css('display', 'none');
-
+      
     } else if (activeTab === 'Responses') {
       // Show refresh and code groups on Responses tab
       $('#refresh-group').css('display', 'flex');
       $('#view-group').css('display', 'none');
       $('#code-group').css('display', 'flex');
-      $('#storage-group').css('display', 'none');
       $('#separator-1').css('display', 'block');
       $('#separator-2').css('display', 'none');
-      $('#separator-3').css('display', 'none');
-
+      
       // Show responses refresh button, hide preview refresh button
       $('#preview_refresh_btn').css('display', 'none');
       $('#responses_refresh_btn').css('display', 'inline-block');
-
-    } else if (activeTab === 'Build') {
-      // Show code and storage groups on Build tab
+      
+    } else {
+      // Show only code group on Build tab
       $('#refresh-group').css('display', 'none');
       $('#view-group').css('display', 'none');
       $('#code-group').css('display', 'flex');
-      $('#storage-group').css('display', 'flex');
       $('#separator-1').css('display', 'none');
       $('#separator-2').css('display', 'none');
-      $('#separator-3').css('display', 'block');
-    } else {
-      // Default: show only code group
-      $('#refresh-group').css('display', 'none');
-      $('#view-group').css('display', 'none');
-      $('#code-group').css('display', 'flex');
-      $('#storage-group').css('display', 'none');
-      $('#separator-1').css('display', 'none');
-      $('#separator-2').css('display', 'none');
-      $('#separator-3').css('display', 'none');
-    }
-  }
-
-  // Function to update storage button visibility based on storage mode
-  function updateStorageButtonVisibility(storageMode, supabaseConfigured) {
-    if (storageMode === 'online' && supabaseConfigured) {
-      // Online mode: show download and sync buttons
-      $('#download_survey_files_btn').css('display', 'inline-block');
-      $('#upload_survey_files_btn').css('display', 'none');
-      $('#sync_survey_btn').css('display', 'inline-block');
-    } else if (storageMode === 'local' && supabaseConfigured) {
-      // Local mode with Supabase: show download and upload buttons
-      $('#download_survey_files_btn').css('display', 'inline-block');
-      $('#upload_survey_files_btn').css('display', 'inline-block');
-      $('#sync_survey_btn').css('display', 'none');
-    } else {
-      // Local mode without Supabase: show only download
-      $('#download_survey_files_btn').css('display', 'inline-block');
-      $('#upload_survey_files_btn').css('display', 'none');
-      $('#sync_survey_btn').css('display', 'none');
     }
   }
   
@@ -281,31 +246,15 @@ $(document).ready(function() {
   Shiny.addCustomMessageHandler('triggerAutoRefresh', function(data) {
     setTimeout(function() {
       console.log('Auto-refreshing preview now!');
-
+      
       // Remove loading overlay
       $('.rendering-overlay').remove();
       console.log('Loading overlay removed');
-
+      
       // Directly trigger preview refresh via custom message
       Shiny.setInputValue('auto_refresh_trigger', {timestamp: new Date().getTime()});
       console.log('Direct refresh triggered');
     }, data.delay);
-  });
-
-  // Download trigger handler
-  Shiny.addCustomMessageHandler('triggerDownload', function(downloadId) {
-    // Create a temporary link and click it to trigger download
-    var link = document.createElement('a');
-    link.href = window.location.origin + window.location.pathname + 'session/' + Shiny.shinyapp.config.sessionId + '/download/' + downloadId + '?w=' + Shiny.shinyapp.makeRequest;
-    link.download = '';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  });
-
-  // Storage mode update handler
-  Shiny.addCustomMessageHandler('updateStorageMode', function(data) {
-    updateStorageButtonVisibility(data.mode, data.supabaseConfigured);
   });
 
 

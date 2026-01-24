@@ -6,31 +6,9 @@ studio_server <- function(gssencmode = "prefer") {
     modify_content_info <- shiny::reactiveVal(NULL)
     add_content_page_id <- shiny::reactiveVal(NULL)
     add_form_trigger <- shiny::reactiveVal(NULL)
-
+    
     # Flag to prevent automatic button updates during user-initiated mode switch
     suppress_auto_button_update <- shiny::reactiveVal(FALSE)
-
-    # Storage mode reactive values
-    storage_mode_value <- shiny::reactiveVal("local")
-    supabase_conn <- shiny::reactiveVal(NULL)
-    current_survey_name <- shiny::reactiveVal(NULL)
-
-    # Detect deployment environment and initialize storage mode
-    is_deployed <- detect_deployment_environment()
-
-    # Initialize Supabase connection if configured
-    shiny::observe({
-      if (supabase_configured()) {
-        conn <- supabase_connect()
-        supabase_conn(conn)
-
-        # If deployed and Supabase is configured, default to online mode
-        if (is_deployed && !is.null(conn)) {
-          storage_mode_value("online")
-          shiny::updateRadioButtons(session, "storage_mode", selected = "online")
-        }
-      }
-    }, priority = 1000)
 
     # Dashboard reactive values - Load .env if exists
     if (file.exists(".env")) {
@@ -886,202 +864,39 @@ studio_server <- function(gssencmode = "prefer") {
       shiny::showNotification("Directory path updated successfully", type = "message")
     })
 
-    # Storage mode UI toggle handler
-    shiny::observeEvent(input$storage_mode, {
-      mode <- input$storage_mode
-      storage_mode_value(mode)
-
-      # Toggle UI visibility
-      if (mode == "local") {
-        shinyjs::show("local_mode_ui")
-        shinyjs::hide("online_mode_ui")
-        shinyjs::hide("supabase_status_indicator")
-      } else {
-        shinyjs::hide("local_mode_ui")
-        shinyjs::show("online_mode_ui")
-        shinyjs::show("supabase_status_indicator")
-
-        # Load surveys from Supabase
-        if (!is.null(supabase_conn())) {
-          survey_list <- supabase_list_surveys(supabase_conn())
-          if (!is.null(survey_list) && length(survey_list) > 0) {
-            shiny::updateSelectizeInput(session, "online_survey_select",
-                                       choices = survey_list,
-                                       options = list(placeholder = "Select a survey..."))
-          } else {
-            shiny::updateSelectizeInput(session, "online_survey_select",
-                                       choices = character(0),
-                                       options = list(placeholder = "No surveys found"))
-          }
-        }
-      }
-
-      # Update storage button visibility in JavaScript
-      session$sendCustomMessage("updateStorageMode", list(
-        mode = mode,
-        supabaseConfigured = supabase_configured()
-      ))
-    }, ignoreInit = TRUE)
-
-    # Supabase connection status display
-    output$supabase_connection_status <- shiny::renderUI({
-      conn <- supabase_conn()
-      if (!is.null(conn)) {
-        shiny::div(
-          style = "color: #28a745;",
-          shiny::icon("check-circle"),
-          " Connected to Supabase"
-        )
-      } else {
-        shiny::div(
-          style = "color: #dc3545;",
-          shiny::icon("exclamation-circle"),
-          " Supabase not configured. Check .env file."
-        )
-      }
-    })
-
-    # Handle online survey creation
-    shiny::observeEvent(input$create_online_survey_btn, {
-      req(input$online_template_select, input$online_survey_name)
-
-      survey_name <- trimws(input$online_survey_name)
-
-      # Validate survey name
-      if (survey_name == "") {
-        shiny::showNotification("Please enter a survey name", type = "error")
-        return()
-      }
-
-      # Create survey in temp directory
-      temp_dir <- file.path(tempdir(), survey_name)
-
-      tryCatch({
-        # Create the survey
-        surveydown::sd_create_survey(
-          template = input$online_template_select,
-          path = temp_dir,
-          ask = FALSE
-        )
-
-        # Upload to Supabase
-        if (!is.null(supabase_conn())) {
-          upload_success <- supabase_upload_survey(
-            survey_path = temp_dir,
-            survey_name = survey_name,
-            conn = supabase_conn()
-          )
-
-          if (upload_success) {
-            # Change to temp directory and mark survey as existing
-            setwd(temp_dir)
-            current_survey_name(survey_name)
-            survey_exists(TRUE)
-
-            shiny::showNotification(
-              paste("Survey", survey_name, "created and uploaded to Supabase!"),
-              type = "message"
-            )
-          } else {
-            shiny::showNotification("Survey created but upload to Supabase failed", type = "warning")
-          }
-        } else {
-          shiny::showNotification("Supabase connection not available", type = "error")
-        }
-      }, error = function(e) {
-        shiny::showNotification(paste("Failed to create survey:", e$message), type = "error")
-      })
-    })
-
-    # Handle load survey from Supabase
-    shiny::observeEvent(input$load_survey_btn, {
-      req(input$online_survey_select)
-
-      survey_name <- input$online_survey_select
-
-      if (is.null(survey_name) || survey_name == "") {
-        shiny::showNotification("Please select a survey to load", type = "error")
-        return()
-      }
-
-      tryCatch({
-        # Download survey from Supabase to temp directory
-        temp_dir <- supabase_download_survey(
-          survey_name = survey_name,
-          conn = supabase_conn()
-        )
-
-        if (!is.null(temp_dir)) {
-          # Change to downloaded directory
-          setwd(temp_dir)
-          current_survey_name(survey_name)
-          survey_exists(TRUE)
-
-          shiny::showNotification(
-            paste("Survey", survey_name, "loaded from Supabase!"),
-            type = "message"
-          )
-        } else {
-          shiny::showNotification("Failed to download survey from Supabase", type = "error")
-        }
-      }, error = function(e) {
-        shiny::showNotification(paste("Error loading survey:", e$message), type = "error")
-      })
-    })
-
-    # Handle create survey button (local mode)
+    # Handle create survey button
     shiny::observeEvent(input$create_survey_btn, {
       req(input$template_select, input$path_input)
 
-      survey_path <- input$path_input
-
-      # IMPORTANT: If the path doesn't include a "survey" subdirectory, add it
-      # This prevents the survey's app.R from overwriting the studio's app.R
-      if (!grepl("/survey/?$|\\\\survey\\\\?$", survey_path)) {
-        survey_path <- file.path(survey_path, "survey")
-        message("Creating survey in 'survey/' subdirectory to prevent overwriting studio files: ", survey_path)
-      }
-
-      # Validate parent directory exists
-      parent_dir <- dirname(survey_path)
-      if (!dir.exists(parent_dir)) {
-        shiny::showNotification(
-          paste("Parent directory does not exist:", parent_dir),
-          type = "error"
-        )
+      # Validate path
+      if (!dir.exists(dirname(input$path_input))) {
+        shiny::showNotification("Parent directory does not exist!", type = "error")
         return()
       }
 
-      # Create the survey directory if it doesn't exist
-      if (!dir.exists(survey_path)) {
+      # Create the directory if it doesn't exist
+      if (!dir.exists(input$path_input)) {
         tryCatch({
-          dir.create(survey_path, recursive = TRUE)
+          dir.create(input$path_input, recursive = TRUE)
         }, error = function(e) {
           shiny::showNotification(paste("Failed to create directory:", e$message), type = "error")
           return()
         })
       }
 
-      # Create the survey
+      # Create the survey with full path first
       tryCatch({
         surveydown::sd_create_survey(
           template = input$template_select,
-          path = survey_path,
+          path = input$path_input,
           ask = FALSE
         )
 
-        # Change to the survey directory
+        # Change to the target directory after creation
         # Note: This working directory change is scoped to the Shiny session
         # and does not affect the user's R environment outside the app
-        setwd(survey_path)
+        setwd(input$path_input)
         survey_exists(TRUE)
-
-        # Show success notification with the actual path
-        shiny::showNotification(
-          paste("Survey created successfully in:", basename(survey_path)),
-          type = "message",
-          duration = 5
-        )
       }, error = function(e) {
         shiny::showNotification(paste("Failed to create survey:", e$message), type = "error")
       })
@@ -2099,193 +1914,6 @@ studio_server <- function(gssencmode = "prefer") {
       })
     }, ignoreInit = TRUE)
     
-    # Handle download survey files (ZIP)
-    output$download_survey_files <- shiny::downloadHandler(
-      filename = function() {
-        survey_name <- current_survey_name()
-        if (is.null(survey_name)) {
-          survey_name <- basename(getwd())
-        }
-        paste0(survey_name, "_", format(Sys.Date(), "%Y%m%d"), ".zip")
-      },
-      content = function(file) {
-        zip_path <- zip_survey_folder(getwd())
-        if (!is.null(zip_path)) {
-          file.copy(zip_path, file)
-        } else {
-          shiny::showNotification("Failed to create ZIP archive", type = "error")
-        }
-      }
-    )
-
-    # Trigger download using action button
-    shiny::observeEvent(input$download_survey_files_btn, {
-      if (survey_exists()) {
-        # Trigger download handler
-        session$sendCustomMessage("triggerDownload", "download_survey_files")
-      }
-    })
-
-    # Handle upload survey to Supabase
-    shiny::observeEvent(input$upload_survey_files_btn, {
-      if (!survey_exists()) {
-        shiny::showNotification("No survey to upload", type = "error")
-        return()
-      }
-
-      if (is.null(supabase_conn())) {
-        shiny::showNotification("Supabase not configured", type = "error")
-        return()
-      }
-
-      # Show modal to get survey name
-      shiny::showModal(shiny::modalDialog(
-        title = "Upload Survey to Supabase",
-        shiny::textInput(
-          "upload_survey_name_input",
-          "Survey Name:",
-          value = current_survey_name() %||% basename(getwd())
-        ),
-        footer = shiny::tagList(
-          shiny::actionButton("confirm_upload_survey", "Upload", class = "btn-primary"),
-          shiny::modalButton("Cancel")
-        )
-      ))
-    })
-
-    # Confirm upload
-    shiny::observeEvent(input$confirm_upload_survey, {
-      survey_name <- trimws(input$upload_survey_name_input)
-
-      if (survey_name == "") {
-        shiny::showNotification("Please enter a survey name", type = "error")
-        return()
-      }
-
-      tryCatch({
-        upload_success <- supabase_upload_survey(
-          survey_path = getwd(),
-          survey_name = survey_name,
-          conn = supabase_conn()
-        )
-
-        if (upload_success) {
-          current_survey_name(survey_name)
-          shiny::showNotification(
-            paste("Survey uploaded to Supabase as:", survey_name),
-            type = "message"
-          )
-          shiny::removeModal()
-        } else {
-          shiny::showNotification("Upload failed", type = "error")
-        }
-      }, error = function(e) {
-        shiny::showNotification(paste("Upload error:", e$message), type = "error")
-      })
-    })
-
-    # Handle sync to Supabase (save current changes)
-    shiny::observeEvent(input$sync_survey_btn, {
-      if (!survey_exists()) {
-        shiny::showNotification("No survey to sync", type = "error")
-        return()
-      }
-
-      if (is.null(supabase_conn())) {
-        shiny::showNotification("Supabase not configured", type = "error")
-        return()
-      }
-
-      survey_name <- current_survey_name()
-      if (is.null(survey_name)) {
-        shiny::showNotification("Survey name not set. Use upload instead.", type = "warning")
-        return()
-      }
-
-      tryCatch({
-        # Save current editor content first
-        if (!is.null(input$survey_editor)) {
-          writeLines(input$survey_editor, "survey.qmd")
-        }
-        if (!is.null(input$app_editor)) {
-          writeLines(input$app_editor, "app.R")
-        }
-
-        # Upload to Supabase
-        upload_success <- supabase_upload_survey(
-          survey_path = getwd(),
-          survey_name = survey_name,
-          conn = supabase_conn(),
-          overwrite = TRUE
-        )
-
-        if (upload_success) {
-          shiny::showNotification(
-            paste("Synced to Supabase:", survey_name),
-            type = "message",
-            duration = 2
-          )
-        } else {
-          shiny::showNotification("Sync failed", type = "error")
-        }
-      }, error = function(e) {
-        shiny::showNotification(paste("Sync error:", e$message), type = "error")
-      })
-    })
-
-    # Auto-sync mechanism (debounced)
-    last_sync_time <- shiny::reactiveVal(Sys.time())
-
-    shiny::observe({
-      # Only auto-sync in online mode when survey exists
-      if (storage_mode_value() == "online" &&
-          survey_exists() &&
-          !is.null(current_survey_name()) &&
-          !is.null(supabase_conn())) {
-
-        # Capture reactive values before passing to later::later()
-        survey_editor_content <- input$survey_editor
-        app_editor_content <- input$app_editor
-        survey_name_captured <- current_survey_name()
-        conn_captured <- supabase_conn()
-        current_dir <- getwd()
-
-        # Isolate last_sync_time to prevent triggering on every sync
-        last_time <- shiny::isolate(last_sync_time())
-
-        # Schedule sync 10 seconds after last edit
-        later::later(function() {
-          # Only sync if enough time has passed (debouncing)
-          time_since_update <- as.numeric(difftime(Sys.time(), last_time, units = "secs"))
-
-          if (time_since_update >= 9.5) {  # Allow small margin
-            tryCatch({
-              # Save captured content to files
-              if (!is.null(survey_editor_content)) {
-                writeLines(survey_editor_content, file.path(current_dir, "survey.qmd"))
-              }
-              if (!is.null(app_editor_content)) {
-                writeLines(app_editor_content, file.path(current_dir, "app.R"))
-              }
-
-              # Upload to Supabase
-              supabase_upload_survey(
-                survey_path = current_dir,
-                survey_name = survey_name_captured,
-                conn = conn_captured,
-                overwrite = TRUE
-              )
-
-              # Update last sync time (not in reactive context, so set directly)
-              # This is OK because we're just updating a timestamp
-            }, error = function(e) {
-              # Silent auto-sync failures
-            })
-          }
-        }, delay = 10)
-      }
-    })
-
     # Clean up when session ends
     session$onSessionEnded(function() {
       tryCatch({
@@ -2382,76 +2010,6 @@ server_structure_handlers <- function(input, output, session, survey_exists) {
 server_preview_handlers <- function(input, output, session, survey_exists) {
   preview_process <- shiny::reactiveVal(NULL)
   preview_port <- stats::runif(1, 3000, 8000) |> floor()
-
-  # Register a proxy handler that forwards requests to the preview server
-  # This allows the iframe to use a relative URL that works on Connect Cloud
-  preview_proxy_path <- session$registerDataObj(
-    name = "preview_proxy",
-    data = preview_port,  # Store port in data for access in filter
-    filter = function(port_data, req) {
-      port <- port_data
-
-      # Build the target URL for the preview server
-      target_url <- paste0("http://127.0.0.1:", port, req$PATH_INFO)
-      if (!is.null(req$QUERY_STRING) && nzchar(req$QUERY_STRING)) {
-        target_url <- paste0(target_url, "?", req$QUERY_STRING)
-      }
-
-      # Retry logic: try up to 3 times with delays
-      max_attempts <- 3
-      for (attempt in 1:max_attempts) {
-        result <- tryCatch({
-          # Forward the request to preview server
-          response <- httr2::request(target_url) |>
-            httr2::req_timeout(10) |>
-            httr2::req_error(is_error = \(resp) FALSE) |>
-            httr2::req_perform()
-
-          # Return proxied response
-          list(
-            status = httr2::resp_status(response),
-            headers = as.list(httr2::resp_headers(response)),
-            body = httr2::resp_body_raw(response)
-          )
-        }, error = function(e) {
-          NULL  # Return NULL to trigger retry
-        })
-
-        if (!is.null(result)) {
-          return(result)  # Success!
-        }
-
-        # Wait before retry (except on last attempt)
-        if (attempt < max_attempts) {
-          Sys.sleep(1)
-        }
-      }
-
-      # All attempts failed - return error page with auto-reload
-      list(
-        status = 503L,
-        headers = list(
-          "Content-Type" = "text/html; charset=utf-8",
-          "Refresh" = "3"  # Auto-reload after 3 seconds
-        ),
-        body = charToRaw(paste0(
-          "<!DOCTYPE html><html><head>",
-          "<meta http-equiv='refresh' content='3'>",
-          "</head><body style='font-family: sans-serif; padding: 40px; text-align: center;'>",
-          "<h3 style='color: #dc3545;'>Preview Server Starting...</h3>",
-          "<p>The preview is loading, please wait...</p>",
-          "<p style='color: #666; font-size: 0.9em;'>This page will refresh automatically.</p>",
-          "<div style='margin-top: 20px;'>",
-          "<div style='display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; ",
-          "border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;'></div>",
-          "</div>",
-          "<style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>",
-          "</body></html>"
-        ))
-      )
-    }
-  )
-
   render_preview <- function() {
     # Check if survey exists first
     if (!survey_exists()) {
@@ -2484,12 +2042,9 @@ server_preview_handlers <- function(input, output, session, survey_exists) {
     
     # Launch preview server
     new_process <- launch_preview_server(preview_port)
-
+    
     preview_process(new_process)
-
-    # Use proxy path instead of localhost URL
-    # This makes the preview work on Connect Cloud by routing through the main app
-    preview_url <- preview_proxy_path
+    preview_url <- paste0("http://127.0.0.1:", preview_port)
 
     # Update single preview frame
     output$preview_frame <- shiny::renderUI({
@@ -2526,9 +2081,8 @@ server_preview_handlers <- function(input, output, session, survey_exists) {
   
   # Refresh only function - refreshes iframe with cache-busting timestamp
   refresh_preview <- function() {
-    # Use proxy path with cache-busting parameter
-    preview_url <- paste0(preview_proxy_path, "?refresh=", as.numeric(Sys.time()))
-
+    preview_url <- paste0("http://127.0.0.1:", preview_port, "?refresh=", as.numeric(Sys.time()))
+    
     # Add a small delay to ensure preview server is ready
     later::later(function() {
       output$preview_frame <- shiny::renderUI({

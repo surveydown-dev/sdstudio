@@ -86,25 +86,6 @@ sdstudio::launch()
 - **GSSAPI encryption support** with automatic fallback options
 - **CSV export functionality** for data analysis
 
-## Online Deployment 🌐
-
-`sdstudio` now supports **online deployment** using Supabase Storage! Deploy your survey studio to the cloud and work from anywhere.
-
-**Key Features:**
-- ☁️ **Cloud storage** - Store surveys in Supabase Storage
-- 🔄 **Auto-sync** - Changes automatically saved every 10 seconds
-- ⬇️ **Download** - Export surveys as ZIP files
-- ⬆️ **Upload** - Migrate local surveys to cloud
-- 🔒 **Secure** - Private buckets with optional user authentication
-
-**Quick Start:**
-1. Create a free [Supabase](https://supabase.com) account
-2. Set up a storage bucket (see [DEPLOYMENT.md](DEPLOYMENT.md))
-3. Configure environment variables
-4. Deploy to shinyapps.io, Posit Connect, or Shiny Server
-
-For detailed instructions, see the [Online Deployment Guide](DEPLOYMENT.md).
-
 ## Templates
 
 We currently have 16 templates to choose from. The ***default***
