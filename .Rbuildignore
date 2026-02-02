@@ -13,7 +13,7 @@
 ^foo\.R$
 ^doc$
 ^Meta$
-build.R
+^build\.R$
 ^cran-comments\.md$
 ^\.travis\.yml$
 ^CRAN-RELEASE$

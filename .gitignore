@@ -7,7 +7,6 @@
 .Rproj.user
 .Renviron
 .env
-build.R
 docs/
 test-studio/
 test-survey/

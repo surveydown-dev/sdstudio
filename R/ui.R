@@ -131,13 +131,20 @@ ui_template_selection <- function() {
               choices = list(
                 "Basic Templates" = list(
                   "Default" = "default",
-                  "Question Types" = "question_types"
+                  "Question Types" = "question_types",
+                  "Questions from YAML" = "questions_yml"
                 ),
-                "Advanced Features" = list(
-                  "Conditional Display" = "conditional_display",
-                  "Conditional Navigation" = "conditional_navigation",
+                "Conditional Logic" = list(
+                  "Conditional Showing" = "conditional_showing",
+                  "Conditional Skipping" = "conditional_skipping",
+                  "Conditional Stopping" = "conditional_stopping"
+                ),
+                "Randomization" = list(
+                  "Option Shuffling" = "option_shuffling",
                   "Random Options" = "random_options",
-                  "Random Options (Predefined)" = "random_options_predefined",
+                  "Random Options (Predefined)" = "random_options_predefined"
+                ),
+                "Reactive Features" = list(
                   "Reactive Drilldown" = "reactive_drilldown",
                   "Reactive Questions" = "reactive_questions"
                 ),
@@ -571,20 +578,15 @@ ui_dashboard_tab <- function() {
           $('#toggle_db_settings').click(function() {
             var form = $('#db_settings_form');
             var button = $(this);
+            var textSpan = $('#toggle_db_settings_text');
             if (form.is(':visible')) {
               form.slideUp();
               button.find('i').removeClass('fa-times').addClass('fa-cog');
-              button.contents().filter(function() {
-                return this.nodeType === 3;
-              }).remove();
-              button.append(' Settings');
+              textSpan.text('Settings');
             } else {
               form.slideDown();
               button.find('i').removeClass('fa-cog').addClass('fa-times');
-              button.contents().filter(function() {
-                return this.nodeType === 3;
-              }).remove();
-              button.append(' Close');
+              textSpan.text('Close');
             }
           });
         });
@@ -602,10 +604,12 @@ ui_dashboard_tab <- function() {
           "Database Connection",
           shiny::actionButton(
             "toggle_db_settings",
-            "Settings",
+            shiny::tagList(
+              shiny::icon("cog"),
+              shiny::span(id = "toggle_db_settings_text", "Settings")
+            ),
             class = "btn-sm btn-outline-primary ms-3",
-            style = "width: 90px;",
-            icon = shiny::icon("cog")
+            style = "width: 90px; display: inline-flex; align-items: center; gap: 5px;"
           )
         ),
         # Connection state indicator
