@@ -1,4 +1,4 @@
-CRAN Submission Comments - v0.1.4
+CRAN Submission Comments - v0.2.0
 
 Test environments:
 - local macOS Tahoe 26.1, R 4.5.1
@@ -7,4 +7,4 @@ Test environments:
 R CMD check results:
 0 errors | 0 warnings | 0 notes
 
-This is a maintenance release for compatibility with surveydown 1.0.1+. Updated navigation API and improved auto-refresh spacing preservation.
+This is a minor release that updates survey templates to match surveydown >= 1.1.0.

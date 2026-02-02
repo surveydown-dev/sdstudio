@@ -13,9 +13,5 @@ pkgdown::build_site()
 # Check package
 devtools::check()
 
-# Load the package and view the summary
-# library(sdstudio)
-# help(package = 'sdstudio')
-
-# Install from github
-# pak::pak("surveydown-dev/sdstudio", ask = FALSE)
+# Submit to CRAN
+# devtools::submit_cran()
