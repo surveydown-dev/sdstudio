@@ -2,13 +2,21 @@
 
 ## sdstudio (development version)
 
+## sdstudio 0.2.0
+
+CRAN release: 2026-02-02
+
+- Updated template names to match with
+  [surveydown](https://pkg.surveydown.org) \>= 1.1.0
+
 ## sdstudio 0.1.4
 
 CRAN release: 2025-12-03
 
-- Updated for compatibility with `surveydown` \>= 1.0.1 where
-  `sd_next()` is deprecated and navigation functions are no longer
-  required on intermediate pages.
+- Updated for compatibility with
+  [surveydown](https://pkg.surveydown.org) \>= 1.0.1 where `sd_next()`
+  is deprecated and navigation functions are no longer required on
+  intermediate pages.
 - Auto-refresh now preserves up to 2 consecutive empty lines for better
   formatting control.
 
@@ -16,8 +24,8 @@ CRAN release: 2025-12-03
 
 CRAN release: 2025-11-11
 
-- Page break compatibility with the new `surveydown` package (\>=
-  0.14.0).
+- Page break compatibility with the new
+  [surveydown](https://pkg.surveydown.org) package (\>= 0.14.0).
 
 ## sdstudio 0.1.2
 
